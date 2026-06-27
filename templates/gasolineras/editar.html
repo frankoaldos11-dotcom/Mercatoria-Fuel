@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block titulo %}Editar Gasolinera — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Infraestructura</span>
+        <h1>Editar gasolinera</h1>
+        <p>Modifica los datos de <strong>{{ gasolinera.nombre }}</strong>.</p>
+    </div>
+    <a href="/gasolineras" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/gasolineras/{{ gasolinera.id }}/editar">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Nombre <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="nombre" class="form-control"
+                       value="{{ gasolinera.nombre }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Región <span style="color:var(--danger)">*</span></label>
+                <select name="region" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for r in regiones %}
+                    <option value="{{ r }}" {{ 'selected' if gasolinera.region == r }}>{{ r }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <select name="combustible" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for tc in tipos_combustible %}
+                    <option value="{{ tc }}" {{ 'selected' if gasolinera.combustible == tc }}>
+                        {{ combustible_labels.get(tc, tc) }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Capacidad (litros) <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="capacidad_l" class="form-control"
+                       value="{{ gasolinera.capacidad_l }}" min="0" step="0.01" required>
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Dirección</label>
+                <input type="text" name="direccion" class="form-control"
+                       value="{{ gasolinera.direccion or '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Gestor responsable</label>
+                <input type="text" name="gestor_responsable" class="form-control"
+                       value="{{ gasolinera.gestor_responsable or '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="activo"   {{ 'selected' if gasolinera.estado == 'activo' }}>Activo</option>
+                    <option value="inactivo" {{ 'selected' if gasolinera.estado == 'inactivo' }}>Inactivo</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar cambios
+            </button>
+            <a href="/gasolineras" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

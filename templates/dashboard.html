@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block titulo %}Dashboard — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Panel operativo</span>
+        <h1>Dashboard</h1>
+        <p>Resumen general del sistema de control de combustible.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);">
+        <i class="bi bi-person-circle" style="font-size:18px;"></i>
+        {{ session.get('nombre', session.get('usuario', '—')) }}
+        <span style="background:#eef2ff;color:#3730a3;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;">
+            {{ session.get('rol', '') | upper }}
+        </span>
+    </div>
+</div>
+
+<div class="kpi-grid">
+
+    <div class="kpi-card">
+        <div class="kpi-icon primary">
+            <i class="bi bi-droplet-fill"></i>
+        </div>
+        <div>
+            <span>Inventario total</span>
+            <strong>{{ "{:,.0f}".format(inventario_total) }} L</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon info">
+            <i class="bi bi-lock-fill"></i>
+        </div>
+        <div>
+            <span>Inventario reservado</span>
+            <strong>{{ "{:,.0f}".format(inventario_reservado) }} L</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon success">
+            <i class="bi bi-droplet-half"></i>
+        </div>
+        <div>
+            <span>Disponible para venta</span>
+            <strong>{{ "{:,.0f}".format(disponible_venta) }} L</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'danger' if tarjetas_bajo_saldo > 0 else 'neutral' }}">
+            <i class="bi bi-credit-card-2-front"></i>
+        </div>
+        <div>
+            <span>Tarjetas con bajo saldo</span>
+            <strong>{{ tarjetas_bajo_saldo }}</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'warning' if conciliaciones_pendientes > 0 else 'neutral' }}">
+            <i class="bi bi-check2-square"></i>
+        </div>
+        <div>
+            <span>Conciliaciones pendientes</span>
+            <strong>{{ conciliaciones_pendientes }}</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'warning' if despachos_pendientes > 0 else 'neutral' }}">
+            <i class="bi bi-box-arrow-right"></i>
+        </div>
+        <div>
+            <span>Despachos pendientes</span>
+            <strong>{{ despachos_pendientes }}</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'info' if transferencias_transito > 0 else 'neutral' }}">
+            <i class="bi bi-arrow-left-right"></i>
+        </div>
+        <div>
+            <span>Transferencias en tránsito</span>
+            <strong>{{ transferencias_transito }}</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'danger' if alertas_criticas > 0 else 'neutral' }}">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div>
+            <span>Alertas críticas</span>
+            <strong>{{ alertas_criticas }}</strong>
+        </div>
+    </div>
+
+</div>
+
+<div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+
+    <a href="/gasolineras" style="text-decoration:none;color:inherit;display:block;">
+    <div class="kpi-card" style="cursor:pointer;">
+        <div class="kpi-icon success">
+            <i class="bi bi-fuel-pump-fill"></i>
+        </div>
+        <div>
+            <span>Gasolineras activas</span>
+            <strong>{{ gasolineras_activas }}</strong>
+        </div>
+    </div>
+    </a>
+
+</div>
+
+<div class="panel mt-4">
+    <div class="panel-header">
+        <div>
+            <h2>Estado del sistema</h2>
+            <p>Sprint 1 — Infraestructura base en operación.</p>
+        </div>
+    </div>
+    <div style="padding:32px;text-align:center;">
+        <i class="bi bi-check-circle-fill" style="font-size:48px;color:var(--success);margin-bottom:12px;display:block;"></i>
+        <p style="font-size:16px;font-weight:600;color:var(--text);margin:0 0 6px;">Sistema operativo</p>
+        <p style="font-size:14px;color:var(--muted);margin:0;">
+            Los módulos de Depósitos, Clientes, Vehículos, Tarjetas, Habilitaciones, Despachos y Conciliación
+            estarán disponibles en sprints siguientes.
+        </p>
+    </div>
+</div>
+
+{% endblock %}
