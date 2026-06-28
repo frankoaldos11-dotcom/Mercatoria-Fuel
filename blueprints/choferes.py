@@ -161,6 +161,11 @@ def _importar_excel(archivo):
 
 @choferes_bp.route("/")
 def listado():
+    return redirect("/unidades")
+
+
+@choferes_bp.route("/legacy_listado")
+def _listado_legacy():
     redir = requiere_login()
     if redir:
         return redir
@@ -382,6 +387,11 @@ def toggle_estado(id):
 
 @choferes_bp.route("/importar", methods=["GET", "POST"])
 def importar():
+    return redirect("/unidades/importar")
+
+
+@choferes_bp.route("/legacy_importar", methods=["GET", "POST"])
+def _importar_legacy():
     redir = requiere_login()
     if redir:
         return redir

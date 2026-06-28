@@ -78,16 +78,16 @@
     </div>
 </div>
 
-<!-- Vehículos del cliente -->
+<!-- Unidades autorizadas del cliente -->
 <div class="panel mb-4">
     <div class="panel-header">
         <div>
-            <h2>Vehículos <span style="background:#eef4ff;color:var(--primary);padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;margin-left:8px;">{{ vehiculos|length }}</span></h2>
-            <p>Flota vehicular registrada para este cliente.</p>
+            <h2>Unidades autorizadas <span style="background:#eef4ff;color:var(--primary);padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;margin-left:8px;">{{ unidades|length }}</span></h2>
+            <p>Vehículos y conductores habilitados para despachos de este cliente.</p>
         </div>
         {% if session.get('rol') in ('admin', 'pm') %}
-        <a href="/vehiculos/crear?cliente_id={{ cliente.id }}" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg"></i> Añadir vehículo
+        <a href="/unidades/crear?cliente_id={{ cliente.id }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Añadir unidad
         </a>
         {% endif %}
     </div>
@@ -95,109 +95,61 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Chapa</th>
-                    <th>Marca / Modelo</th>
-                    <th>Año</th>
+                    <th>Vehículo</th>
                     <th>Combustible</th>
-                    <th>Cuota mensual (L)</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for v in vehiculos %}
-                <tr>
-                    <td><strong style="font-family:monospace;">{{ v.chapa }}</strong></td>
-                    <td>{{ v.marca or '' }} {{ v.modelo or '' }}</td>
-                    <td>{{ v.anio or '—' }}</td>
-                    <td>
-                        <span class="badge badge-info">
-                            {{ {'diesel':'Diésel','gasolina_regular':'Gas. Regular','gasolina_especial':'Gas. Especial'}.get(v.tipo_combustible, v.tipo_combustible) }}
-                        </span>
-                    </td>
-                    <td>{{ "{:,.0f}".format(v.cuota_mensual_l) if v.cuota_mensual_l else '—' }}</td>
-                    <td>
-                        {% if v.estado == 'activo' %}
-                        <span class="badge badge-ok">Activo</span>
-                        {% else %}
-                        <span class="badge badge-neutral">Inactivo</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if session.get('rol') in ('admin', 'pm') %}
-                        <a href="/vehiculos/{{ v.id }}/editar" class="btn btn-soft btn-sm">
-                            <i class="bi bi-pencil"></i> Editar
-                        </a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="empty-state">
-                        <i class="bi bi-truck" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;"></i>
-                        No hay vehículos registrados para este cliente.
-                        {% if session.get('rol') in ('admin', 'pm') %}
-                        <br><a href="/vehiculos/crear?cliente_id={{ cliente.id }}" class="btn btn-primary mt-3 btn-sm">
-                            <i class="bi bi-plus-lg"></i> Añadir vehículo
-                        </a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Choferes del cliente -->
-<div class="panel mb-4">
-    <div class="panel-header">
-        <div>
-            <h2>Choferes <span style="background:#eef4ff;color:var(--primary);padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;margin-left:8px;">{{ choferes|length }}</span></h2>
-            <p>Conductores habilitados para despachos de este cliente.</p>
-        </div>
-        {% if session.get('rol') in ('admin', 'pm') %}
-        <a href="/choferes/crear?cliente_id={{ cliente.id }}" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg"></i> Añadir chofer
-        </a>
-        {% endif %}
-    </div>
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
+                    <th>Cuota (L/mes)</th>
+                    <th>Chofer</th>
                     <th>C.I.</th>
-                    <th>Licencia N°</th>
-                    <th>Vencimiento licencia</th>
-                    <th>Teléfono</th>
+                    <th>Licencia</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                {% for ch in choferes %}
-                <tr>
-                    <td><strong>{{ ch.nombre }}</strong></td>
-                    <td style="font-family:monospace;">{{ ch.ci }}</td>
-                    <td>{{ ch.licencia_numero or '—' }}</td>
+                {% for u in unidades %}
+                {% if u.licencia_vencimiento %}
+                    {% set venc = u.licencia_vencimiento[:10] %}
+                    {% set lic_vencida = venc < hoy %}
+                    {% set lic_proxima = venc <= limite_30 and not lic_vencida %}
+                {% else %}
+                    {% set lic_vencida = false %}
+                    {% set lic_proxima = false %}
+                {% endif %}
+                <tr {% if lic_vencida %}style="background:rgba(220,38,38,0.04);"{% elif lic_proxima %}style="background:rgba(245,158,11,0.04);"{% endif %}>
                     <td>
-                        {% if ch.licencia_vencimiento %}
-                            {% set venc = ch.licencia_vencimiento[:10] %}
-                            {% if venc < hoy %}
-                            <span class="badge badge-danger"><i class="bi bi-exclamation-triangle"></i> {{ venc }} — Vencida</span>
-                            {% elif venc <= limite_30 %}
-                            <span class="badge badge-warn"><i class="bi bi-clock"></i> {{ venc }} — Por vencer</span>
-                            {% else %}
-                            <span class="badge badge-ok">{{ venc }}</span>
-                            {% endif %}
-                        {% else %}
-                        <span class="badge badge-neutral">Sin datos</span>
+                        <strong style="font-family:monospace;font-size:15px;">{{ u.chapa }}</strong>
+                        {% if u.marca or u.modelo %}
+                        <br><span style="font-size:12px;color:var(--muted);">{{ u.marca or '' }} {{ u.modelo or '' }}{% if u.anio %} ({{ u.anio }}){% endif %}</span>
                         {% endif %}
                     </td>
-                    <td>{{ ch.telefono or '—' }}</td>
                     <td>
-                        {% if ch.estado == 'activo' %}
+                        <span class="badge badge-info">{{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }}</span>
+                    </td>
+                    <td>{{ "{:,.0f}".format(u.cuota_mensual_l) if u.cuota_mensual_l else '—' }}</td>
+                    <td>
+                        {% if u.chofer_nombre %}
+                        <strong>{{ u.chofer_nombre }}</strong>
+                        {% else %}
+                        <span style="color:var(--muted);font-size:12px;">Sin asignar</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.chofer_ci %}<span style="font-family:monospace;">{{ u.chofer_ci }}</span>{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if u.licencia_vencimiento %}
+                            {% set venc = u.licencia_vencimiento[:10] %}
+                            {% if lic_vencida %}
+                            <span class="badge badge-danger"><i class="bi bi-exclamation-triangle"></i> {{ venc }}</span>
+                            {% elif lic_proxima %}
+                            <span class="badge badge-warn"><i class="bi bi-clock"></i> {{ venc }}</span>
+                            {% else %}
+                            <span style="font-size:12px;">{{ venc }}</span>
+                            {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if u.estado == 'activo' %}
                         <span class="badge badge-ok">Activo</span>
                         {% else %}
                         <span class="badge badge-neutral">Inactivo</span>
@@ -205,7 +157,7 @@
                     </td>
                     <td>
                         {% if session.get('rol') in ('admin', 'pm') %}
-                        <a href="/choferes/{{ ch.id }}/editar" class="btn btn-soft btn-sm">
+                        <a href="/unidades/{{ u.id }}/editar" class="btn btn-soft btn-sm">
                             <i class="bi bi-pencil"></i> Editar
                         </a>
                         {% endif %}
@@ -213,12 +165,12 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="empty-state">
-                        <i class="bi bi-person-badge" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;"></i>
-                        No hay choferes registrados para este cliente.
+                    <td colspan="8" class="empty-state">
+                        <i class="bi bi-truck" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay unidades autorizadas para este cliente.
                         {% if session.get('rol') in ('admin', 'pm') %}
-                        <br><a href="/choferes/crear?cliente_id={{ cliente.id }}" class="btn btn-primary mt-3 btn-sm">
-                            <i class="bi bi-plus-lg"></i> Añadir chofer
+                        <br><a href="/unidades/crear?cliente_id={{ cliente.id }}" class="btn btn-primary mt-3 btn-sm">
+                            <i class="bi bi-plus-lg"></i> Añadir unidad
                         </a>
                         {% endif %}
                     </td>

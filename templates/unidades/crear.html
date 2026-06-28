@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block titulo %}Nueva Unidad Autorizada — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Nueva unidad autorizada</h1>
+        <p>Registra el vehículo y el conductor habilitado en una sola operación.</p>
+    </div>
+    <a href="/unidades" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/unidades/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <!-- Cliente y estado -->
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Cliente</label>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
+                <select name="cliente_id" class="form-select" required>
+                    <option value="">Seleccionar cliente...</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}"
+                        {{ 'selected' if cliente_preseleccionado == c.id|string }}>
+                        {{ c.nombre }} ({{ c.codigo }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="activo">Activo</option>
+                    <option value="inactivo">Inactivo</option>
+                </select>
+            </div>
+
+            <!-- Vehículo -->
+            <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Vehículo</label>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Chapa / Matrícula <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="chapa" class="form-control"
+                       placeholder="Ej. ABC-1234" style="text-transform:uppercase;" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <select name="tipo_combustible" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for tc in tipos_combustible %}
+                    <option value="{{ tc }}">{{ combustible_labels.get(tc, tc) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Marca</label>
+                <input type="text" name="marca" class="form-control" placeholder="Ej. Toyota">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Modelo</label>
+                <input type="text" name="modelo" class="form-control" placeholder="Ej. Hilux">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Año</label>
+                <input type="number" name="anio" class="form-control"
+                       placeholder="Ej. 2020" min="1950" max="2099">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Cuota mensual (litros)</label>
+                <input type="number" name="cuota_mensual_l" class="form-control"
+                       placeholder="Ej. 500" min="0" step="0.01">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Color</label>
+                <input type="text" name="color" class="form-control" placeholder="Ej. Blanco">
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Observaciones del vehículo</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Notas adicionales sobre el vehículo..."></textarea>
+            </div>
+
+            <!-- Chofer -->
+            <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">
+                    Chofer / Conductor autorizado
+                    <span style="font-size:11px;font-weight:400;color:var(--muted);text-transform:none;"> — opcional, pero si se registra uno ambos campos son obligatorios</span>
+                </label>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nombre del chofer</label>
+                <input type="text" name="chofer_nombre" class="form-control"
+                       placeholder="Nombre completo del conductor">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">C.I. del chofer</label>
+                <input type="text" name="chofer_ci" class="form-control"
+                       placeholder="Número de cédula de identidad">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">N.° de licencia</label>
+                <input type="text" name="licencia_numero" class="form-control"
+                       placeholder="Número de licencia de conducir">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Vencimiento de licencia</label>
+                <input type="date" name="licencia_vencimiento" class="form-control">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Teléfono del chofer</label>
+                <input type="text" name="telefono" class="form-control"
+                       placeholder="Teléfono de contacto">
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar unidad autorizada
+            </button>
+            <a href="/unidades" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

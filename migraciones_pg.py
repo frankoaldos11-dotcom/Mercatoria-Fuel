@@ -151,6 +151,9 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    # ── columnas añadidas a vehiculos post-v2 ─────────────────────────────────
+    cur.execute("ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS chofer_id INTEGER REFERENCES choferes(id)")
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS depositos (
         id               SERIAL PRIMARY KEY,

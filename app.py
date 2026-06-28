@@ -18,6 +18,7 @@ from blueprints.modulos import modulos_bp
 from blueprints.depositos import depositos_bp
 from blueprints.recepciones import recepciones_bp
 from blueprints.transferencias import transferencias_bp
+from blueprints.unidades import unidades_bp
 
 
 app = Flask(__name__)
@@ -109,6 +110,7 @@ app.register_blueprint(modulos_bp)
 app.register_blueprint(depositos_bp)
 app.register_blueprint(recepciones_bp)
 app.register_blueprint(transferencias_bp)
+app.register_blueprint(unidades_bp)
 
 # Inicializar base de datos y migraciones
 if USE_POSTGRES:

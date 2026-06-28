@@ -160,6 +160,15 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── columnas añadidas a vehiculos post-v2 (idempotentes) ─────────────────
+    for _alter in [
+        "ALTER TABLE vehiculos ADD COLUMN chofer_id INTEGER REFERENCES choferes(id)",
+    ]:
+        try:
+            cur.execute(_alter)
+        except Exception:
+            pass
+
     # ── depositos ─────────────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS depositos (

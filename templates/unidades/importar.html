@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block titulo %}Importar Unidades — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Importar unidades autorizadas</h1>
+        <p>Carga masiva de vehículos y choferes desde un archivo Excel.</p>
+    </div>
+    <a href="/unidades" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+{% if resultado %}
+    {% if resultado.error %}
+    <div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+        <i class="bi bi-exclamation-circle"></i> {{ resultado.error }}
+    </div>
+    {% else %}
+    <div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:14px;">
+        <i class="bi bi-check-circle"></i>
+        <strong>{{ resultado.importados }}</strong> unidad(es) importada(s) correctamente.
+    </div>
+    {% if resultado.fallos %}
+    <div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:13px;">
+        <strong><i class="bi bi-exclamation-triangle"></i> Advertencias ({{ resultado.fallos|length }}):</strong>
+        <ul style="margin:8px 0 0;padding-left:20px;">
+            {% for f in resultado.fallos %}
+            <li>{{ f }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% endif %}
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 style="font-size:16px;font-weight:600;margin:0;"><i class="bi bi-upload"></i> Subir archivo</h2>
+        </div>
+        <div style="padding:24px;">
+            <form method="POST" action="/unidades/importar" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label class="form-label">Archivo Excel (.xlsx) <span style="color:var(--danger)">*</span></label>
+                    <input type="file" name="archivo" class="form-control" accept=".xlsx" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-arrow-up"></i> Importar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2 style="font-size:16px;font-weight:600;margin:0;"><i class="bi bi-info-circle"></i> Formato esperado</h2>
+        </div>
+        <div style="padding:20px;font-size:13px;">
+            <p style="margin-bottom:12px;">El archivo debe tener encabezados en la primera fila. Los nombres de columna son flexibles:</p>
+
+            <p style="font-weight:600;margin-bottom:6px;">Datos del vehículo (obligatorios):</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+                {% for col in ['chapa', 'cliente_codigo', 'tipo_combustible'] %}
+                <code style="background:#EEF2FF;color:#3730A3;padding:2px 8px;border-radius:4px;font-size:12px;">{{ col }}</code>
+                {% endfor %}
+            </div>
+
+            <p style="font-weight:600;margin-bottom:6px;">Datos del vehículo (opcionales):</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+                {% for col in ['marca', 'modelo', 'anio', 'cuota_mensual_l', 'color', 'observaciones'] %}
+                <code style="background:#F3F4F6;color:#374151;padding:2px 8px;border-radius:4px;font-size:12px;">{{ col }}</code>
+                {% endfor %}
+            </div>
+
+            <p style="font-weight:600;margin-bottom:6px;">Datos del chofer (opcionales, pero si se incluyen, nombre y C.I. son ambos necesarios):</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+                {% for col in ['chofer_nombre', 'chofer_ci', 'licencia_numero', 'licencia_vencimiento', 'telefono'] %}
+                <code style="background:#F0FDF4;color:#15803D;padding:2px 8px;border-radius:4px;font-size:12px;">{{ col }}</code>
+                {% endfor %}
+            </div>
+
+            <div style="background:#FEF9C3;border-radius:6px;padding:10px;font-size:12px;color:#713F12;margin-top:8px;">
+                <strong>Upsert por chapa:</strong> si el vehículo ya existe, sus datos se actualizan.
+                El chofer se upsert por C.I. Si el C.I. ya existe, sus datos se actualizan y se vincula al vehículo.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

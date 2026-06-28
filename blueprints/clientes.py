@@ -162,16 +162,16 @@ def detalle(id):
         return redirect("/clientes")
 
     cur.execute("""
-        SELECT id, chapa, marca, modelo, anio, tipo_combustible, cuota_mensual_l, estado
-        FROM vehiculos WHERE cliente_id = ? ORDER BY chapa ASC
+        SELECT v.id, v.chapa, v.marca, v.modelo, v.anio, v.tipo_combustible,
+               v.cuota_mensual_l, v.estado, v.color,
+               ch.id AS chofer_id, ch.nombre AS chofer_nombre, ch.ci AS chofer_ci,
+               ch.licencia_numero, ch.licencia_vencimiento, ch.telefono
+        FROM vehiculos v
+        LEFT JOIN choferes ch ON ch.id = v.chofer_id
+        WHERE v.cliente_id = ?
+        ORDER BY v.chapa ASC
     """, (id,))
-    vehiculos = cur.fetchall()
-
-    cur.execute("""
-        SELECT id, nombre, ci, licencia_numero, licencia_vencimiento, telefono, estado
-        FROM choferes WHERE cliente_id = ? ORDER BY nombre ASC
-    """, (id,))
-    choferes = cur.fetchall()
+    unidades = cur.fetchall()
 
     conn.close()
 
@@ -179,12 +179,13 @@ def detalle(id):
     hoy = date.today().isoformat()
     limite_30 = (date.today() + timedelta(days=30)).isoformat()
 
+    from utils.constants import TIPOS_COMBUSTIBLE_LABELS
     return render_template(
         "clientes/detalle.html",
         cliente=cliente,
-        vehiculos=vehiculos,
-        choferes=choferes,
+        unidades=unidades,
         tipos_cliente_labels=TIPOS_CLIENTE_LABELS,
+        combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=hoy,
         limite_30=limite_30,
     )

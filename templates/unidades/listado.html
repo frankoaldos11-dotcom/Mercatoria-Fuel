@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block titulo %}Unidades autorizadas — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Unidades autorizadas</h1>
+        <p>Vehículos y conductores habilitados por cliente para despacho de combustible.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <a href="/unidades/importar" class="btn btn-secondary">
+            <i class="bi bi-file-earmark-excel"></i> Importar Excel
+        </a>
+        <a href="/unidades/crear" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Nueva unidad
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Operación realizada correctamente.
+</div>
+{% endif %}
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
+</div>
+{% endif %}
+
+<div class="panel mb-4">
+    <form method="GET" action="/unidades" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <input type="text" name="buscar" value="{{ buscar }}" class="form-control"
+               placeholder="Chapa, marca, chofer, cliente..." style="max-width:260px;">
+        <select name="cliente_id" class="form-select" style="max-width:220px;">
+            <option value="">Todos los clientes</option>
+            {% for c in clientes %}
+            <option value="{{ c.id }}" {{ 'selected' if filtro_cliente == c.id|string }}>
+                {{ c.nombre }} ({{ c.codigo }})
+            </option>
+            {% endfor %}
+        </select>
+        <select name="combustible" class="form-select" style="max-width:200px;">
+            <option value="">Todos los combustibles</option>
+            {% for tc in tipos_combustible %}
+            <option value="{{ tc }}" {{ 'selected' if filtro_combustible == tc }}>
+                {{ combustible_labels.get(tc, tc) }}
+            </option>
+            {% endfor %}
+        </select>
+        <select name="estado" class="form-select" style="max-width:150px;">
+            <option value="">Todos los estados</option>
+            <option value="activo"   {{ 'selected' if filtro_estado == 'activo' }}>Activo</option>
+            <option value="inactivo" {{ 'selected' if filtro_estado == 'inactivo' }}>Inactivo</option>
+        </select>
+        <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if buscar or filtro_cliente or filtro_combustible or filtro_estado %}
+        <a href="/unidades" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Vehículo</th>
+                    <th>Combustible</th>
+                    <th>Cuota mensual</th>
+                    <th>Chofer / Conductor</th>
+                    <th>C.I.</th>
+                    <th>Licencia</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in lista %}
+                {% if u.licencia_vencimiento %}
+                    {% set venc = u.licencia_vencimiento[:10] %}
+                    {% set licencia_vencida = venc < hoy %}
+                    {% set licencia_proxima = venc <= limite_30 and not licencia_vencida %}
+                {% else %}
+                    {% set licencia_vencida = false %}
+                    {% set licencia_proxima = false %}
+                {% endif %}
+                <tr {% if licencia_vencida %}style="background:rgba(220,38,38,0.04);"{% elif licencia_proxima %}style="background:rgba(245,158,11,0.04);"{% endif %}>
+                    <td>
+                        <a href="/clientes/{{ u.cliente_id }}" style="font-weight:600;color:var(--primary);text-decoration:none;">
+                            {{ u.cliente_nombre }}
+                        </a>
+                        <br><span style="font-size:11px;color:var(--muted);font-family:monospace;">{{ u.cliente_codigo }}</span>
+                    </td>
+                    <td>
+                        <strong style="font-family:monospace;font-size:15px;">{{ u.chapa }}</strong>
+                        {% if u.marca or u.modelo %}
+                        <br><span style="font-size:12px;color:var(--muted);">{{ u.marca or '' }} {{ u.modelo or '' }}{% if u.anio %} ({{ u.anio }}){% endif %}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-info">{{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }}</span>
+                    </td>
+                    <td>{{ "{:,.0f}".format(u.cuota_mensual_l) ~ " L" if u.cuota_mensual_l else '—' }}</td>
+                    <td>
+                        {% if u.chofer_nombre %}
+                        <strong>{{ u.chofer_nombre }}</strong>
+                        {% else %}
+                        <span style="color:var(--muted);font-size:12px;">Sin chofer asignado</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.chofer_ci %}
+                        <span style="font-family:monospace;">{{ u.chofer_ci }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if u.licencia_vencimiento %}
+                            {% set venc = u.licencia_vencimiento[:10] %}
+                            {% if licencia_vencida %}
+                            <span class="badge badge-danger" title="Licencia vencida"><i class="bi bi-exclamation-triangle"></i> {{ venc }}</span>
+                            {% elif licencia_proxima %}
+                            <span class="badge badge-warn" title="Por vencer"><i class="bi bi-clock"></i> {{ venc }}</span>
+                            {% else %}
+                            <span style="font-size:13px;">{{ venc }}</span>
+                            {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{{ u.telefono or '—' }}</td>
+                    <td>
+                        {% if u.estado == 'activo' %}
+                        <span class="badge badge-ok">Activo</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            {% if session.get('rol') in ('admin', 'pm') %}
+                            <a href="/unidades/{{ u.id }}/editar" class="btn btn-soft btn-sm">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <form method="POST" action="/unidades/{{ u.id }}/toggle" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm {{ 'btn-danger' if u.estado == 'activo' else 'btn-success' }}"
+                                        onclick="return confirm('¿Confirmar cambio de estado?')">
+                                    {% if u.estado == 'activo' %}
+                                    <i class="bi bi-toggle-off"></i>
+                                    {% else %}
+                                    <i class="bi bi-toggle-on"></i>
+                                    {% endif %}
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="empty-state">
+                        <i class="bi bi-truck" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay unidades autorizadas registradas.
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <br><a href="/unidades/crear" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-lg"></i> Crear la primera
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
