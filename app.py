@@ -20,6 +20,9 @@ if not app.config["SECRET_KEY"]:
     raise RuntimeError("SECRET_KEY no configurada — define la variable de entorno SECRET_KEY")
 app.config["SESSION_PERMANENT"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = USE_POSTGRES  # True en Render (HTTPS), False en dev local
 app.config["WTF_CSRF_ENABLED"] = True
 
 bcrypt.init_app(app)

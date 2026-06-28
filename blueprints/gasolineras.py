@@ -12,7 +12,6 @@ def _requiere_admin_pm():
 
 def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=None, valor_nuevo=None):
     try:
-        from flask import request as req
         conn = conectar()
         cur = conn.cursor()
         cur.execute("""
@@ -23,13 +22,14 @@ def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=
             usuario_id, accion, tabla, registro_id,
             str(valor_anterior) if valor_anterior else None,
             str(valor_nuevo) if valor_nuevo else None,
-            req.remote_addr,
-            req.headers.get("User-Agent", "")[:512],
+            request.remote_addr,
+            request.headers.get("User-Agent", "")[:512],
         ))
         conn.commit()
         conn.close()
-    except Exception as e:
-        import traceback; traceback.print_exc()
+    except Exception:
+        from flask import current_app
+        current_app.logger.exception("Error registrando auditoría")
 
 
 @gasolineras_bp.route("/")
@@ -184,7 +184,7 @@ def editar(id):
                 UPDATE gasolineras
                 SET nombre = ?, region = ?, direccion = ?, combustible = ?,
                     capacidad_l = ?, gestor_responsable = ?, estado = ?,
-                    updated_at = datetime('now')
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (nombre, region, direccion, combustible, capacidad, gestor, estado, id))
             conn.commit()
@@ -233,7 +233,7 @@ def toggle_estado(id):
     if row:
         nuevo_estado = "inactivo" if row["estado"] == "activo" else "activo"
         cur.execute(
-            "UPDATE gasolineras SET estado = ?, updated_at = datetime('now') WHERE id = ?",
+            "UPDATE gasolineras SET estado = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             (nuevo_estado, id)
         )
         conn.commit()

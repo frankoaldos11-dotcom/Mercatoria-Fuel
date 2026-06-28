@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 from utils.auth import requiere_login
 
 modulos_bp = Blueprint("modulos", __name__)
@@ -19,7 +19,6 @@ def placeholder():
     if redir:
         return redir
 
-    from flask import request
     path = request.path.strip("/")
     titulo_map = {
         "depositos":      "Depósitos",
