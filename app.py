@@ -72,6 +72,13 @@ def login():
     return render_template("login.html")
 
 
+@app.route("/")
+def root():
+    if "usuario" in session:
+        return redirect("/dashboard")
+    return redirect("/login")
+
+
 @app.route("/logout")
 def logout():
     session.clear()

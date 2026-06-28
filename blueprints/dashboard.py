@@ -8,7 +8,6 @@ def _requiere_login():
     return "usuario" not in session
 
 
-@dashboard_bp.route("/")
 @dashboard_bp.route("/dashboard")
 def dashboard():
     if _requiere_login():
