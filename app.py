@@ -42,6 +42,12 @@ def set_security_headers(response):
     return response
 
 
+# ── Rutas de autenticación — fuente de verdad: este archivo ──────────────────
+# /       → root()   — redirige según sesión
+# /login  → login()  — formulario + POST de autenticación
+# /logout → logout() — destruye sesión
+# La verificación de sesión en blueprints se centraliza en utils/auth.py
+
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("10 per minute")
 def login():

@@ -1,17 +1,15 @@
-from flask import Blueprint, render_template, session, redirect
+from flask import Blueprint, render_template
 from database import conectar
+from utils.auth import requiere_login
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
-def _requiere_login():
-    return "usuario" not in session
-
-
 @dashboard_bp.route("/dashboard")
 def dashboard():
-    if _requiere_login():
-        return redirect("/login")
+    redir = requiere_login()
+    if redir:
+        return redir
 
     conn = conectar()
     cur = conn.cursor()

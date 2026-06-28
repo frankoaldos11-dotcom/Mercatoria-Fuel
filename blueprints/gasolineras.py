@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import REGIONES, TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM
+from utils.auth import requiere_login
 
 gasolineras_bp = Blueprint("gasolineras", __name__, url_prefix="/gasolineras")
 
@@ -33,8 +34,9 @@ def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=
 
 @gasolineras_bp.route("/")
 def listado():
-    if "usuario" not in session:
-        return redirect("/login")
+    redir = requiere_login()
+    if redir:
+        return redir
 
     buscar = request.args.get("buscar", "").strip()
     filtro_region = request.args.get("region", "").strip()
@@ -81,8 +83,9 @@ def listado():
 
 @gasolineras_bp.route("/crear", methods=["GET", "POST"])
 def crear():
-    if "usuario" not in session:
-        return redirect("/login")
+    redir = requiere_login()
+    if redir:
+        return redir
     if _requiere_admin_pm():
         return redirect("/gasolineras?access_error=Solo+Admin+y+PM+pueden+crear+gasolineras")
 
@@ -139,8 +142,9 @@ def crear():
 
 @gasolineras_bp.route("/<int:id>/editar", methods=["GET", "POST"])
 def editar(id):
-    if "usuario" not in session:
-        return redirect("/login")
+    redir = requiere_login()
+    if redir:
+        return redir
     if _requiere_admin_pm():
         return redirect("/gasolineras?access_error=Solo+Admin+y+PM+pueden+editar+gasolineras")
 
@@ -216,8 +220,9 @@ def editar(id):
 
 @gasolineras_bp.route("/<int:id>/toggle", methods=["POST"])
 def toggle_estado(id):
-    if "usuario" not in session:
-        return redirect("/login")
+    redir = requiere_login()
+    if redir:
+        return redir
     if _requiere_admin_pm():
         return redirect("/gasolineras?access_error=Sin+permisos")
 
