@@ -125,7 +125,7 @@ def detalle(id):
         ORDER BY tipo_combustible
     """, (id,))
     stock_rows = cur.fetchall()
-    stock_por_combustible = {r["tipo_combustible"]: float(r["stock"]) for r in stock_rows}
+    stock_por_combustible = {r["tipo_combustible"]: float(r["stock"]) for r in stock_rows if r["tipo_combustible"]}
     stock_total = sum(stock_por_combustible.values())
 
     # Historial de transferencias recibidas

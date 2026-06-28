@@ -258,11 +258,12 @@ def confirmar_llegada(id):
             # Insertar movimiento de entrada — suma a la gasolinera
             cur.execute("""
                 INSERT INTO movimientos
-                    (tipo, fecha, gasolinera_id, litros, responsable_id, observaciones)
-                VALUES ('transferencia_entrada', ?, ?, ?, ?, ?)
+                    (tipo, fecha, gasolinera_id, tipo_combustible, litros, responsable_id, observaciones)
+                VALUES ('transferencia_entrada', ?, ?, ?, ?, ?, ?)
             """, (
                 fecha_llegada,
                 transferencia["gasolinera_destino_id"],
+                transferencia["tipo_combustible"],
                 litros_recibidos,
                 session.get("user_id"),
                 f"Llegada transferencia #{id} desde depósito {transferencia['deposito_nombre']}",

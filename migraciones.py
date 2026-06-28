@@ -90,6 +90,12 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── columnas añadidas a movimientos post-v3 ───────────────────────────────
+    try:
+        cur.execute("ALTER TABLE movimientos ADD COLUMN tipo_combustible TEXT")
+    except Exception:
+        pass
+
     # ── auditoria ─────────────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS auditoria (
