@@ -47,6 +47,9 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    # ── columnas añadidas a gasolineras post-v1 ───────────────────────────────
+    cur.execute("ALTER TABLE gasolineras ADD COLUMN IF NOT EXISTS provincia TEXT")
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS subinventarios (
         id                SERIAL PRIMARY KEY,

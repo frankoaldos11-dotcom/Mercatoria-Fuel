@@ -17,10 +17,21 @@
     {% endif %}
 </div>
 
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Operación realizada correctamente.
+</div>
+{% endif %}
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
+</div>
+{% endif %}
+
 <div class="panel mb-4">
     <form method="GET" action="/gasolineras" class="panel-header" style="flex-wrap:wrap;gap:10px;">
         <input type="text" name="buscar" value="{{ buscar }}" class="form-control"
-               placeholder="Buscar por nombre, gestor..." style="max-width:240px;">
+               placeholder="Nombre, gestor, provincia..." style="max-width:240px;">
         <select name="region" class="form-select" style="max-width:180px;">
             <option value="">Todas las regiones</option>
             {% for r in regiones %}
@@ -46,16 +57,17 @@
                 <tr>
                     <th>ID</th>
                     <th>Nombre</th>
-                    <th>Región</th>
-                    <th>Combustible</th>
-                    <th>Capacidad (L)</th>
-                    <th>Gestor</th>
+                    <th>Ubicación</th>
+                    <th>Combustibles</th>
+                    <th>Cap. máx. (L)</th>
+                    <th>Responsable supervisor</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for g in lista %}
+                {% set tipos = combustibles_list(g.combustible) %}
                 <tr>
                     <td><span style="color:var(--muted);font-size:12px;">#{{ g.id }}</span></td>
                     <td>
@@ -64,11 +76,20 @@
                         <br><span style="font-size:12px;color:var(--muted);">{{ g.direccion }}</span>
                         {% endif %}
                     </td>
-                    <td>{{ g.region }}</td>
                     <td>
-                        <span class="badge badge-info">
-                            {{ combustible_labels.get(g.combustible, g.combustible) }}
+                        <span>{{ g.region }}</span>
+                        {% if g.provincia %}
+                        <br><span style="font-size:12px;color:var(--muted);">{{ g.provincia }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for tc in tipos %}
+                        <span class="badge badge-info" style="margin-bottom:2px;display:inline-block;">
+                            {{ combustible_labels.get(tc, tc) }}
                         </span>
+                        {% else %}
+                        <span style="color:var(--muted);font-size:12px;">—</span>
+                        {% endfor %}
                     </td>
                     <td>{{ "{:,.0f}".format(g.capacidad_l or 0) }}</td>
                     <td>{{ g.gestor_responsable or '—' }}</td>

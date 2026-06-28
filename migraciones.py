@@ -44,6 +44,15 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── columnas añadidas a gasolineras post-v1 (idempotentes) ───────────────
+    for _alter in [
+        "ALTER TABLE gasolineras ADD COLUMN provincia TEXT",
+    ]:
+        try:
+            cur.execute(_alter)
+        except Exception:
+            pass
+
     # ── subinventarios ────────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS subinventarios (
