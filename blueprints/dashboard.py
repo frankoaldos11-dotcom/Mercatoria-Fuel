@@ -34,7 +34,13 @@ def dashboard():
 
     disponible_venta = max(0, inventario_total - inventario_reservado)
 
-    tarjetas_bajo_saldo = 0
+    # Tarjetas activas con saldo_usable_l < 200 L
+    cur.execute("""
+        SELECT COUNT(*) AS total FROM tarjetas
+        WHERE estado = 'activa' AND saldo_usable_l < 200
+    """)
+    tarjetas_bajo_saldo = cur.fetchone()["total"] or 0
+
     conciliaciones_pendientes = 0
 
     cur.execute("SELECT COUNT(*) AS total FROM movimientos WHERE tipo = 'despacho'")
@@ -48,7 +54,14 @@ def dashboard():
     """)
     transferencias_transito = cur.fetchone()["total"] or 0
 
-    alertas_criticas = 0
+    # Alertas: devoluciones cuya fecha_estimada_liberacion ya venció y siguen pendientes
+    cur.execute("""
+        SELECT COUNT(*) AS total FROM devoluciones_tarjetas
+        WHERE estado = 'pendiente'
+        AND fecha_estimada_liberacion IS NOT NULL
+        AND fecha_estimada_liberacion <= ?
+    """, (date.today().isoformat(),))
+    alertas_criticas = cur.fetchone()["total"] or 0
 
     cur.execute("SELECT COUNT(*) AS total FROM gasolineras WHERE estado = 'activo'")
     gasolineras_activas = cur.fetchone()["total"] or 0

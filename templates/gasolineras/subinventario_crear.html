@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block titulo %}Nuevo Subinventario — {{ gasolinera.nombre }} — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Infraestructura / Gasolineras / {{ gasolinera.nombre }}</span>
+        <h1>Nuevo subinventario</h1>
+        <p>Define una reserva de combustible dentro de {{ gasolinera.nombre }}.</p>
+    </div>
+    <a href="/gasolineras/{{ gasolinera.id }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/gasolineras/{{ gasolinera.id }}/subinventarios/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Nombre <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="nombre" class="form-control"
+                       placeholder="Ej. Reserva PMA, Stock interno..." required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo <span style="color:var(--danger)">*</span></label>
+                <select name="tipo" class="form-select" id="sel-tipo" required onchange="toggleCliente()">
+                    <option value="">Seleccionar tipo...</option>
+                    {% for t in tipos_subinventario %}
+                    <option value="{{ t }}">{{ subinventario_labels.get(t, t) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3" id="campo-cliente" style="display:none;">
+                <label class="form-label">Cliente asociado</label>
+                <select name="cliente_id" class="form-select">
+                    <option value="">Sin cliente específico</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}">{{ c.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Orden de prioridad</label>
+                <input type="number" name="orden_prioridad" class="form-control" value="0" min="0">
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">Mayor prioridad = número menor.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros reservados (L)</label>
+                <input type="number" name="litros_reservados" class="form-control"
+                       value="0" min="0" step="0.01" placeholder="0.00">
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Crear subinventario
+            </button>
+            <a href="/gasolineras/{{ gasolinera.id }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+<script>
+function toggleCliente() {
+    const tipo = document.getElementById('sel-tipo').value;
+    document.getElementById('campo-cliente').style.display = tipo === 'cliente' ? 'block' : 'none';
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block titulo %}Tarjeta ****{{ tarjeta.numero_parcial }} — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial / Tarjetas</span>
+        <h1 style="font-family:monospace;letter-spacing:2px;">**** **** **** {{ tarjeta.numero_parcial }}</h1>
+        <p>{{ tarjeta.gasolinera_nombre }} · {{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <a href="/tarjetas/{{ tarjeta.id }}/recargar" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Recargar
+        </a>
+        {% endif %}
+        <a href="/tarjetas/{{ tarjeta.id }}/devolucion" class="btn btn-secondary">
+            <i class="bi bi-arrow-counterclockwise"></i> Registrar devolución
+        </a>
+        <a href="/tarjetas" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Operación realizada correctamente.
+</div>
+{% endif %}
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
+</div>
+{% endif %}
+
+<!-- KPI Row -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+
+    <div class="panel" style="padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo usable</div>
+        <div style="font-size:28px;font-weight:700;color:{% if tarjeta.saldo_usable_l < 200 %}#D97706{% else %}var(--primary){% endif %};">
+            {{ "{:,.2f}".format(tarjeta.saldo_usable_l) }} <span style="font-size:14px;font-weight:400;">L</span>
+        </div>
+        {% if tarjeta.saldo_usable_l < 200 %}
+        <div style="margin-top:8px;">
+            <span class="badge badge-warn"><i class="bi bi-exclamation-triangle"></i> Saldo bajo</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="panel" style="padding:20px;text-align:center;{% if tarjeta.saldo_retenido_l > 0 %}border:2px solid #F59E0B;{% endif %}">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo retenido</div>
+        <div style="font-size:28px;font-weight:700;color:#D97706;">
+            {{ "{:,.2f}".format(tarjeta.saldo_retenido_l) }} <span style="font-size:14px;font-weight:400;">L</span>
+        </div>
+        {% if tarjeta.saldo_retenido_l > 0 %}
+        <div style="font-size:12px;color:#D97706;margin-top:6px;">Pendiente de liberación por Fincimex</div>
+        {% endif %}
+    </div>
+
+    <div class="panel" style="padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Estado</div>
+        <div style="margin-top:8px;">
+            {% if tarjeta.estado == 'activa' %}
+            <span class="badge badge-ok" style="font-size:14px;padding:6px 16px;">Activa</span>
+            {% elif tarjeta.estado == 'bloqueada' %}
+            <span class="badge badge-danger" style="font-size:14px;padding:6px 16px;">Bloqueada</span>
+            {% else %}
+            <span class="badge badge-neutral" style="font-size:14px;padding:6px 16px;">Inactiva</span>
+            {% endif %}
+        </div>
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <div style="margin-top:12px;">
+            <form method="POST" action="/tarjetas/{{ tarjeta.id }}/toggle" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-secondary"
+                        onclick="return confirm('¿Confirmar cambio de estado?')">
+                    {% if tarjeta.estado == 'activa' %}<i class="bi bi-toggle-off"></i> Desactivar
+                    {% else %}<i class="bi bi-toggle-on"></i> Activar{% endif %}
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="panel" style="padding:20px;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Datos</div>
+        <div style="font-size:13px;margin-bottom:4px;"><strong>Gasolinera:</strong> {{ tarjeta.gasolinera_nombre }}</div>
+        <div style="font-size:13px;margin-bottom:4px;"><strong>Combustible:</strong> {{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}</div>
+        {% if tarjeta.notas %}
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">{{ tarjeta.notas }}</div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Devoluciones pendientes destacadas -->
+{% set devs_pendientes = devoluciones | selectattr('estado', 'equalto', 'pendiente') | list %}
+{% if devs_pendientes %}
+<div class="panel mb-4" style="border:2px solid #F59E0B;">
+    <div class="panel-header" style="background:#FFFBEB;">
+        <h2 style="font-size:16px;font-weight:600;margin:0;color:#92400E;">
+            <i class="bi bi-clock-history"></i> Devoluciones pendientes de liberación ({{ devs_pendientes|length }})
+        </h2>
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha incidente</th>
+                    <th>Litros retenidos</th>
+                    <th>Slip inicial</th>
+                    <th>Slip devolución</th>
+                    <th>Fecha est. liberación</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in devs_pendientes %}
+                <tr style="background:#FFFBEB;">
+                    <td>{{ d.fecha_incidente }}</td>
+                    <td><strong style="color:#D97706;">{{ "{:,.2f}".format(d.litros_retenidos) }} L</strong></td>
+                    <td>{{ d.slip_inicial or '—' }}</td>
+                    <td>{{ d.slip_devolucion or '—' }}</td>
+                    <td>
+                        {% if d.fecha_estimada_liberacion %}
+                        {% set vencida = d.fecha_estimada_liberacion < hoy %}
+                        <span style="color:{% if vencida %}var(--danger){% else %}var(--text){% endif %};">
+                            {% if vencida %}<i class="bi bi-exclamation-triangle"></i> {% endif %}
+                            {{ d.fecha_estimada_liberacion }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="/tarjetas/{{ tarjeta.id }}/liberar/{{ d.id }}" style="display:flex;gap:6px;align-items:center;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="date" name="fecha_liberacion_real" value="{{ hoy }}" required
+                                   class="form-control" style="width:150px;padding:5px 8px;font-size:12px;">
+                            <button type="submit" class="btn btn-success btn-sm"
+                                    onclick="return confirm('¿Confirmar liberación de {{ '{:,.2f}'.format(d.litros_retenidos) }} L?')">
+                                <i class="bi bi-unlock"></i> Liberar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Historial de recargas -->
+<div class="panel mb-4">
+    <div class="panel-header">
+        <h2 style="font-size:16px;font-weight:600;margin:0;">
+            <i class="bi bi-plus-circle"></i> Recargas
+        </h2>
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <a href="/tarjetas/{{ tarjeta.id }}/recargar" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Nueva recarga
+        </a>
+        {% endif %}
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Litros recargados</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recargas %}
+                <tr>
+                    <td>{{ r.fecha }}</td>
+                    <td><strong style="color:var(--success);">+{{ "{:,.2f}".format(r.litros_recargados) }} L</strong></td>
+                    <td>
+                        {% if r.estado == 'confirmada' %}
+                        <span class="badge badge-ok">Confirmada</span>
+                        {% else %}
+                        <span class="badge badge-neutral">{{ r.estado|capitalize }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ r.responsable_nombre }}</td>
+                    <td style="color:var(--muted);font-size:13px;">{{ r.observaciones or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty-state" style="padding:20px;">Sin recargas registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Historial completo de devoluciones -->
+<div class="panel">
+    <div class="panel-header">
+        <h2 style="font-size:16px;font-weight:600;margin:0;">
+            <i class="bi bi-arrow-counterclockwise"></i> Devoluciones retenidas
+        </h2>
+        <a href="/tarjetas/{{ tarjeta.id }}/devolucion" class="btn btn-secondary btn-sm">
+            <i class="bi bi-plus-lg"></i> Registrar devolución
+        </a>
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha incidente</th>
+                    <th>Litros retenidos</th>
+                    <th>Slips</th>
+                    <th>Fecha est. lib.</th>
+                    <th>Fecha lib. real</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in devoluciones %}
+                <tr>
+                    <td>{{ d.fecha_incidente }}</td>
+                    <td><strong style="color:#D97706;">{{ "{:,.2f}".format(d.litros_retenidos) }} L</strong></td>
+                    <td style="font-size:12px;">
+                        {% if d.slip_inicial %}<div>Inicial: {{ d.slip_inicial }}</div>{% endif %}
+                        {% if d.slip_devolucion %}<div>Devol.: {{ d.slip_devolucion }}</div>{% endif %}
+                        {% if d.slip_restante %}<div>Restante: {{ d.slip_restante }}</div>{% endif %}
+                        {% if not d.slip_inicial and not d.slip_devolucion %}—{% endif %}
+                    </td>
+                    <td>{{ d.fecha_estimada_liberacion or '—' }}</td>
+                    <td>{{ d.fecha_liberacion_real or '—' }}</td>
+                    <td>
+                        {% if d.estado == 'pendiente' %}
+                        <span class="badge badge-warn">Pendiente</span>
+                        {% elif d.estado == 'liberada' %}
+                        <span class="badge badge-ok">Liberada</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Anulada</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:13px;">{{ d.responsable_nombre }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty-state" style="padding:20px;">Sin devoluciones registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

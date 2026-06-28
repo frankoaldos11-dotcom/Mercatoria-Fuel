@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block titulo %}Tarjetas Fincimex — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Tarjetas Fincimex</h1>
+        <p>Control de saldos usables y retenciones por devolución.</p>
+    </div>
+    {% if session.get('rol') in ('admin', 'pm') %}
+    <a href="/tarjetas/crear" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Nueva tarjeta
+    </a>
+    {% endif %}
+</div>
+
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Operación realizada correctamente.
+</div>
+{% endif %}
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
+</div>
+{% endif %}
+
+<!-- Filtros -->
+<div class="panel mb-4">
+    <form method="GET" action="/tarjetas" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <input type="text" name="buscar" value="{{ buscar }}" class="form-control"
+               placeholder="Buscar por número (últimos 4) o gasolinera..." style="max-width:260px;">
+        <select name="gasolinera_id" class="form-select" style="max-width:200px;">
+            <option value="">Todas las gasolineras</option>
+            {% for g in gasolineras %}
+            <option value="{{ g.id }}" {{ 'selected' if filtro_gasolinera == g.id|string }}>{{ g.nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="combustible" class="form-select" style="max-width:200px;">
+            <option value="">Todos los combustibles</option>
+            {% for tc in tipos_combustible %}
+            <option value="{{ tc }}" {{ 'selected' if filtro_combustible == tc }}>{{ combustible_labels.get(tc, tc) }}</option>
+            {% endfor %}
+        </select>
+        <select name="estado" class="form-select" style="max-width:150px;">
+            <option value="">Todos los estados</option>
+            {% for e in estados_tarjeta %}
+            <option value="{{ e }}" {{ 'selected' if filtro_estado == e }}>{{ e|capitalize }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if buscar or filtro_gasolinera or filtro_combustible or filtro_estado %}
+        <a href="/tarjetas" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Tarjeta</th>
+                    <th>Gasolinera</th>
+                    <th>Combustible</th>
+                    <th>Saldo usable (L)</th>
+                    <th>Saldo retenido (L)</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in lista %}
+                <tr>
+                    <td>
+                        <a href="/tarjetas/{{ t.id }}" style="font-weight:700;font-family:monospace;font-size:15px;color:var(--primary);text-decoration:none;letter-spacing:1px;">
+                            **** **** **** {{ t.numero_parcial }}
+                        </a>
+                        {% if t.devoluciones_pendientes > 0 %}
+                        <br><span class="badge badge-danger" style="margin-top:4px;">
+                            <i class="bi bi-clock"></i> {{ t.devoluciones_pendientes }} dev. pendiente{% if t.devoluciones_pendientes > 1 %}s{% endif %}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ t.gasolinera_nombre }}</td>
+                    <td><span class="badge badge-info">{{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}</span></td>
+                    <td>
+                        <strong style="font-size:15px;{% if t.saldo_usable_l < 200 %}color:#D97706;{% endif %}">
+                            {{ "{:,.2f}".format(t.saldo_usable_l) }}
+                        </strong>
+                        {% if t.saldo_usable_l < 200 %}
+                        <span class="badge badge-warn" style="margin-left:6px;">
+                            <i class="bi bi-exclamation-triangle"></i> Bajo
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if t.saldo_retenido_l > 0 %}
+                        <strong style="color:#D97706;">{{ "{:,.2f}".format(t.saldo_retenido_l) }}</strong>
+                        {% else %}
+                        <span style="color:var(--muted);">0.00</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if t.estado == 'activa' %}
+                        <span class="badge badge-ok">Activa</span>
+                        {% elif t.estado == 'bloqueada' %}
+                        <span class="badge badge-danger">Bloqueada</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Inactiva</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="/tarjetas/{{ t.id }}" class="btn btn-soft btn-sm">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% if session.get('rol') in ('admin', 'pm') %}
+                            <a href="/tarjetas/{{ t.id }}/recargar" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-plus-circle"></i> Recargar
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <i class="bi bi-credit-card-2-front" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay tarjetas registradas.
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <br><a href="/tarjetas/crear" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-lg"></i> Crear la primera
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

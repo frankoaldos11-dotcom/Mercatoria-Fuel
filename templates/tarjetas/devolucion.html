@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block titulo %}Registrar Devolución — Tarjeta ****{{ tarjeta.numero_parcial }} — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial / Tarjetas</span>
+        <h1>Registrar devolución retenida</h1>
+        <p>**** **** **** {{ tarjeta.numero_parcial }} · {{ tarjeta.gasolinera_nombre }}</p>
+    </div>
+    <a href="/tarjetas/{{ tarjeta.id }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<!-- Saldo actual -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+    <div class="panel" style="padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo usable disponible</div>
+        <div style="font-size:28px;font-weight:700;color:var(--primary);">
+            {{ "{:,.2f}".format(tarjeta.saldo_usable_l) }} <span style="font-size:14px;font-weight:400;">L</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Máximo a retener</div>
+    </div>
+    {% if tarjeta.saldo_retenido_l > 0 %}
+    <div class="panel" style="padding:20px;text-align:center;border:2px solid #F59E0B;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Ya retenido</div>
+        <div style="font-size:28px;font-weight:700;color:#D97706;">
+            {{ "{:,.2f}".format(tarjeta.saldo_retenido_l) }} <span style="font-size:14px;font-weight:400;">L</span>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Nueva retención por devolución Fincimex</h2>
+            <p>Los litros se moverán de saldo usable a saldo retenido hasta la liberación.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="/tarjetas/{{ tarjeta.id }}/devolucion">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Litros retenidos <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros_retenidos" class="form-control"
+                       placeholder="0.00" min="0.01" step="0.01" required
+                       max="{{ tarjeta.saldo_usable_l }}">
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                    Máximo: {{ "{:,.2f}".format(tarjeta.saldo_usable_l) }} L
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha del incidente <span style="color:var(--danger)">*</span></label>
+                <input type="date" name="fecha_incidente" class="form-control" value="{{ hoy }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">N.° Slip inicial</label>
+                <input type="text" name="slip_inicial" class="form-control"
+                       placeholder="Número del slip original">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">N.° Slip de devolución</label>
+                <input type="text" name="slip_devolucion" class="form-control"
+                       placeholder="Número del slip de devolución">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">N.° Slip de saldo restante</label>
+                <input type="text" name="slip_restante" class="form-control"
+                       placeholder="Número del slip de saldo restante">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha estimada de liberación</label>
+                <input type="date" name="fecha_estimada_liberacion" class="form-control">
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                    Fincimex tarda hasta 7 días hábiles en liberar.
+                </div>
+            </div>
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Descripción del incidente..."></textarea>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Registrar retención
+            </button>
+            <a href="/tarjetas/{{ tarjeta.id }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

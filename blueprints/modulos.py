@@ -4,7 +4,6 @@ from utils.auth import requiere_login
 modulos_bp = Blueprint("modulos", __name__)
 
 
-@modulos_bp.route("/tarjetas")
 @modulos_bp.route("/habilitaciones")
 @modulos_bp.route("/despachos")
 @modulos_bp.route("/conciliacion")

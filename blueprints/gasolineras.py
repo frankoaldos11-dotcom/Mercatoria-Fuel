@@ -1,6 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
-from utils.constants import REGIONES, TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM
+from utils.constants import (
+    REGIONES, TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM,
+    TIPOS_SUBINVENTARIO, TIPOS_SUBINVENTARIO_LABELS,
+)
 from utils.auth import requiere_login
 
 gasolineras_bp = Blueprint("gasolineras", __name__, url_prefix="/gasolineras")
@@ -30,6 +33,15 @@ def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=
     except Exception:
         from flask import current_app
         current_app.logger.exception("Error registrando auditoría")
+
+
+def _stock_gasolinera(cur, gasolinera_id):
+    cur.execute("""
+        SELECT COALESCE(SUM(litros), 0) AS stock
+        FROM movimientos
+        WHERE gasolinera_id = ? AND tipo = 'transferencia_entrada'
+    """, (gasolinera_id,))
+    return float(cur.fetchone()["stock"] or 0)
 
 
 def _combustibles_list(raw):
@@ -129,8 +141,21 @@ def detalle(id):
         LIMIT 50
     """, (id,))
     transferencias = cur.fetchall()
+
+    # Subinventarios
+    cur.execute("""
+        SELECT s.id, s.nombre, s.tipo, s.orden_prioridad, s.litros_reservados,
+               s.activo, s.cliente_id, c.nombre AS cliente_nombre
+        FROM subinventarios s
+        LEFT JOIN clientes c ON c.id = s.cliente_id
+        WHERE s.gasolinera_id = ?
+        ORDER BY s.orden_prioridad ASC, s.id ASC
+    """, (id,))
+    subinventarios = cur.fetchall()
     conn.close()
 
+    suma_reservados = sum(float(s["litros_reservados"]) for s in subinventarios if s["activo"])
+    disponible_venta = max(0.0, stock_total - suma_reservados)
     combustibles_gasolinera = _combustibles_list(gasolinera["combustible"])
 
     return render_template(
@@ -140,7 +165,11 @@ def detalle(id):
         stock_por_combustible=stock_por_combustible,
         combustibles_gasolinera=combustibles_gasolinera,
         transferencias=transferencias,
+        subinventarios=subinventarios,
+        suma_reservados=suma_reservados,
+        disponible_venta=disponible_venta,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
+        subinventario_labels=TIPOS_SUBINVENTARIO_LABELS,
     )
 
 
@@ -322,3 +351,314 @@ def toggle_estado(id):
         )
     conn.close()
     return redirect("/gasolineras")
+
+
+# ── Subinventarios: crear ─────────────────────────────────────────────────────
+
+@gasolineras_bp.route("/<int:id>/subinventarios/crear", methods=["GET", "POST"])
+def subinventario_crear(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/gasolineras/{id}?access_error=Solo+Admin+y+PM+pueden+gestionar+subinventarios")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM gasolineras WHERE id = ?", (id,))
+    gasolinera = cur.fetchone()
+    if not gasolinera:
+        conn.close()
+        return redirect("/gasolineras")
+
+    cur.execute("SELECT id, nombre FROM clientes WHERE activo = 1 ORDER BY nombre ASC")
+    clientes = cur.fetchall()
+    conn.close()
+
+    error = None
+
+    if request.method == "POST":
+        nombre = request.form.get("nombre", "").strip()
+        tipo = request.form.get("tipo", "").strip()
+        orden_str = request.form.get("orden_prioridad", "0").strip()
+        litros_str = request.form.get("litros_reservados", "0").strip()
+        cliente_id = request.form.get("cliente_id", "").strip() or None
+
+        if not nombre:
+            error = "El nombre es obligatorio."
+        elif tipo not in TIPOS_SUBINVENTARIO:
+            error = "Tipo no válido."
+        else:
+            try:
+                orden = int(orden_str)
+            except ValueError:
+                orden = 0
+            try:
+                litros = float(litros_str)
+            except ValueError:
+                litros = 0.0
+                error = "Los litros deben ser un número válido."
+
+            if not error and litros < 0:
+                error = "Los litros reservados no pueden ser negativos."
+
+            if not error:
+                conn = conectar()
+                cur = conn.cursor()
+                stock_actual = _stock_gasolinera(cur, id)
+                cur.execute("""
+                    SELECT COALESCE(SUM(litros_reservados), 0) AS total
+                    FROM subinventarios WHERE gasolinera_id = ? AND activo = 1
+                """, (id,))
+                suma_actual = float(cur.fetchone()["total"] or 0)
+
+                if suma_actual + litros > stock_actual + 0.001:
+                    error = (
+                        f"La reserva total ({suma_actual + litros:,.2f} L) superaría el stock "
+                        f"físico actual ({stock_actual:,.2f} L)."
+                    )
+                    conn.close()
+                else:
+                    cur.execute("""
+                        INSERT INTO subinventarios
+                            (gasolinera_id, nombre, tipo, orden_prioridad, litros_reservados, cliente_id, activo)
+                        VALUES (?, ?, ?, ?, ?, ?, 1)
+                    """, (id, nombre, tipo, orden, litros, cliente_id or None))
+                    conn.commit()
+                    conn.close()
+                    return redirect(f"/gasolineras/{id}?ok=1")
+
+    return render_template(
+        "gasolineras/subinventario_crear.html",
+        gasolinera=gasolinera,
+        error=error,
+        clientes=clientes,
+        tipos_subinventario=TIPOS_SUBINVENTARIO,
+        subinventario_labels=TIPOS_SUBINVENTARIO_LABELS,
+    )
+
+
+# ── Subinventarios: editar ────────────────────────────────────────────────────
+
+@gasolineras_bp.route("/<int:id>/subinventarios/<int:sub_id>/editar", methods=["GET", "POST"])
+def subinventario_editar(id, sub_id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/gasolineras/{id}?access_error=Solo+Admin+y+PM+pueden+gestionar+subinventarios")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM gasolineras WHERE id = ?", (id,))
+    gasolinera = cur.fetchone()
+    cur.execute("SELECT * FROM subinventarios WHERE id = ? AND gasolinera_id = ?", (sub_id, id))
+    sub = cur.fetchone()
+    if not gasolinera or not sub:
+        conn.close()
+        return redirect(f"/gasolineras/{id}")
+
+    cur.execute("SELECT id, nombre FROM clientes WHERE activo = 1 ORDER BY nombre ASC")
+    clientes = cur.fetchall()
+    conn.close()
+
+    error = None
+
+    if request.method == "POST":
+        nombre = request.form.get("nombre", "").strip()
+        tipo = request.form.get("tipo", "").strip()
+        orden_str = request.form.get("orden_prioridad", "0").strip()
+        litros_str = request.form.get("litros_reservados", "0").strip()
+        cliente_id = request.form.get("cliente_id", "").strip() or None
+
+        if not nombre:
+            error = "El nombre es obligatorio."
+        elif tipo not in TIPOS_SUBINVENTARIO:
+            error = "Tipo no válido."
+        else:
+            try:
+                orden = int(orden_str)
+            except ValueError:
+                orden = 0
+            try:
+                litros = float(litros_str)
+            except ValueError:
+                litros = 0.0
+                error = "Los litros deben ser un número válido."
+
+            if not error and litros < 0:
+                error = "Los litros reservados no pueden ser negativos."
+
+            if not error:
+                conn = conectar()
+                cur = conn.cursor()
+                stock_actual = _stock_gasolinera(cur, id)
+                cur.execute("""
+                    SELECT COALESCE(SUM(litros_reservados), 0) AS total
+                    FROM subinventarios WHERE gasolinera_id = ? AND activo = 1 AND id != ?
+                """, (id, sub_id))
+                suma_otros = float(cur.fetchone()["total"] or 0)
+
+                if suma_otros + litros > stock_actual + 0.001:
+                    error = (
+                        f"La reserva total ({suma_otros + litros:,.2f} L) superaría el stock "
+                        f"físico actual ({stock_actual:,.2f} L)."
+                    )
+                    conn.close()
+                else:
+                    litros_anterior = float(sub["litros_reservados"])
+                    cur.execute("""
+                        UPDATE subinventarios
+                        SET nombre = ?, tipo = ?, orden_prioridad = ?,
+                            litros_reservados = ?, cliente_id = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    """, (nombre, tipo, orden, litros, cliente_id or None, sub_id))
+
+                    if abs(litros - litros_anterior) > 0.001:
+                        delta = litros - litros_anterior
+                        cur.execute("""
+                            INSERT INTO movimientos
+                                (tipo, fecha, gasolinera_id,
+                                 subinventario_origen_id, subinventario_destino_id,
+                                 litros, responsable_id, observaciones)
+                            VALUES ('reasignacion', date('now'), ?, ?, ?, ?, ?, ?)
+                        """, (
+                            id,
+                            sub_id if delta < 0 else None,
+                            sub_id if delta > 0 else None,
+                            abs(delta),
+                            session.get("user_id"),
+                            f"Ajuste directo reserva subinventario #{sub_id} — {nombre}",
+                        ))
+
+                    conn.commit()
+                    conn.close()
+                    return redirect(f"/gasolineras/{id}?ok=1")
+
+    return render_template(
+        "gasolineras/subinventario_editar.html",
+        gasolinera=gasolinera,
+        sub=sub,
+        error=error,
+        clientes=clientes,
+        tipos_subinventario=TIPOS_SUBINVENTARIO,
+        subinventario_labels=TIPOS_SUBINVENTARIO_LABELS,
+    )
+
+
+# ── Subinventarios: toggle ────────────────────────────────────────────────────
+
+@gasolineras_bp.route("/<int:id>/subinventarios/<int:sub_id>/toggle", methods=["POST"])
+def subinventario_toggle(id, sub_id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/gasolineras/{id}?access_error=Sin+permisos")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT activo FROM subinventarios WHERE id = ? AND gasolinera_id = ?", (sub_id, id))
+    row = cur.fetchone()
+    if row:
+        nuevo = 0 if row["activo"] else 1
+        cur.execute(
+            "UPDATE subinventarios SET activo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (nuevo, sub_id)
+        )
+        conn.commit()
+    conn.close()
+    return redirect(f"/gasolineras/{id}?ok=1")
+
+
+# ── Reasignación de reservas ──────────────────────────────────────────────────
+
+@gasolineras_bp.route("/<int:id>/reasignar", methods=["GET", "POST"])
+def reasignar(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/gasolineras/{id}?access_error=Solo+Admin+y+PM+pueden+reasignar+reservas")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM gasolineras WHERE id = ?", (id,))
+    gasolinera = cur.fetchone()
+    if not gasolinera:
+        conn.close()
+        return redirect("/gasolineras")
+
+    cur.execute("""
+        SELECT id, nombre, tipo, litros_reservados
+        FROM subinventarios WHERE gasolinera_id = ? AND activo = 1
+        ORDER BY orden_prioridad ASC, id ASC
+    """, (id,))
+    subinventarios = cur.fetchall()
+    conn.close()
+
+    error = None
+
+    if request.method == "POST":
+        origen_id_str = request.form.get("origen_id", "").strip()
+        destino_id_str = request.form.get("destino_id", "").strip()
+        litros_str = request.form.get("litros", "0").strip()
+
+        if not origen_id_str or not destino_id_str:
+            error = "Debe seleccionar subinventario origen y destino."
+        elif origen_id_str == destino_id_str:
+            error = "El origen y el destino no pueden ser el mismo subinventario."
+        else:
+            try:
+                litros = float(litros_str)
+            except ValueError:
+                litros = 0.0
+                error = "Los litros deben ser un número válido."
+
+            if not error and litros <= 0:
+                error = "Los litros a reasignar deben ser mayores a cero."
+
+        if not error:
+            conn = conectar()
+            cur = conn.cursor()
+            cur.execute("SELECT litros_reservados FROM subinventarios WHERE id = ? AND gasolinera_id = ? AND activo = 1",
+                        (origen_id_str, id))
+            origen_row = cur.fetchone()
+            if not origen_row:
+                error = "Subinventario origen no encontrado o inactivo."
+                conn.close()
+            elif float(origen_row["litros_reservados"]) < litros - 0.001:
+                error = (
+                    f"El subinventario origen solo tiene {float(origen_row['litros_reservados']):,.2f} L "
+                    f"reservados y no puede ceder {litros:,.2f} L."
+                )
+                conn.close()
+            else:
+                cur.execute(
+                    "UPDATE subinventarios SET litros_reservados = litros_reservados - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (litros, origen_id_str)
+                )
+                cur.execute(
+                    "UPDATE subinventarios SET litros_reservados = litros_reservados + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (litros, destino_id_str)
+                )
+                cur.execute("""
+                    INSERT INTO movimientos
+                        (tipo, fecha, gasolinera_id,
+                         subinventario_origen_id, subinventario_destino_id,
+                         litros, responsable_id, observaciones)
+                    VALUES ('reasignacion', date('now'), ?, ?, ?, ?, ?, ?)
+                """, (id, origen_id_str, destino_id_str, litros, session.get("user_id"),
+                      "Reasignación de reserva entre subinventarios"))
+                conn.commit()
+                conn.close()
+                return redirect(f"/gasolineras/{id}?ok=1")
+
+    return render_template(
+        "gasolineras/reasignar.html",
+        gasolinera=gasolinera,
+        subinventarios=subinventarios,
+        error=error,
+        subinventario_labels=TIPOS_SUBINVENTARIO_LABELS,
+    )

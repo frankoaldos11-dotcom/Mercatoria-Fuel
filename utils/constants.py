@@ -33,11 +33,27 @@ TIPOS_SUBINVENTARIO = [
     "venta",
 ]
 
+TIPOS_SUBINVENTARIO_LABELS = {
+    "cliente":            "Cliente",
+    "mercatoria_interna": "Mercatoria Interna",
+    "reserva_general":    "Reserva General",
+    "venta":              "Venta",
+}
+
+ESTADOS_TARJETA = ["activa", "inactiva", "bloqueada"]
+
+ESTADOS_TARJETA_LABELS = {
+    "activa":    "Activa",
+    "inactiva":  "Inactiva",
+    "bloqueada": "Bloqueada",
+}
+
 TIPOS_MOVIMIENTO = [
     "recepcion",
     "transferencia_salida",
     "transferencia_entrada",
     "transferencia_anulacion",
+    "recarga_tarjeta",
     "despacho",
     "ajuste",
     "reasignacion",

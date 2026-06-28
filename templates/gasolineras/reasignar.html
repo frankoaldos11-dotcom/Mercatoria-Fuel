@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block titulo %}Reasignar Reservas — {{ gasolinera.nombre }} — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Infraestructura / Gasolineras / {{ gasolinera.nombre }}</span>
+        <h1>Reasignar reservas</h1>
+        <p>Mueve litros entre subinventarios sin mover combustible físico. La operación es atómica y queda auditada.</p>
+    </div>
+    <a href="/gasolineras/{{ gasolinera.id }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<!-- Subinventarios disponibles -->
+{% if subinventarios %}
+<div class="panel mb-4">
+    <div class="panel-header">
+        <h2 style="font-size:15px;font-weight:600;margin:0;"><i class="bi bi-list-ul"></i> Reservas actuales</h2>
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr><th>Subinventario</th><th>Tipo</th><th>Litros reservados</th></tr>
+            </thead>
+            <tbody>
+                {% for s in subinventarios %}
+                <tr>
+                    <td><strong>#{{ s.id }}</strong> — {{ s.nombre }}</td>
+                    <td><span class="badge badge-info">{{ subinventario_labels.get(s.tipo, s.tipo) }}</span></td>
+                    <td><strong>{{ "{:,.2f}".format(s.litros_reservados) }} L</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Reasignación</h2>
+            <p>Selecciona origen, destino y los litros a reclasificar.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="/gasolineras/{{ gasolinera.id }}/reasignar">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Subinventario origen <span style="color:var(--danger)">*</span></label>
+                <select name="origen_id" class="form-select" required>
+                    <option value="">Seleccionar origen...</option>
+                    {% for s in subinventarios %}
+                    <option value="{{ s.id }}">{{ s.nombre }} — {{ "{:,.2f}".format(s.litros_reservados) }} L</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Subinventario destino <span style="color:var(--danger)">*</span></label>
+                <select name="destino_id" class="form-select" required>
+                    <option value="">Seleccionar destino...</option>
+                    {% for s in subinventarios %}
+                    <option value="{{ s.id }}">{{ s.nombre }} — {{ "{:,.2f}".format(s.litros_reservados) }} L</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros a reasignar <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros" class="form-control"
+                       placeholder="0.00" min="0.01" step="0.01" required>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary"
+                    onclick="return confirm('¿Confirmar reasignación? La operación es irreversible.')">
+                <i class="bi bi-arrow-left-right"></i> Confirmar reasignación
+            </button>
+            <a href="/gasolineras/{{ gasolinera.id }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

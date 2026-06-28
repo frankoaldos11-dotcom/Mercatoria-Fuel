@@ -211,6 +211,59 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    # ── tarjetas ──────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS tarjetas (
+        id               SERIAL PRIMARY KEY,
+        numero_completo  TEXT UNIQUE NOT NULL,
+        numero_parcial   TEXT NOT NULL,
+        pin_hash         TEXT NOT NULL,
+        gasolinera_id    INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible TEXT NOT NULL,
+        saldo_usable_l   NUMERIC(14,2) NOT NULL DEFAULT 0,
+        saldo_retenido_l NUMERIC(14,2) NOT NULL DEFAULT 0,
+        estado           TEXT NOT NULL DEFAULT 'activa',
+        notas            TEXT,
+        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ── recargas_tarjetas ─────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS recargas_tarjetas (
+        id                SERIAL PRIMARY KEY,
+        tarjeta_id        INTEGER NOT NULL REFERENCES tarjetas(id),
+        fecha             DATE NOT NULL,
+        litros_recargados NUMERIC(14,2) NOT NULL DEFAULT 0,
+        responsable_id    INTEGER NOT NULL REFERENCES usuarios(id),
+        observaciones     TEXT,
+        estado            TEXT NOT NULL DEFAULT 'confirmada',
+        created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ── devoluciones_tarjetas ─────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS devoluciones_tarjetas (
+        id                        SERIAL PRIMARY KEY,
+        tarjeta_id                INTEGER NOT NULL REFERENCES tarjetas(id),
+        fecha_incidente           DATE NOT NULL,
+        litros_retenidos          NUMERIC(14,2) NOT NULL DEFAULT 0,
+        slip_inicial              TEXT,
+        slip_devolucion           TEXT,
+        slip_restante             TEXT,
+        fecha_estimada_liberacion DATE,
+        fecha_liberacion_real     DATE,
+        estado                    TEXT NOT NULL DEFAULT 'pendiente',
+        observaciones             TEXT,
+        responsable_id            INTEGER NOT NULL REFERENCES usuarios(id),
+        created_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
     if not cur.fetchone():
@@ -235,6 +288,55 @@ def ejecutar_migraciones_pg(bcrypt):
                 "INSERT INTO clientes (nombre, codigo, tipo) VALUES (%s, %s, %s)",
                 (nombre, codigo, tipo)
             )
+
+    # ── seed: gasolinera La Shell ─────────────────────────────────────────────
+    cur.execute("SELECT id FROM gasolineras WHERE nombre = %s", ("La Shell",))
+    row_shell = cur.fetchone()
+    if not row_shell:
+        cur.execute("""
+            INSERT INTO gasolineras (nombre, region, combustible, capacidad_l, estado)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id
+        """, ("La Shell", "Occidente", "diesel,gasolina_regular,gasolina_especial", 50000, "activo"))
+        shell_id = cur.fetchone()[0]
+    else:
+        shell_id = row_shell[0]
+
+    # ── seed: tarjetas Fincimex ───────────────────────────────────────────────
+    cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
+    row_admin = cur.fetchone()
+    admin_id = row_admin[0] if row_admin else 1
+
+    from werkzeug.security import generate_password_hash as _gph
+    from datetime import date, timedelta
+    pin_seed = _gph("0000")
+    fecha_estimada_seed = (date.today() + timedelta(days=10)).isoformat()
+
+    tarjetas_seed = [
+        ("0000000000008777", "8777", "diesel", 3200.00,  0.00, False),
+        ("0000000000008785", "8785", "diesel", 3200.00,  0.00, False),
+        ("0000000000008751", "8751", "diesel",   62.00,  0.00, False),
+        ("0000000000000898", "0898", "diesel",    0.07, 566.93, True),
+        ("0000000000000880", "0880", "diesel",    4.73,  55.27, True),
+    ]
+    for num_completo, num_parcial, combustible, saldo_usable, saldo_retenido, tiene_dev in tarjetas_seed:
+        cur.execute("SELECT id FROM tarjetas WHERE numero_completo = %s", (num_completo,))
+        if not cur.fetchone():
+            cur.execute("""
+                INSERT INTO tarjetas
+                    (numero_completo, numero_parcial, pin_hash, gasolinera_id,
+                     tipo_combustible, saldo_usable_l, saldo_retenido_l, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'activa') RETURNING id
+            """, (num_completo, num_parcial, pin_seed, shell_id,
+                  combustible, saldo_usable, saldo_retenido))
+            nueva_id = cur.fetchone()[0]
+            if tiene_dev:
+                cur.execute("""
+                    INSERT INTO devoluciones_tarjetas
+                        (tarjeta_id, fecha_incidente, litros_retenidos, estado,
+                         fecha_estimada_liberacion, responsable_id, observaciones)
+                    VALUES (%s, CURRENT_DATE, %s, 'pendiente', %s, %s, %s)
+                """, (nueva_id, saldo_retenido, fecha_estimada_seed, admin_id,
+                      f"Devolución inicial — tarjeta ****{num_parcial}"))
 
     conn.commit()
     cur.close()

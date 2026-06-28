@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block titulo %}Nueva Tarjeta — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial / Tarjetas</span>
+        <h1>Nueva tarjeta Fincimex</h1>
+        <p>El número completo se almacena cifrado; solo se muestra los últimos 4 dígitos.</p>
+    </div>
+    <a href="/tarjetas" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/tarjetas/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Número completo (16 dígitos) <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="numero_completo" class="form-control"
+                       placeholder="1234567890123456" maxlength="19" required
+                       pattern="[\d\s\-]{16,19}"
+                       style="font-family:monospace;font-size:16px;letter-spacing:2px;">
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                    Solo se mostrarán los últimos 4 dígitos en la interfaz.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">PIN <span style="color:var(--danger)">*</span></label>
+                <input type="password" name="pin" class="form-control"
+                       placeholder="••••" autocomplete="new-password" required>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                    Se almacenará cifrado. No hay forma de recuperarlo.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Gasolinera asignada <span style="color:var(--danger)">*</span></label>
+                <select name="gasolinera_id" class="form-select" required>
+                    <option value="">Seleccionar gasolinera...</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}">{{ g.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <select name="tipo_combustible" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for tc in tipos_combustible %}
+                    <option value="{{ tc }}">{{ combustible_labels.get(tc, tc) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Saldo usable inicial (L)</label>
+                <input type="number" name="saldo_usable_l" class="form-control"
+                       value="0" min="0" step="0.01" placeholder="0.00">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Estado <span style="color:var(--danger)">*</span></label>
+                <select name="estado" class="form-select" required>
+                    {% for e in estados_tarjeta %}
+                    <option value="{{ e }}" {{ 'selected' if e == 'activa' }}>{{ e|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Notas</label>
+                <textarea name="notas" class="form-control" rows="2"
+                          placeholder="Observaciones sobre esta tarjeta..."></textarea>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar tarjeta
+            </button>
+            <a href="/tarjetas" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}
