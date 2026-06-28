@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block titulo %}Transferencias — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Inventario</span>
+        <h1>Transferencias</h1>
+        <p>Movimientos de combustible de depósitos hacia gasolineras.</p>
+    </div>
+    {% if session.get('rol') in ('admin', 'pm') %}
+    <a href="/transferencias/crear" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Nueva transferencia
+    </a>
+    {% endif %}
+</div>
+
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Operación realizada correctamente.
+</div>
+{% endif %}
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
+</div>
+{% endif %}
+
+<div class="panel mb-4">
+    <form method="GET" action="/transferencias" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <select name="deposito_id" class="form-select" style="max-width:220px;">
+            <option value="">Todos los depósitos</option>
+            {% for d in depositos %}
+            <option value="{{ d.id }}" {{ 'selected' if filtro_deposito == d.id|string }}>{{ d.nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="gasolinera_id" class="form-select" style="max-width:220px;">
+            <option value="">Todas las gasolineras</option>
+            {% for g in gasolineras %}
+            <option value="{{ g.id }}" {{ 'selected' if filtro_gasolinera == g.id|string }}>{{ g.nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="estado" class="form-select" style="max-width:170px;">
+            <option value="">Todos los estados</option>
+            <option value="en_transito" {{ 'selected' if filtro_estado == 'en_transito' }}>En tránsito</option>
+            <option value="recibida"    {{ 'selected' if filtro_estado == 'recibida' }}>Recibida</option>
+            <option value="anulada"     {{ 'selected' if filtro_estado == 'anulada' }}>Anulada</option>
+        </select>
+        <input type="date" name="desde" value="{{ filtro_desde }}" class="form-control" style="max-width:150px;" title="Desde">
+        <input type="date" name="hasta" value="{{ filtro_hasta }}" class="form-control" style="max-width:150px;" title="Hasta">
+        <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if filtro_deposito or filtro_gasolinera or filtro_estado or filtro_desde or filtro_hasta %}
+        <a href="/transferencias" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha salida</th>
+                    <th>Origen</th>
+                    <th>Destino</th>
+                    <th>Combustible</th>
+                    <th>L. solicitados</th>
+                    <th>L. recibidos</th>
+                    <th>Pipa / Chofer</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in lista %}
+                <tr {% if t.estado == 'en_transito' %}style="background:rgba(245,158,11,0.05);"{% endif %}>
+                    <td><span style="color:var(--muted);font-size:12px;">#{{ t.id }}</span></td>
+                    <td>{{ t.fecha_salida }}</td>
+                    <td>
+                        <a href="/depositos/{{ t.deposito_origen_id }}" style="color:var(--primary);text-decoration:none;">
+                            {{ t.deposito_nombre }}
+                        </a>
+                    </td>
+                    <td>{{ t.gasolinera_nombre }}</td>
+                    <td>
+                        <span class="badge badge-info">
+                            {{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}
+                        </span>
+                    </td>
+                    <td>{{ "{:,.2f}".format(t.litros_solicitados) }}</td>
+                    <td>
+                        {% if t.litros_recibidos is not none %}
+                        {% set diff_pct = ((t.litros_recibidos - t.litros_solicitados) / t.litros_solicitados * 100) if t.litros_solicitados else 0 %}
+                        {{ "{:,.2f}".format(t.litros_recibidos) }}
+                        {% if diff_pct|abs > 0.5 %}
+                        <span class="badge badge-warn" style="font-size:10px;margin-left:2px;" title="Diferencia &gt;0.5%">!</span>
+                        {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {{ t.pipa_chapa or '—' }}
+                        {% if t.chofer_pipa %}
+                        <br><span style="font-size:11px;color:var(--muted);">{{ t.chofer_pipa }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if t.estado == 'en_transito' %}
+                        <span class="badge badge-warn">En tránsito</span>
+                        {% elif t.estado == 'recibida' %}
+                        <span class="badge badge-ok">Recibida</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Anulada</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            {% if t.estado == 'en_transito' %}
+                                {% if session.get('rol') in ('admin', 'pm') %}
+                                <a href="/transferencias/{{ t.id }}/confirmar_llegada" class="btn btn-success btn-sm">
+                                    <i class="bi bi-box-arrow-in-down"></i> Llegada
+                                </a>
+                                {% endif %}
+                                {% if session.get('rol') == 'admin' %}
+                                <form method="POST" action="/transferencias/{{ t.id }}/anular" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm"
+                                            onclick="return confirm('¿Anular transferencia? Se revertirá el stock del depósito.')">
+                                        <i class="bi bi-x-lg"></i> Anular
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="empty-state">
+                        <i class="bi bi-arrow-left-right" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay transferencias registradas.
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <br><a href="/transferencias/crear" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-lg"></i> Crear la primera
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

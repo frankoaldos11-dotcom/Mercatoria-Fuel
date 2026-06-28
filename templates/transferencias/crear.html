@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block titulo %}Nueva Transferencia — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Inventario</span>
+        <h1>Nueva transferencia</h1>
+        <p>Registra el envío de combustible de un depósito a una gasolinera. Se descontará el stock del depósito de inmediato.</p>
+    </div>
+    <a href="/transferencias" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/transferencias/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Depósito origen <span style="color:var(--danger)">*</span></label>
+                <select name="deposito_origen_id" class="form-select" required>
+                    <option value="">Seleccionar depósito...</option>
+                    {% for d in depositos %}
+                    <option value="{{ d.id }}" data-combustible="{{ d.tipo_combustible }}">
+                        {{ d.nombre }} ({{ combustible_labels.get(d.tipo_combustible, d.tipo_combustible) }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Gasolinera destino <span style="color:var(--danger)">*</span></label>
+                <select name="gasolinera_destino_id" class="form-select" required>
+                    <option value="">Seleccionar gasolinera...</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}">{{ g.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <select name="tipo_combustible" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for tc in tipos_combustible %}
+                    <option value="{{ tc }}">{{ combustible_labels.get(tc, tc) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros solicitados <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros_solicitados" class="form-control"
+                       placeholder="0.00" min="0.01" step="0.01" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha de salida <span style="color:var(--danger)">*</span></label>
+                <input type="date" name="fecha_salida" class="form-control" value="{{ hoy }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">N.° de documento</label>
+                <input type="text" name="no_documento" class="form-control"
+                       placeholder="Ej. TRF-2024-001">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Chapa de pipa</label>
+                <input type="text" name="pipa_chapa" class="form-control"
+                       placeholder="Ej. ABC-1234">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Chofer de la pipa</label>
+                <input type="text" name="chofer_pipa" class="form-control"
+                       placeholder="Nombre del chofer">
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Observaciones sobre el envío..."></textarea>
+            </div>
+
+        </div>
+
+        <div style="background:#FEF9C3;border-left:4px solid #CA8A04;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#713F12;">
+            <i class="bi bi-exclamation-triangle"></i>
+            Al guardar se registra la <strong>salida</strong> del depósito. Los litros se descontarán del stock inmediatamente.
+            La <strong>llegada</strong> se confirma en un segundo paso desde el listado.
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-arrow-right-circle"></i> Registrar salida
+            </button>
+            <a href="/transferencias" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

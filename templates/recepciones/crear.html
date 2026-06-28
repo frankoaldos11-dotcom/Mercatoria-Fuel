@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block titulo %}Nueva Recepción — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Inventario</span>
+        <h1>Nueva recepción</h1>
+        <p>Registra una entrega de combustible en un depósito. Estado inicial: <strong>Pendiente</strong>.</p>
+    </div>
+    <a href="/recepciones" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/recepciones/crear" id="form-recepcion">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Depósito destino <span style="color:var(--danger)">*</span></label>
+                <select name="deposito_id" class="form-select" required>
+                    <option value="">Seleccionar depósito...</option>
+                    {% for d in depositos %}
+                    <option value="{{ d.id }}"
+                        {{ 'selected' if deposito_preseleccionado == d.id|string }}
+                        data-combustible="{{ d.tipo_combustible }}">
+                        {{ d.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha de recepción <span style="color:var(--danger)">*</span></label>
+                <input type="date" name="fecha" class="form-control" value="{{ hoy }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Proveedor <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="proveedor" class="form-control"
+                       placeholder="Nombre del proveedor o empresa" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <select name="tipo_combustible" class="form-select" id="sel-combustible" required>
+                    <option value="">Seleccionar...</option>
+                    {% for tc in tipos_combustible %}
+                    <option value="{{ tc }}">{{ combustible_labels.get(tc, tc) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros facturados <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros_factura" id="litros-factura" class="form-control"
+                       placeholder="0.00" min="0" step="0.01" required oninput="calcDiferencia()">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros recibidos <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros_recibidos" id="litros-recibidos" class="form-control"
+                       placeholder="0.00" min="0" step="0.01" required oninput="calcDiferencia()">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Diferencia calculada</label>
+                <div id="diferencia-display" style="padding:8px 12px;background:var(--surface-alt);border-radius:6px;font-weight:600;color:var(--muted);min-height:38px;line-height:22px;">
+                    —
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">N.° de vale / documento</label>
+                <input type="text" name="no_vale" class="form-control"
+                       placeholder="Ej. V-2024-001">
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Observaciones adicionales sobre la recepción..."></textarea>
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;">
+                    <input type="checkbox" name="calidad_ok" value="1" checked
+                           style="width:18px;height:18px;cursor:pointer;">
+                    <span>Calidad del combustible verificada y aprobada</span>
+                </label>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar recepción
+            </button>
+            <a href="/recepciones" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+<script>
+function calcDiferencia() {
+    const factura  = parseFloat(document.getElementById('litros-factura').value)  || 0;
+    const recibido = parseFloat(document.getElementById('litros-recibidos').value) || 0;
+    const diff = recibido - factura;
+    const el = document.getElementById('diferencia-display');
+    if (factura === 0 && recibido === 0) {
+        el.textContent = '—';
+        el.style.color = 'var(--muted)';
+    } else {
+        const pct = factura ? (diff / factura * 100) : 0;
+        el.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L  (' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)';
+        el.style.color = diff < 0 ? '#DC2626' : (diff > 0 ? '#16A34A' : 'var(--muted)');
+    }
+}
+</script>
+
+{% endblock %}

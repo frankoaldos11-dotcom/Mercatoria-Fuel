@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block titulo %}Nuevo Depósito — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Inventario</span>
+        <h1>Nuevo depósito</h1>
+        <p>Registra un nuevo depósito de almacenamiento de combustible.</p>
+    </div>
+    <a href="/depositos" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/depositos/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Nombre <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="nombre" class="form-control"
+                       placeholder="Ej. Depósito Central Norte" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Región <span style="color:var(--danger)">*</span></label>
+                <select name="region" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for r in regiones %}
+                    <option value="{{ r }}">{{ r }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <select name="tipo_combustible" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for tc in tipos_combustible %}
+                    <option value="{{ tc }}">{{ combustible_labels.get(tc, tc) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Capacidad (litros) <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="capacidad_l" class="form-control"
+                       placeholder="Ej. 100000" min="0" step="0.01" required>
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Dirección</label>
+                <input type="text" name="direccion" class="form-control"
+                       placeholder="Dirección completa del depósito">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Responsable</label>
+                <input type="text" name="responsable" class="form-control"
+                       placeholder="Nombre del responsable del depósito">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="activo">Activo</option>
+                    <option value="inactivo">Inactivo</option>
+                </select>
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Notas</label>
+                <textarea name="notas" class="form-control" rows="3"
+                          placeholder="Observaciones o notas adicionales sobre el depósito..."></textarea>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar depósito
+            </button>
+            <a href="/depositos" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

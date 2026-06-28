@@ -15,6 +15,9 @@ from blueprints.clientes import clientes_bp
 from blueprints.vehiculos import vehiculos_bp
 from blueprints.choferes import choferes_bp
 from blueprints.modulos import modulos_bp
+from blueprints.depositos import depositos_bp
+from blueprints.recepciones import recepciones_bp
+from blueprints.transferencias import transferencias_bp
 
 
 app = Flask(__name__)
@@ -103,6 +106,9 @@ app.register_blueprint(clientes_bp)
 app.register_blueprint(vehiculos_bp)
 app.register_blueprint(choferes_bp)
 app.register_blueprint(modulos_bp)
+app.register_blueprint(depositos_bp)
+app.register_blueprint(recepciones_bp)
+app.register_blueprint(transferencias_bp)
 
 # Inicializar base de datos y migraciones
 if USE_POSTGRES:

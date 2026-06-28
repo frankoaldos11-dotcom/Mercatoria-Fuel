@@ -48,6 +48,16 @@
                 <span>Depósitos</span>
             </a>
 
+            <a href="/recepciones" class="nav-item {{ 'nav-item-active' if request.path.startswith('/recepciones') else '' }}">
+                <i class="bi bi-box-arrow-in-down"></i>
+                <span>Recepciones</span>
+            </a>
+
+            <a href="/transferencias" class="nav-item {{ 'nav-item-active' if request.path.startswith('/transferencias') else '' }}">
+                <i class="bi bi-arrow-left-right"></i>
+                <span>Transferencias</span>
+            </a>
+
             <div class="nav-section">Comercial</div>
 
             <a href="/clientes" class="nav-item {{ 'nav-item-active' if request.path.startswith('/clientes') else '' }}">

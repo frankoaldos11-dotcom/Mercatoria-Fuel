@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block titulo %}Recepciones — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Inventario</span>
+        <h1>Recepciones</h1>
+        <p>Registro de entregas de combustible en depósitos.</p>
+    </div>
+    {% if session.get('rol') in ('admin', 'pm') %}
+    <a href="/recepciones/crear" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Nueva recepción
+    </a>
+    {% endif %}
+</div>
+
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Operación realizada correctamente.
+</div>
+{% endif %}
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
+</div>
+{% endif %}
+
+<div class="panel mb-4">
+    <form method="GET" action="/recepciones" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <input type="text" name="buscar" value="{{ buscar }}" class="form-control"
+               placeholder="Buscar proveedor, vale..." style="max-width:220px;">
+        <select name="deposito_id" class="form-select" style="max-width:220px;">
+            <option value="">Todos los depósitos</option>
+            {% for d in depositos %}
+            <option value="{{ d.id }}" {{ 'selected' if filtro_deposito == d.id|string }}>{{ d.nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="estado" class="form-select" style="max-width:160px;">
+            <option value="">Todos los estados</option>
+            <option value="pendiente"  {{ 'selected' if filtro_estado == 'pendiente' }}>Pendiente</option>
+            <option value="confirmada" {{ 'selected' if filtro_estado == 'confirmada' }}>Confirmada</option>
+            <option value="anulada"    {{ 'selected' if filtro_estado == 'anulada' }}>Anulada</option>
+        </select>
+        <input type="date" name="desde" value="{{ filtro_desde }}" class="form-control" style="max-width:150px;" title="Desde">
+        <input type="date" name="hasta" value="{{ filtro_hasta }}" class="form-control" style="max-width:150px;" title="Hasta">
+        <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if buscar or filtro_deposito or filtro_estado or filtro_desde or filtro_hasta %}
+        <a href="/recepciones" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Depósito</th>
+                    <th>Proveedor</th>
+                    <th>Combustible</th>
+                    <th>L. factura</th>
+                    <th>L. recibidos</th>
+                    <th>Diferencia</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in lista %}
+                <tr>
+                    <td><span style="color:var(--muted);font-size:12px;">#{{ r.id }}</span></td>
+                    <td>{{ r.fecha }}</td>
+                    <td>
+                        <a href="/depositos/{{ r.deposito_id }}" style="color:var(--primary);text-decoration:none;">
+                            {{ r.deposito_nombre }}
+                        </a>
+                    </td>
+                    <td>
+                        {{ r.proveedor }}
+                        {% if r.no_vale %}
+                        <br><span style="font-size:11px;color:var(--muted);">Vale: {{ r.no_vale }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-info">
+                            {{ combustible_labels.get(r.tipo_combustible, r.tipo_combustible) }}
+                        </span>
+                    </td>
+                    <td>{{ "{:,.2f}".format(r.litros_factura) }}</td>
+                    <td>{{ "{:,.2f}".format(r.litros_recibidos) }}</td>
+                    <td>
+                        {% set diff_pct = ((r.litros_recibidos - r.litros_factura) / r.litros_factura * 100) if r.litros_factura else 0 %}
+                        {% if r.diferencia_l != 0 %}
+                        <span style="color:{{ '#DC2626' if r.diferencia_l < 0 else '#16A34A' }};">
+                            {{ "{:+,.2f}".format(r.diferencia_l) }}
+                        </span>
+                        {% if diff_pct|abs > 0.5 %}
+                        <span class="badge badge-warn" style="font-size:10px;margin-left:4px;" title="Diferencia &gt;0.5%">!</span>
+                        {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if r.estado == 'confirmada' %}
+                        <span class="badge badge-ok">Confirmada</span>
+                        {% elif r.estado == 'pendiente' %}
+                        <span class="badge badge-warn">Pendiente</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Anulada</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            {% if r.estado == 'pendiente' and session.get('rol') in ('admin', 'pm') %}
+                            <form method="POST" action="/recepciones/{{ r.id }}/confirmar" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-success btn-sm"
+                                        onclick="return confirm('¿Confirmar esta recepción? Se registrará el ingreso al depósito.')">
+                                    <i class="bi bi-check-lg"></i> Confirmar
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if r.estado != 'anulada' and session.get('rol') == 'admin' %}
+                            <form method="POST" action="/recepciones/{{ r.id }}/anular" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm"
+                                        onclick="return confirm('¿Anular esta recepción? Esta acción es irreversible.')">
+                                    <i class="bi bi-x-lg"></i> Anular
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="empty-state">
+                        <i class="bi bi-box-arrow-in-down" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay recepciones registradas.
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <br><a href="/recepciones/crear" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-lg"></i> Registrar la primera
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

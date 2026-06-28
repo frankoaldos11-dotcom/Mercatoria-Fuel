@@ -35,9 +35,15 @@ TIPOS_SUBINVENTARIO = [
 
 TIPOS_MOVIMIENTO = [
     "recepcion",
-    "transferencia",
+    "transferencia_salida",
+    "transferencia_entrada",
+    "transferencia_anulacion",
     "despacho",
     "ajuste",
     "reasignacion",
     "habilitacion",
 ]
+
+ESTADOS_RECEPCION = ["pendiente", "confirmada", "anulada"]
+
+ESTADOS_TRANSFERENCIA = ["en_transito", "recibida", "anulada"]

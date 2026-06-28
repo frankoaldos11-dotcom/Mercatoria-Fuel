@@ -16,13 +16,15 @@ def dashboard():
     conn = conectar()
     cur = conn.cursor()
 
+    # Inventario total: stock real de todas las gasolineras (transferencias_entrada confirmadas)
     cur.execute("""
-        SELECT COALESCE(SUM(litros_reservados), 0) AS total
-        FROM subinventarios
-        WHERE activo = 1
+        SELECT COALESCE(SUM(litros), 0) AS total
+        FROM movimientos
+        WHERE tipo = 'transferencia_entrada'
     """)
     inventario_total = cur.fetchone()["total"] or 0
 
+    # Inventario reservado (subinventarios cliente — placeholder hasta Sprint 5)
     cur.execute("""
         SELECT COALESCE(SUM(litros_reservados), 0) AS total
         FROM subinventarios
@@ -38,7 +40,14 @@ def dashboard():
     cur.execute("SELECT COUNT(*) AS total FROM movimientos WHERE tipo = 'despacho'")
     despachos_pendientes = cur.fetchone()["total"] or 0
 
-    transferencias_transito = 0
+    # Combustible en tránsito: transferencias en_transito
+    cur.execute("""
+        SELECT COALESCE(SUM(litros_solicitados), 0) AS total
+        FROM transferencias
+        WHERE estado = 'en_transito'
+    """)
+    transferencias_transito = cur.fetchone()["total"] or 0
+
     alertas_criticas = 0
 
     cur.execute("SELECT COUNT(*) AS total FROM gasolineras WHERE estado = 'activo'")

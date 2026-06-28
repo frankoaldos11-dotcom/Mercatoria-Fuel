@@ -151,6 +151,66 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── depositos ─────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS depositos (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre           TEXT NOT NULL,
+        region           TEXT NOT NULL,
+        direccion        TEXT,
+        tipo_combustible TEXT NOT NULL,
+        capacidad_l      REAL NOT NULL DEFAULT 0,
+        responsable      TEXT,
+        notas            TEXT,
+        estado           TEXT NOT NULL DEFAULT 'activo',
+        created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
+    # ── recepciones ───────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS recepciones (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        deposito_id      INTEGER NOT NULL REFERENCES depositos(id),
+        fecha            TEXT NOT NULL,
+        proveedor        TEXT NOT NULL,
+        tipo_combustible TEXT NOT NULL,
+        litros_factura   REAL NOT NULL DEFAULT 0,
+        litros_recibidos REAL NOT NULL DEFAULT 0,
+        diferencia_l     REAL NOT NULL DEFAULT 0,
+        no_vale          TEXT,
+        calidad_ok       INTEGER NOT NULL DEFAULT 1,
+        observaciones    TEXT,
+        responsable_id   INTEGER NOT NULL REFERENCES usuarios(id),
+        estado           TEXT NOT NULL DEFAULT 'pendiente',
+        created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
+    # ── transferencias ────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS transferencias (
+        id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+        deposito_origen_id    INTEGER NOT NULL REFERENCES depositos(id),
+        gasolinera_destino_id INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible      TEXT NOT NULL,
+        litros_solicitados    REAL NOT NULL DEFAULT 0,
+        litros_recibidos      REAL,
+        fecha_salida          TEXT NOT NULL,
+        fecha_llegada         TEXT,
+        pipa_chapa            TEXT,
+        chofer_pipa           TEXT,
+        no_documento          TEXT,
+        observaciones         TEXT,
+        responsable_id        INTEGER NOT NULL REFERENCES usuarios(id),
+        estado                TEXT NOT NULL DEFAULT 'en_transito',
+        created_at            TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at            TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = ?", ("admin@mercatoria.com",))
     if not cur.fetchone():

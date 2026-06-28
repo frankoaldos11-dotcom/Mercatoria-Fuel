@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block titulo %}Confirmar Llegada — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Inventario / Transferencias</span>
+        <h1>Confirmar llegada</h1>
+        <p>Transferencia <strong>#{{ transferencia.id }}</strong> — {{ transferencia.deposito_nombre }} → {{ transferencia.gasolinera_nombre }}</p>
+    </div>
+    <a href="/transferencias" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<!-- Resumen de la transferencia -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
+    <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Origen</div>
+        <div style="font-weight:600;">{{ transferencia.deposito_nombre }}</div>
+    </div>
+    <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Destino</div>
+        <div style="font-weight:600;">{{ transferencia.gasolinera_nombre }}</div>
+    </div>
+    <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Combustible</div>
+        <div style="font-weight:600;">{{ combustible_labels.get(transferencia.tipo_combustible, transferencia.tipo_combustible) }}</div>
+    </div>
+    <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">L. solicitados</div>
+        <div style="font-weight:700;font-size:20px;color:var(--primary);">{{ "{:,.2f}".format(transferencia.litros_solicitados) }} L</div>
+    </div>
+    <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Fecha salida</div>
+        <div style="font-weight:600;">{{ transferencia.fecha_salida }}</div>
+    </div>
+    {% if transferencia.pipa_chapa %}
+    <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Pipa / Chofer</div>
+        <div style="font-weight:600;">{{ transferencia.pipa_chapa }}</div>
+        {% if transferencia.chofer_pipa %}<div style="font-size:12px;color:var(--muted);">{{ transferencia.chofer_pipa }}</div>{% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="panel">
+    <form method="POST" action="/transferencias/{{ transferencia.id }}/confirmar_llegada">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Litros recibidos <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros_recibidos" id="litros-recibidos" class="form-control"
+                       placeholder="{{ "{:.2f}".format(transferencia.litros_solicitados) }}"
+                       min="0" step="0.01" required oninput="calcDiferencia()">
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                    Referencia: <strong>{{ "{:,.2f}".format(transferencia.litros_solicitados) }} L</strong> solicitados.
+                    Se permite una diferencia máxima de <strong>0.5%</strong> sin observación.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha de llegada <span style="color:var(--danger)">*</span></label>
+                <input type="date" name="fecha_llegada" class="form-control" value="{{ hoy }}" required>
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Diferencia</label>
+                <div id="diferencia-display" style="padding:8px 12px;background:var(--surface-alt);border-radius:6px;font-weight:600;color:var(--muted);min-height:38px;line-height:22px;">
+                    —
+                </div>
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">
+                    Observaciones
+                    <span id="obs-requerida" style="color:var(--danger);display:none;"> * (obligatoria — diferencia &gt;0.5%)</span>
+                </label>
+                <textarea name="observaciones" id="observaciones" class="form-control" rows="3"
+                          placeholder="Observaciones sobre la llegada. Obligatorio si hay diferencia mayor al 0.5%...">{{ request.form.get('observaciones', '') }}</textarea>
+            </div>
+
+        </div>
+
+        <div style="background:#F0FDF4;border-left:4px solid #16A34A;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#14532D;">
+            <i class="bi bi-info-circle"></i>
+            Al confirmar, los litros recibidos se <strong>agregarán al stock de {{ transferencia.gasolinera_nombre }}</strong>.
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-lg"></i> Confirmar llegada
+            </button>
+            <a href="/transferencias" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+<script>
+const litrosSol = {{ transferencia.litros_solicitados }};
+
+function calcDiferencia() {
+    const recibidos = parseFloat(document.getElementById('litros-recibidos').value) || 0;
+    const diff = recibidos - litrosSol;
+    const pct  = litrosSol ? Math.abs(diff / litrosSol * 100) : 0;
+    const el   = document.getElementById('diferencia-display');
+    const obsLabel = document.getElementById('obs-requerida');
+
+    if (recibidos === 0) {
+        el.textContent = '—';
+        el.style.color = 'var(--muted)';
+        obsLabel.style.display = 'none';
+    } else {
+        el.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) +
+                         ' L  (' + (diff >= 0 ? '+' : '') + (diff / litrosSol * 100).toFixed(2) + '%)';
+        el.style.color = diff < 0 ? '#DC2626' : (diff > 0 ? '#16A34A' : 'var(--muted)');
+        obsLabel.style.display = pct > 0.5 ? 'inline' : 'none';
+    }
+}
+</script>
+
+{% endblock %}

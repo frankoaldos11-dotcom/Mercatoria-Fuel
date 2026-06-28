@@ -148,6 +148,63 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS depositos (
+        id               SERIAL PRIMARY KEY,
+        nombre           TEXT NOT NULL,
+        region           TEXT NOT NULL,
+        direccion        TEXT,
+        tipo_combustible TEXT NOT NULL,
+        capacidad_l      NUMERIC(14,2) NOT NULL DEFAULT 0,
+        responsable      TEXT,
+        notas            TEXT,
+        estado           TEXT NOT NULL DEFAULT 'activo',
+        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS recepciones (
+        id               SERIAL PRIMARY KEY,
+        deposito_id      INTEGER NOT NULL REFERENCES depositos(id),
+        fecha            DATE NOT NULL,
+        proveedor        TEXT NOT NULL,
+        tipo_combustible TEXT NOT NULL,
+        litros_factura   NUMERIC(14,2) NOT NULL DEFAULT 0,
+        litros_recibidos NUMERIC(14,2) NOT NULL DEFAULT 0,
+        diferencia_l     NUMERIC(14,2) NOT NULL DEFAULT 0,
+        no_vale          TEXT,
+        calidad_ok       INTEGER NOT NULL DEFAULT 1,
+        observaciones    TEXT,
+        responsable_id   INTEGER NOT NULL REFERENCES usuarios(id),
+        estado           TEXT NOT NULL DEFAULT 'pendiente',
+        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS transferencias (
+        id                    SERIAL PRIMARY KEY,
+        deposito_origen_id    INTEGER NOT NULL REFERENCES depositos(id),
+        gasolinera_destino_id INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible      TEXT NOT NULL,
+        litros_solicitados    NUMERIC(14,2) NOT NULL DEFAULT 0,
+        litros_recibidos      NUMERIC(14,2),
+        fecha_salida          DATE NOT NULL,
+        fecha_llegada         DATE,
+        pipa_chapa            TEXT,
+        chofer_pipa           TEXT,
+        no_documento          TEXT,
+        observaciones         TEXT,
+        responsable_id        INTEGER NOT NULL REFERENCES usuarios(id),
+        estado                TEXT NOT NULL DEFAULT 'en_transito',
+        created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
     if not cur.fetchone():
