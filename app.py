@@ -11,6 +11,9 @@ from db_config import USE_POSTGRES
 
 from blueprints.dashboard import dashboard_bp
 from blueprints.gasolineras import gasolineras_bp
+from blueprints.clientes import clientes_bp
+from blueprints.vehiculos import vehiculos_bp
+from blueprints.choferes import choferes_bp
 from blueprints.modulos import modulos_bp
 
 
@@ -96,6 +99,9 @@ def logout():
 
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(gasolineras_bp)
+app.register_blueprint(clientes_bp)
+app.register_blueprint(vehiculos_bp)
+app.register_blueprint(choferes_bp)
 app.register_blueprint(modulos_bp)
 
 # Inicializar base de datos y migraciones

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ cliente.nombre }} — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>{{ cliente.nombre }}</h1>
+        <p>
+            <span style="font-family:monospace;font-weight:700;color:var(--primary);">{{ cliente.codigo }}</span>
+            &nbsp;·&nbsp;
+            {% if cliente.tipo == 'internacional' %}
+            <span class="badge badge-info">Internacional</span>
+            {% elif cliente.tipo == 'nacional' %}
+            <span class="badge badge-ok">Nacional</span>
+            {% else %}
+            <span class="badge badge-neutral">Interno</span>
+            {% endif %}
+            &nbsp;·&nbsp;
+            {% if cliente.activo %}
+            <span class="badge badge-ok">Activo</span>
+            {% else %}
+            <span class="badge badge-neutral">Inactivo</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <a href="/clientes/{{ cliente.id }}/editar" class="btn btn-soft">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        {% endif %}
+        <a href="/clientes" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<!-- Perfil del cliente -->
+<div class="panel mb-4">
+    <div class="panel-header">
+        <div>
+            <h2>Perfil</h2>
+            <p>Datos de contacto y configuración del cliente.</p>
+        </div>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+        <div>
+            <span class="form-label" style="color:var(--muted);">Contacto principal</span>
+            <p style="margin:4px 0 0;font-weight:600;">{{ cliente.contacto_nombre or '—' }}</p>
+        </div>
+        <div>
+            <span class="form-label" style="color:var(--muted);">Teléfono</span>
+            <p style="margin:4px 0 0;font-weight:600;">{{ cliente.contacto_telefono or '—' }}</p>
+        </div>
+        <div>
+            <span class="form-label" style="color:var(--muted);">Email</span>
+            <p style="margin:4px 0 0;font-weight:600;">
+                {% if cliente.contacto_email %}
+                <a href="mailto:{{ cliente.contacto_email }}" style="color:var(--primary);">{{ cliente.contacto_email }}</a>
+                {% else %}—{% endif %}
+            </p>
+        </div>
+        <div>
+            <span class="form-label" style="color:var(--muted);">Litros reservados</span>
+            <p style="margin:4px 0 0;font-weight:600;">
+                {{ "{:,.0f}".format(cliente.subinventario_reservado_l or 0) }} L
+            </p>
+        </div>
+        {% if cliente.notas %}
+        <div style="grid-column:1/-1;">
+            <span class="form-label" style="color:var(--muted);">Notas</span>
+            <p style="margin:4px 0 0;">{{ cliente.notas }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Vehículos del cliente -->
+<div class="panel mb-4">
+    <div class="panel-header">
+        <div>
+            <h2>Vehículos <span style="background:#eef4ff;color:var(--primary);padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;margin-left:8px;">{{ vehiculos|length }}</span></h2>
+            <p>Flota vehicular registrada para este cliente.</p>
+        </div>
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <a href="/vehiculos/crear?cliente_id={{ cliente.id }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Añadir vehículo
+        </a>
+        {% endif %}
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Chapa</th>
+                    <th>Marca / Modelo</th>
+                    <th>Año</th>
+                    <th>Combustible</th>
+                    <th>Cuota mensual (L)</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vehiculos %}
+                <tr>
+                    <td><strong style="font-family:monospace;">{{ v.chapa }}</strong></td>
+                    <td>{{ v.marca or '' }} {{ v.modelo or '' }}</td>
+                    <td>{{ v.anio or '—' }}</td>
+                    <td>
+                        <span class="badge badge-info">
+                            {{ {'diesel':'Diésel','gasolina_regular':'Gas. Regular','gasolina_especial':'Gas. Especial'}.get(v.tipo_combustible, v.tipo_combustible) }}
+                        </span>
+                    </td>
+                    <td>{{ "{:,.0f}".format(v.cuota_mensual_l) if v.cuota_mensual_l else '—' }}</td>
+                    <td>
+                        {% if v.estado == 'activo' %}
+                        <span class="badge badge-ok">Activo</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <a href="/vehiculos/{{ v.id }}/editar" class="btn btn-soft btn-sm">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <i class="bi bi-truck" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay vehículos registrados para este cliente.
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <br><a href="/vehiculos/crear?cliente_id={{ cliente.id }}" class="btn btn-primary mt-3 btn-sm">
+                            <i class="bi bi-plus-lg"></i> Añadir vehículo
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Choferes del cliente -->
+<div class="panel mb-4">
+    <div class="panel-header">
+        <div>
+            <h2>Choferes <span style="background:#eef4ff;color:var(--primary);padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;margin-left:8px;">{{ choferes|length }}</span></h2>
+            <p>Conductores habilitados para despachos de este cliente.</p>
+        </div>
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <a href="/choferes/crear?cliente_id={{ cliente.id }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Añadir chofer
+        </a>
+        {% endif %}
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>C.I.</th>
+                    <th>Licencia N°</th>
+                    <th>Vencimiento licencia</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ch in choferes %}
+                <tr>
+                    <td><strong>{{ ch.nombre }}</strong></td>
+                    <td style="font-family:monospace;">{{ ch.ci }}</td>
+                    <td>{{ ch.licencia_numero or '—' }}</td>
+                    <td>
+                        {% if ch.licencia_vencimiento %}
+                            {% set venc = ch.licencia_vencimiento[:10] %}
+                            {% if venc < hoy %}
+                            <span class="badge badge-danger"><i class="bi bi-exclamation-triangle"></i> {{ venc }} — Vencida</span>
+                            {% elif venc <= limite_30 %}
+                            <span class="badge badge-warn"><i class="bi bi-clock"></i> {{ venc }} — Por vencer</span>
+                            {% else %}
+                            <span class="badge badge-ok">{{ venc }}</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="badge badge-neutral">Sin datos</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ ch.telefono or '—' }}</td>
+                    <td>
+                        {% if ch.estado == 'activo' %}
+                        <span class="badge badge-ok">Activo</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <a href="/choferes/{{ ch.id }}/editar" class="btn btn-soft btn-sm">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <i class="bi bi-person-badge" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay choferes registrados para este cliente.
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <br><a href="/choferes/crear?cliente_id={{ cliente.id }}" class="btn btn-primary mt-3 btn-sm">
+                            <i class="bi bi-plus-lg"></i> Añadir chofer
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Historial de despachos — Sprint 5 -->
+<div class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Historial de despachos</h2>
+            <p>Despachos registrados para este cliente.</p>
+        </div>
+    </div>
+    <div style="padding:32px;text-align:center;">
+        <i class="bi bi-box-arrow-right" style="font-size:40px;color:var(--muted);opacity:0.4;display:block;margin-bottom:12px;"></i>
+        <p style="font-size:14px;color:var(--muted);margin:0;">
+            El historial de despachos estará disponible en el <strong>Sprint 5</strong>.
+        </p>
+    </div>
+</div>
+
+{% endblock %}

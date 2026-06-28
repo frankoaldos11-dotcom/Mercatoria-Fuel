@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block titulo %}Importar Vehículos — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Importar vehículos</h1>
+        <p>Carga masiva de vehículos desde un archivo Excel.</p>
+    </div>
+    <a href="/vehiculos" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if resultado %}
+    {% if resultado.error %}
+    <div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+        <i class="bi bi-exclamation-circle"></i> {{ resultado.error }}
+    </div>
+    {% else %}
+    <div style="background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:8px;padding:14px 18px;margin-bottom:1.5rem;">
+        <div style="font-weight:700;font-size:15px;margin-bottom:6px;">
+            <i class="bi bi-check-circle-fill"></i>
+            {{ resultado.importados }} vehículo{{ 's' if resultado.importados != 1 else '' }} importado{{ 's' if resultado.importados != 1 else '' }} correctamente.
+        </div>
+        {% if resultado.fallos %}
+        <div style="margin-top:10px;font-size:13px;color:#92400e;">
+            <strong>{{ resultado.fallos|length }} fila{{ 's' if resultado.fallos|length != 1 else '' }} con errores:</strong>
+            <ul style="margin:6px 0 0;padding-left:20px;">
+                {% for f in resultado.fallos %}
+                <li>{{ f }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+{% endif %}
+
+<div class="panel mb-4">
+    <div class="panel-header">
+        <div>
+            <h2>Cargar archivo</h2>
+            <p>Selecciona un archivo .xlsx con los datos de los vehículos.</p>
+        </div>
+    </div>
+    <div style="padding:24px;">
+        <form method="POST" action="/vehiculos/importar" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">Archivo Excel (.xlsx) <span style="color:var(--danger)">*</span></label>
+                <input type="file" name="archivo" class="form-control" accept=".xlsx" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-upload"></i> Importar
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Formato esperado</h2>
+            <p>El archivo debe tener una hoja con las siguientes columnas en la primera fila.</p>
+        </div>
+    </div>
+    <div style="padding:24px;">
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Columna</th>
+                        <th>Requerida</th>
+                        <th>Descripción</th>
+                        <th>Ejemplo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>chapa</code></td>
+                        <td><span class="badge badge-danger">Sí</span></td>
+                        <td>Matrícula del vehículo (único). Si ya existe, se actualiza.</td>
+                        <td>M-123456</td>
+                    </tr>
+                    <tr>
+                        <td><code>cliente_codigo</code></td>
+                        <td><span class="badge badge-danger">Sí</span></td>
+                        <td>Código del cliente (debe existir en el sistema).</td>
+                        <td>PMA-001</td>
+                    </tr>
+                    <tr>
+                        <td><code>tipo_combustible</code></td>
+                        <td><span class="badge badge-danger">Sí</span></td>
+                        <td>Uno de: diesel, gasolina regular, gasolina especial.</td>
+                        <td>diesel</td>
+                    </tr>
+                    <tr>
+                        <td><code>marca</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Marca del vehículo.</td>
+                        <td>Toyota</td>
+                    </tr>
+                    <tr>
+                        <td><code>modelo</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Modelo del vehículo.</td>
+                        <td>Hilux</td>
+                    </tr>
+                    <tr>
+                        <td><code>año</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Año de fabricación.</td>
+                        <td>2020</td>
+                    </tr>
+                    <tr>
+                        <td><code>cuota mensual (l)</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Cuota mensual de combustible en litros.</td>
+                        <td>500</td>
+                    </tr>
+                    <tr>
+                        <td><code>color</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Color del vehículo.</td>
+                        <td>Blanco</td>
+                    </tr>
+                    <tr>
+                        <td><code>observaciones</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Notas adicionales.</td>
+                        <td>—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

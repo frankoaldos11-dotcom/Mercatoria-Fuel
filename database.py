@@ -80,4 +80,5 @@ def conectar():
     else:
         conexion = sqlite3.connect(DATABASE_NAME)
         conexion.row_factory = sqlite3.Row
+        conexion.execute("PRAGMA foreign_keys = ON")
         return ConexionWrapper(conexion, use_postgres=False)

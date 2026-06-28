@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from flask import Blueprint, render_template
 from database import conectar
 from utils.auth import requiere_login
@@ -14,7 +16,6 @@ def dashboard():
     conn = conectar()
     cur = conn.cursor()
 
-    # Inventario total: suma de litros_reservados en subinventarios activos
     cur.execute("""
         SELECT COALESCE(SUM(litros_reservados), 0) AS total
         FROM subinventarios
@@ -22,7 +23,6 @@ def dashboard():
     """)
     inventario_total = cur.fetchone()["total"] or 0
 
-    # Inventario reservado: subinventarios de tipo cliente
     cur.execute("""
         SELECT COALESCE(SUM(litros_reservados), 0) AS total
         FROM subinventarios
@@ -32,27 +32,27 @@ def dashboard():
 
     disponible_venta = max(0, inventario_total - inventario_reservado)
 
-    # Tarjetas con bajo saldo — tabla futura; por ahora 0
     tarjetas_bajo_saldo = 0
-
-    # Conciliaciones pendientes — tabla futura; por ahora 0
     conciliaciones_pendientes = 0
 
-    # Despachos pendientes — movimientos de tipo despacho sin completar; por ahora 0
-    cur.execute("""
-        SELECT COUNT(*) AS total FROM movimientos WHERE tipo = 'despacho'
-    """)
+    cur.execute("SELECT COUNT(*) AS total FROM movimientos WHERE tipo = 'despacho'")
     despachos_pendientes = cur.fetchone()["total"] or 0
 
-    # Transferencias en tránsito — por ahora 0
     transferencias_transito = 0
-
-    # Alertas críticas — por ahora 0
     alertas_criticas = 0
 
-    # Gasolineras activas
     cur.execute("SELECT COUNT(*) AS total FROM gasolineras WHERE estado = 'activo'")
     gasolineras_activas = cur.fetchone()["total"] or 0
+
+    # Licencias vencidas o por vencer en 30 días
+    limite_30 = (date.today() + timedelta(days=30)).isoformat()
+    cur.execute("""
+        SELECT COUNT(*) AS total FROM choferes
+        WHERE estado = 'activo'
+        AND licencia_vencimiento IS NOT NULL
+        AND licencia_vencimiento <= ?
+    """, (limite_30,))
+    licencias_por_vencer = cur.fetchone()["total"] or 0
 
     conn.close()
 
@@ -67,4 +67,5 @@ def dashboard():
         transferencias_transito=transferencias_transito,
         alertas_criticas=alertas_criticas,
         gasolineras_activas=gasolineras_activas,
+        licencias_por_vencer=licencias_por_vencer,
     )

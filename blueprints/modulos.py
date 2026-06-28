@@ -5,8 +5,6 @@ modulos_bp = Blueprint("modulos", __name__)
 
 
 @modulos_bp.route("/depositos")
-@modulos_bp.route("/clientes")
-@modulos_bp.route("/vehiculos")
 @modulos_bp.route("/tarjetas")
 @modulos_bp.route("/habilitaciones")
 @modulos_bp.route("/despachos")
@@ -22,8 +20,6 @@ def placeholder():
     path = request.path.strip("/")
     titulo_map = {
         "depositos":      "Depósitos",
-        "clientes":       "Clientes",
-        "vehiculos":      "Vehículos y Choferes",
         "tarjetas":       "Tarjetas",
         "habilitaciones": "Habilitaciones",
         "despachos":      "Despachos",

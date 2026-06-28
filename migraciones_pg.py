@@ -17,27 +17,7 @@ def ejecutar_migraciones_pg(bcrypt):
     conn = _conectar()
     cur = conn.cursor()
 
-    # Verificación ligera: si usuarios ya existe, aplicar solo incrementales
-    cur.execute("""
-        SELECT COUNT(*) FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'usuarios'
-    """)
-    if cur.fetchone()[0] > 0:
-        cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
-        if not cur.fetchone():
-            from flask_bcrypt import Bcrypt as _Bcrypt
-            _b = _Bcrypt()
-            hash_pw = _b.generate_password_hash("Mercatoria2026!").decode("utf-8")
-            cur.execute(
-                "INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES (%s, %s, %s, %s)",
-                ("Administrador", "admin@mercatoria.com", hash_pw, "admin")
-            )
-            conn.commit()
-        conn.close()
-        print("[migraciones_pg] Schema existente — migraciones incrementales aplicadas.")
-        return
-
-    print("[migraciones_pg] Schema nuevo — ejecutando migraciones completas.")
+    print("[migraciones_pg] Ejecutando migraciones (IF NOT EXISTS — idempotente).")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS usuarios (
@@ -117,6 +97,58 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS clientes (
+        id                        SERIAL PRIMARY KEY,
+        nombre                    TEXT NOT NULL,
+        codigo                    TEXT UNIQUE NOT NULL,
+        tipo                      TEXT NOT NULL DEFAULT 'internacional',
+        contacto_nombre           TEXT,
+        contacto_telefono         TEXT,
+        contacto_email            TEXT,
+        subinventario_reservado_l NUMERIC(14,2) NOT NULL DEFAULT 0,
+        notas                     TEXT,
+        activo                    INTEGER NOT NULL DEFAULT 1,
+        created_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS vehiculos (
+        id               SERIAL PRIMARY KEY,
+        cliente_id       INTEGER NOT NULL REFERENCES clientes(id),
+        chapa            TEXT UNIQUE NOT NULL,
+        marca            TEXT,
+        modelo           TEXT,
+        anio             INTEGER,
+        tipo_combustible TEXT NOT NULL,
+        cuota_mensual_l  NUMERIC(14,2),
+        color            TEXT,
+        observaciones    TEXT,
+        estado           TEXT NOT NULL DEFAULT 'activo',
+        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS choferes (
+        id                   SERIAL PRIMARY KEY,
+        cliente_id           INTEGER NOT NULL REFERENCES clientes(id),
+        nombre               TEXT NOT NULL,
+        ci                   TEXT UNIQUE NOT NULL,
+        licencia_numero      TEXT,
+        licencia_vencimiento DATE,
+        telefono             TEXT,
+        observaciones        TEXT,
+        estado               TEXT NOT NULL DEFAULT 'activo',
+        created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
     if not cur.fetchone():
         hash_pw = bcrypt.generate_password_hash("Mercatoria2026!").decode("utf-8")
@@ -124,6 +156,22 @@ def ejecutar_migraciones_pg(bcrypt):
             "INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES (%s, %s, %s, %s)",
             ("Administrador", "admin@mercatoria.com", hash_pw, "admin")
         )
+
+    # ── seed: clientes ────────────────────────────────────────────────────────
+    clientes_seed = [
+        ("Programa Mundial de Alimentos", "PMA-001",  "internacional"),
+        ("UNFPA",                          "UNFPA-001", "internacional"),
+        ("Caritas Cuba",                   "CAR-001",  "nacional"),
+        ("SEISA",                          "SEI-001",  "nacional"),
+        ("Mercatoria Interna",             "MER-INT",  "interno"),
+    ]
+    for nombre, codigo, tipo in clientes_seed:
+        cur.execute("SELECT id FROM clientes WHERE codigo = %s", (codigo,))
+        if not cur.fetchone():
+            cur.execute(
+                "INSERT INTO clientes (nombre, codigo, tipo) VALUES (%s, %s, %s)",
+                (nombre, codigo, tipo)
+            )
 
     conn.commit()
     cur.close()

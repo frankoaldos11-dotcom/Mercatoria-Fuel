@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block titulo %}Vehículos — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Vehículos</h1>
+        <p>Flota vehicular de todos los clientes.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <a href="/vehiculos/importar" class="btn btn-secondary">
+            <i class="bi bi-file-earmark-excel"></i> Importar Excel
+        </a>
+        <a href="/vehiculos/crear" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Nuevo vehículo
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:24px;">
+    <a href="/vehiculos" class="btn btn-primary btn-sm">
+        <i class="bi bi-truck"></i> Vehículos
+    </a>
+    <a href="/choferes" class="btn btn-secondary btn-sm">
+        <i class="bi bi-person-badge"></i> Choferes
+    </a>
+</div>
+
+<div class="panel mb-4">
+    <form method="GET" action="/vehiculos" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <input type="text" name="buscar" value="{{ buscar }}" class="form-control"
+               placeholder="Buscar por chapa, marca..." style="max-width:220px;">
+        <select name="cliente_id" class="form-select" style="max-width:220px;">
+            <option value="">Todos los clientes</option>
+            {% for c in clientes %}
+            <option value="{{ c.id }}" {{ 'selected' if filtro_cliente == c.id|string }}>
+                {{ c.nombre }} ({{ c.codigo }})
+            </option>
+            {% endfor %}
+        </select>
+        <select name="combustible" class="form-select" style="max-width:180px;">
+            <option value="">Todos los combustibles</option>
+            {% for tc in tipos_combustible %}
+            <option value="{{ tc }}" {{ 'selected' if filtro_combustible == tc }}>
+                {{ combustible_labels.get(tc, tc) }}
+            </option>
+            {% endfor %}
+        </select>
+        <select name="estado" class="form-select" style="max-width:150px;">
+            <option value="">Todos los estados</option>
+            <option value="activo"   {{ 'selected' if filtro_estado == 'activo' }}>Activo</option>
+            <option value="inactivo" {{ 'selected' if filtro_estado == 'inactivo' }}>Inactivo</option>
+        </select>
+        <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if buscar or filtro_cliente or filtro_combustible or filtro_estado %}
+        <a href="/vehiculos" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Chapa</th>
+                    <th>Cliente</th>
+                    <th>Marca / Modelo</th>
+                    <th>Año</th>
+                    <th>Combustible</th>
+                    <th>Cuota mensual (L)</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in lista %}
+                <tr>
+                    <td><strong style="font-family:monospace;font-size:14px;">{{ v.chapa }}</strong></td>
+                    <td>
+                        <a href="/clientes/{{ v.cliente_id }}" style="text-decoration:none;color:var(--text);">
+                            {{ v.cliente_nombre }}
+                        </a>
+                        <br><span style="font-size:12px;color:var(--muted);font-family:monospace;">{{ v.cliente_codigo }}</span>
+                    </td>
+                    <td>{{ v.marca or '' }} {{ v.modelo or '' }}</td>
+                    <td>{{ v.anio or '—' }}</td>
+                    <td>
+                        <span class="badge badge-info">
+                            {{ combustible_labels.get(v.tipo_combustible, v.tipo_combustible) }}
+                        </span>
+                    </td>
+                    <td>{{ "{:,.0f}".format(v.cuota_mensual_l) if v.cuota_mensual_l else '—' }}</td>
+                    <td>
+                        {% if v.estado == 'activo' %}
+                        <span class="badge badge-ok">Activo</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            {% if session.get('rol') in ('admin', 'pm') %}
+                            <a href="/vehiculos/{{ v.id }}/editar" class="btn btn-soft btn-sm">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <form method="POST" action="/vehiculos/{{ v.id }}/toggle" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit"
+                                        class="btn btn-sm {{ 'btn-danger' if v.estado == 'activo' else 'btn-success' }}"
+                                        onclick="return confirm('¿Confirmar cambio de estado?')">
+                                    {% if v.estado == 'activo' %}
+                                    <i class="bi bi-toggle-off"></i>
+                                    {% else %}
+                                    <i class="bi bi-toggle-on"></i>
+                                    {% endif %}
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        <i class="bi bi-truck" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay vehículos registrados.
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <br><a href="/vehiculos/crear" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-lg"></i> Crear el primero
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

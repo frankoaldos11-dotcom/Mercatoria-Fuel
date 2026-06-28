@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block titulo %}Editar Vehículo — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Editar vehículo</h1>
+        <p>Modifica los datos de <strong>{{ vehiculo.chapa }}</strong>.</p>
+    </div>
+    <a href="/vehiculos" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/vehiculos/{{ vehiculo.id }}/editar">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Chapa (matrícula) <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="chapa" class="form-control"
+                       value="{{ vehiculo.chapa }}" required
+                       style="text-transform:uppercase;">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
+                <select name="cliente_id" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}" {{ 'selected' if vehiculo.cliente_id == c.id }}>
+                        {{ c.nombre }} ({{ c.codigo }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <select name="tipo_combustible" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for tc in tipos_combustible %}
+                    <option value="{{ tc }}" {{ 'selected' if vehiculo.tipo_combustible == tc }}>
+                        {{ combustible_labels.get(tc, tc) }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Cuota mensual (litros)</label>
+                <input type="number" name="cuota_mensual_l" class="form-control"
+                       value="{{ vehiculo.cuota_mensual_l or '' }}" min="0" step="0.01">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Marca</label>
+                <input type="text" name="marca" class="form-control" value="{{ vehiculo.marca or '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Modelo</label>
+                <input type="text" name="modelo" class="form-control" value="{{ vehiculo.modelo or '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Año</label>
+                <input type="number" name="anio" class="form-control"
+                       value="{{ vehiculo.anio or '' }}" min="1950" max="2099">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Color</label>
+                <input type="text" name="color" class="form-control" value="{{ vehiculo.color or '' }}">
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2">{{ vehiculo.observaciones or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="activo"   {{ 'selected' if vehiculo.estado == 'activo' }}>Activo</option>
+                    <option value="inactivo" {{ 'selected' if vehiculo.estado == 'inactivo' }}>Inactivo</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar cambios
+            </button>
+            <a href="/vehiculos" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

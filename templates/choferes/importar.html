@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block titulo %}Importar Choferes — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Importar choferes</h1>
+        <p>Carga masiva de choferes desde un archivo Excel.</p>
+    </div>
+    <a href="/choferes" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if resultado %}
+    {% if resultado.error %}
+    <div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+        <i class="bi bi-exclamation-circle"></i> {{ resultado.error }}
+    </div>
+    {% else %}
+    <div style="background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:8px;padding:14px 18px;margin-bottom:1.5rem;">
+        <div style="font-weight:700;font-size:15px;margin-bottom:6px;">
+            <i class="bi bi-check-circle-fill"></i>
+            {{ resultado.importados }} chofer{{ 'es' if resultado.importados != 1 else '' }} importado{{ 's' if resultado.importados != 1 else '' }} correctamente.
+        </div>
+        {% if resultado.fallos %}
+        <div style="margin-top:10px;font-size:13px;color:#92400e;">
+            <strong>{{ resultado.fallos|length }} fila{{ 's' if resultado.fallos|length != 1 else '' }} con errores:</strong>
+            <ul style="margin:6px 0 0;padding-left:20px;">
+                {% for f in resultado.fallos %}
+                <li>{{ f }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+{% endif %}
+
+<div class="panel mb-4">
+    <div class="panel-header">
+        <div>
+            <h2>Cargar archivo</h2>
+            <p>Selecciona un archivo .xlsx con los datos de los choferes.</p>
+        </div>
+    </div>
+    <div style="padding:24px;">
+        <form method="POST" action="/choferes/importar" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">Archivo Excel (.xlsx) <span style="color:var(--danger)">*</span></label>
+                <input type="file" name="archivo" class="form-control" accept=".xlsx" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-upload"></i> Importar
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>Formato esperado</h2>
+            <p>El archivo debe tener una hoja con las siguientes columnas en la primera fila.</p>
+        </div>
+    </div>
+    <div style="padding:24px;">
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Columna</th>
+                        <th>Requerida</th>
+                        <th>Descripción</th>
+                        <th>Ejemplo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>nombre</code></td>
+                        <td><span class="badge badge-danger">Sí</span></td>
+                        <td>Nombre completo del chofer.</td>
+                        <td>Juan Pérez</td>
+                    </tr>
+                    <tr>
+                        <td><code>ci</code></td>
+                        <td><span class="badge badge-danger">Sí</span></td>
+                        <td>Carnet de identidad (único). Si ya existe, se actualiza.</td>
+                        <td>85123456789</td>
+                    </tr>
+                    <tr>
+                        <td><code>cliente_codigo</code></td>
+                        <td><span class="badge badge-danger">Sí</span></td>
+                        <td>Código del cliente al que pertenece (debe existir).</td>
+                        <td>PMA-001</td>
+                    </tr>
+                    <tr>
+                        <td><code>licencia_numero</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Número de la licencia de conducción.</td>
+                        <td>LC-12345</td>
+                    </tr>
+                    <tr>
+                        <td><code>vencimiento licencia</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Fecha de vencimiento (DD/MM/AAAA o AAAA-MM-DD).</td>
+                        <td>31/12/2027</td>
+                    </tr>
+                    <tr>
+                        <td><code>teléfono</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Número de teléfono de contacto.</td>
+                        <td>+53 5 123 4567</td>
+                    </tr>
+                    <tr>
+                        <td><code>observaciones</code></td>
+                        <td><span class="badge badge-neutral">No</span></td>
+                        <td>Notas adicionales sobre el chofer.</td>
+                        <td>—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

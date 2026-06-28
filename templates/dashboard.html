@@ -101,6 +101,16 @@
         </div>
     </div>
 
+    <div class="kpi-card" style="{{ 'border:2px solid var(--warning);' if licencias_por_vencer > 0 else '' }}">
+        <div class="kpi-icon {{ 'warning' if licencias_por_vencer > 0 else 'neutral' }}">
+            <i class="bi bi-card-checklist"></i>
+        </div>
+        <div>
+            <span>Licencias por vencer</span>
+            <strong>{{ licencias_por_vencer }}</strong>
+        </div>
+    </div>
+
 </div>
 
 <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
@@ -123,14 +133,15 @@
     <div class="panel-header">
         <div>
             <h2>Estado del sistema</h2>
-            <p>Sprint 1 — Infraestructura base en operación.</p>
+            <p>Sprint 2 — Módulo comercial en operación.</p>
         </div>
     </div>
     <div style="padding:32px;text-align:center;">
         <i class="bi bi-check-circle-fill" style="font-size:48px;color:var(--success);margin-bottom:12px;display:block;"></i>
         <p style="font-size:16px;font-weight:600;color:var(--text);margin:0 0 6px;">Sistema operativo</p>
         <p style="font-size:14px;color:var(--muted);margin:0;">
-            Los módulos de Depósitos, Clientes, Vehículos, Tarjetas, Habilitaciones, Despachos y Conciliación
+            Gasolineras, Clientes, Vehículos y Choferes activos.
+            Los módulos de Depósitos, Tarjetas, Habilitaciones, Despachos y Conciliación
             estarán disponibles en sprints siguientes.
         </p>
     </div>

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block titulo %}Editar Chofer — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial</span>
+        <h1>Editar chofer</h1>
+        <p>Modifica los datos de <strong>{{ chofer.nombre }}</strong>.</p>
+    </div>
+    <a href="/choferes" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/choferes/{{ chofer.id }}/editar">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Nombre completo <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="nombre" class="form-control"
+                       value="{{ chofer.nombre }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">C.I. <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="ci" class="form-control"
+                       value="{{ chofer.ci }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
+                <select name="cliente_id" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}" {{ 'selected' if chofer.cliente_id == c.id }}>
+                        {{ c.nombre }} ({{ c.codigo }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">N° de licencia</label>
+                <input type="text" name="licencia_numero" class="form-control"
+                       value="{{ chofer.licencia_numero or '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Vencimiento de licencia</label>
+                <input type="date" name="licencia_vencimiento" class="form-control"
+                       value="{{ chofer.licencia_vencimiento[:10] if chofer.licencia_vencimiento else '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Teléfono</label>
+                <input type="text" name="telefono" class="form-control"
+                       value="{{ chofer.telefono or '' }}">
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2">{{ chofer.observaciones or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="activo"   {{ 'selected' if chofer.estado == 'activo' }}>Activo</option>
+                    <option value="inactivo" {{ 'selected' if chofer.estado == 'inactivo' }}>Inactivo</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar cambios
+            </button>
+            <a href="/choferes" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}
