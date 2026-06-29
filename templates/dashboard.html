@@ -129,22 +129,22 @@
 
 </div>
 
-<div class="panel mt-4">
-    <div class="panel-header">
-        <div>
-            <h2>Estado del sistema</h2>
-            <p>Sprint 4 — Tarjetas Fincimex y Subinventarios activos.</p>
-        </div>
-    </div>
-    <div style="padding:32px;text-align:center;">
-        <i class="bi bi-check-circle-fill" style="font-size:48px;color:var(--success);margin-bottom:12px;display:block;"></i>
-        <p style="font-size:16px;font-weight:600;color:var(--text);margin:0 0 6px;">Sistema operativo</p>
-        <p style="font-size:14px;color:var(--muted);margin:0;">
-            Gasolineras, Depósitos, Tarjetas Fincimex y Subinventarios activos.
-            Los módulos de Habilitaciones, Despachos y Conciliación
-            estarán disponibles en sprints siguientes.
-        </p>
-    </div>
+<div class="panel mt-4" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;">
+    <a href="/habilitaciones?estado=pendiente" style="text-decoration:none;color:inherit;display:block;padding:20px 24px;border-right:1px solid var(--border);">
+        <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;margin-bottom:6px;">Habilitaciones pendientes</div>
+        <div style="font-size:24px;font-weight:800;">→ Ver</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Crear y aprobar autorizaciones</div>
+    </a>
+    <a href="/despachos/crear" style="text-decoration:none;color:inherit;display:block;padding:20px 24px;border-right:1px solid var(--border);">
+        <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;margin-bottom:6px;">Registrar despacho</div>
+        <div style="font-size:24px;font-weight:800;">→ Ir</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Ejecutar habilitación aprobada</div>
+    </a>
+    <a href="/conciliacion/crear" style="text-decoration:none;color:inherit;display:block;padding:20px 24px;">
+        <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;margin-bottom:6px;">Conciliación diaria</div>
+        <div style="font-size:24px;font-weight:800;">→ Ir</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Cerrar turno con lectura física</div>
+    </a>
 </div>
 
 {% endblock %}

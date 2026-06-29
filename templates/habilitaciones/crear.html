@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva Habilitación — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operativa / Habilitaciones</span>
+        <h1>Nueva habilitación</h1>
+        <p>Autorización de despacho de combustible para una unidad.</p>
+    </div>
+    <a href="/habilitaciones" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/habilitaciones/crear" id="form-hab">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
+                <select name="cliente_id" id="sel-cliente" class="form-select" required>
+                    <option value="">Seleccionar cliente...</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}" {{ 'selected' if c.id|string == cliente_pre or c.id|string == request.form.get('cliente_id','') }}>
+                        {{ c.nombre }} ({{ c.codigo }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Unidad autorizada <span style="color:var(--danger)">*</span></label>
+                <select name="unidad_id" id="sel-unidad" class="form-select" required>
+                    <option value="">Seleccione cliente primero...</option>
+                    {% for u in unidades %}
+                    <option value="{{ u.id }}"
+                            data-cliente="{{ u.cliente_id }}"
+                            data-combustible="{{ u.tipo_combustible }}"
+                            {{ 'selected' if u.id|string == request.form.get('unidad_id','') }}>
+                        {{ u.chapa }}{% if u.chofer_nombre %} — {{ u.chofer_nombre }}{% endif %}
+                        ({{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Gasolinera <span style="color:var(--danger)">*</span></label>
+                <select name="gasolinera_id" id="sel-gasolinera" class="form-select" required>
+                    <option value="">Seleccionar gasolinera...</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}" {{ 'selected' if g.id|string == request.form.get('gasolinera_id','') }}>{{ g.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tarjeta Fincimex <span style="color:var(--danger)">*</span></label>
+                <select name="tarjeta_id" id="sel-tarjeta" class="form-select" required>
+                    <option value="">Seleccione gasolinera primero...</option>
+                    {% for t in tarjetas %}
+                    <option value="{{ t.id }}"
+                            data-gasolinera="{{ t.gasolinera_id }}"
+                            data-saldo="{{ t.saldo_usable_l }}"
+                            {{ 'selected' if t.id|string == request.form.get('tarjeta_id','') }}>
+                        **** {{ t.numero_parcial }} — {{ "{:,.2f}".format(t.saldo_usable_l) }} L
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Subinventario (opcional)</label>
+                <select name="subinventario_id" id="sel-sub" class="form-select">
+                    <option value="">Sin subinventario específico</option>
+                    {% for s in subinventarios %}
+                    <option value="{{ s.id }}"
+                            data-gasolinera="{{ s.gasolinera_id }}"
+                            {{ 'selected' if s.id|string == request.form.get('subinventario_id','') }}>
+                        {{ s.nombre }} ({{ "{:,.2f}".format(s.litros_reservados) }} L reservados)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros autorizados <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros_autorizados" class="form-control"
+                       value="{{ request.form.get('litros_autorizados', '') }}"
+                       min="0.01" step="0.01" required placeholder="0.00">
+                <div id="saldo-info" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha de habilitación <span style="color:var(--danger)">*</span></label>
+                <input type="date" name="fecha_habilitacion" class="form-control"
+                       value="{{ request.form.get('fecha_habilitacion', hoy) }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha de vencimiento (opcional)</label>
+                <input type="date" name="fecha_vencimiento" class="form-control"
+                       value="{{ request.form.get('fecha_vencimiento', '') }}">
+            </div>
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Instrucciones o notas adicionales...">{{ request.form.get('observaciones', '') }}</textarea>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Crear habilitación
+            </button>
+            <a href="/habilitaciones" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const unidades = [
+    {% for u in unidades %}
+    {id: "{{ u.id }}", cliente: "{{ u.cliente_id }}", label: "{{ u.chapa }}{% if u.chofer_nombre %} — {{ u.chofer_nombre }}{% endif %} ({{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }})"},
+    {% endfor %}
+];
+const tarjetas = [
+    {% for t in tarjetas %}
+    {id: "{{ t.id }}", gasolinera: "{{ t.gasolinera_id }}", saldo: {{ t.saldo_usable_l }}, label: "**** {{ t.numero_parcial }} — {{ '{:,.2f}'.format(t.saldo_usable_l) }} L"},
+    {% endfor %}
+];
+const subinventarios = [
+    {% for s in subinventarios %}
+    {id: "{{ s.id }}", gasolinera: "{{ s.gasolinera_id }}", label: "{{ s.nombre }} ({{ '{:,.2f}'.format(s.litros_reservados) }} L reservados)"},
+    {% endfor %}
+];
+
+const selCliente = document.getElementById('sel-cliente');
+const selUnidad = document.getElementById('sel-unidad');
+const selGasolinera = document.getElementById('sel-gasolinera');
+const selTarjeta = document.getElementById('sel-tarjeta');
+const selSub = document.getElementById('sel-sub');
+const saldoInfo = document.getElementById('saldo-info');
+
+function filterSelect(sel, items, filterFn, emptyLabel) {
+    const prev = sel.value;
+    sel.innerHTML = `<option value="">${emptyLabel}</option>`;
+    items.filter(filterFn).forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.label;
+        if (item.id === prev) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
+selCliente.addEventListener('change', function() {
+    const cid = this.value;
+    filterSelect(selUnidad, unidades, u => !cid || u.cliente === cid, 'Seleccionar unidad...');
+});
+
+selGasolinera.addEventListener('change', function() {
+    const gid = this.value;
+    filterSelect(selTarjeta, tarjetas, t => !gid || t.gasolinera === gid, 'Seleccionar tarjeta...');
+    filterSelect(selSub, subinventarios, s => !gid || s.gasolinera === gid, 'Sin subinventario específico');
+    updateSaldoInfo();
+});
+
+selTarjeta.addEventListener('change', updateSaldoInfo);
+
+function updateSaldoInfo() {
+    const tid = selTarjeta.value;
+    if (!tid) { saldoInfo.textContent = ''; return; }
+    const t = tarjetas.find(x => x.id === tid);
+    if (t) saldoInfo.textContent = `Saldo disponible en tarjeta: ${t.saldo.toLocaleString('es', {minimumFractionDigits:2})} L`;
+}
+
+// Fire on page load if client is pre-selected
+if (selCliente.value) selCliente.dispatchEvent(new Event('change'));
+if (selGasolinera.value) selGasolinera.dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

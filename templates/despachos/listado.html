@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block titulo %}Despachos — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operativa</span>
+        <h1>Despachos</h1>
+        <p>Registro de despachos físicos de combustible realizados.</p>
+    </div>
+    <a href="/despachos/crear" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Registrar despacho
+    </a>
+</div>
+
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
+</div>
+{% endif %}
+
+<div class="panel mb-4">
+    <form method="GET" action="/despachos" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <select name="gasolinera_id" class="form-select" style="max-width:200px;">
+            <option value="">Todas las gasolineras</option>
+            {% for g in gasolineras %}
+            <option value="{{ g.id }}" {{ 'selected' if filtro_gasolinera == g.id|string }}>{{ g.nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="cliente_id" class="form-select" style="max-width:200px;">
+            <option value="">Todos los clientes</option>
+            {% for c in clientes %}
+            <option value="{{ c.id }}" {{ 'selected' if filtro_cliente == c.id|string }}>{{ c.nombre }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="desde" value="{{ filtro_desde }}" class="form-control" style="max-width:145px;" title="Desde">
+        <input type="date" name="hasta" value="{{ filtro_hasta }}" class="form-control" style="max-width:145px;" title="Hasta">
+        <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if filtro_gasolinera or filtro_cliente or filtro_desde or filtro_hasta %}
+        <a href="/despachos" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Cliente / Unidad</th>
+                    <th>Gasolinera / Tarjeta</th>
+                    <th>Litros aut.</th>
+                    <th>Litros desp.</th>
+                    <th>Fecha</th>
+                    <th>Ticket</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in lista %}
+                <tr>
+                    <td><strong>#{{ d.id }}</strong></td>
+                    <td>
+                        <div style="font-weight:700;">{{ d.cliente_nombre }}</div>
+                        <div style="font-size:12px;color:var(--muted);">
+                            <i class="bi bi-truck"></i> {{ d.unidad_chapa }}
+                            {% if d.chofer_nombre %}· {{ d.chofer_nombre }}{% endif %}
+                        </div>
+                        <div style="font-size:11px;color:var(--muted);">{{ d.operario_nombre }}</div>
+                    </td>
+                    <td>
+                        <div>{{ d.gasolinera_nombre }}</div>
+                        <div style="font-size:12px;color:var(--muted);font-family:monospace;">**** {{ d.tarjeta_parcial }}</div>
+                    </td>
+                    <td>{{ "{:,.2f}".format(d.litros_autorizados) }} L</td>
+                    <td><strong style="color:var(--success);">{{ "{:,.2f}".format(d.litros_despachados) }} L</strong></td>
+                    <td style="font-size:13px;">{{ d.fecha_despacho[:16] if d.fecha_despacho else '—' }}</td>
+                    <td>
+                        {% if d.foto_ticket_url %}
+                        <a href="{{ d.foto_ticket_url }}" target="_blank">
+                            <img src="{{ d.foto_ticket_url }}" style="height:36px;border-radius:4px;border:1px solid var(--border);">
+                        </a>
+                        {% else %}
+                        <span style="color:var(--muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="/despachos/{{ d.id }}" class="btn btn-soft btn-sm"><i class="bi bi-eye"></i> Ver</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        <i class="bi bi-box-arrow-right" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay despachos registrados.
+                        <br><a href="/despachos/crear" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-lg"></i> Registrar el primero
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

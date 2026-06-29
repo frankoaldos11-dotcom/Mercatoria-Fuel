@@ -41,9 +41,34 @@ def dashboard():
     """)
     tarjetas_bajo_saldo = cur.fetchone()["total"] or 0
 
-    conciliaciones_pendientes = 0
+    # Conciliaciones pendientes: gasolineras con despachos hoy sin conciliación cerrada
+    hoy_str = date.today().isoformat()
+    manana_str = (date.today() + timedelta(days=1)).isoformat()
+    cur.execute("""
+        SELECT COUNT(DISTINCT g.id) AS total FROM gasolineras g
+        WHERE g.estado = 'activo'
+        AND EXISTS (
+            SELECT 1 FROM movimientos m
+            WHERE m.gasolinera_id = g.id AND m.tipo = 'despacho'
+            AND m.fecha >= ? AND m.fecha < ?
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM conciliaciones c
+            WHERE c.gasolinera_id = g.id AND c.fecha = ?
+            AND c.estado IN ('cerrada', 'con_alerta')
+        )
+    """, (hoy_str, manana_str, hoy_str))
+    conciliaciones_pendientes = cur.fetchone()["total"] or 0
 
-    cur.execute("SELECT COUNT(*) AS total FROM movimientos WHERE tipo = 'despacho'")
+    # Despachos pendientes: habilitaciones aprobadas sin despacho completado
+    cur.execute("""
+        SELECT COUNT(*) AS total FROM habilitaciones h
+        WHERE h.estado = 'aprobada'
+        AND NOT EXISTS (
+            SELECT 1 FROM despachos d
+            WHERE d.habilitacion_id = h.id AND d.estado = 'completado'
+        )
+    """)
     despachos_pendientes = cur.fetchone()["total"] or 0
 
     # Combustible en tránsito: transferencias en_transito
@@ -54,14 +79,21 @@ def dashboard():
     """)
     transferencias_transito = cur.fetchone()["total"] or 0
 
-    # Alertas: devoluciones cuya fecha_estimada_liberacion ya venció y siguen pendientes
+    # Alertas: devoluciones vencidas + conciliaciones con_alerta últimos 7 días
+    hace_7_dias = (date.today() - timedelta(days=7)).isoformat()
     cur.execute("""
         SELECT COUNT(*) AS total FROM devoluciones_tarjetas
         WHERE estado = 'pendiente'
         AND fecha_estimada_liberacion IS NOT NULL
         AND fecha_estimada_liberacion <= ?
     """, (date.today().isoformat(),))
-    alertas_criticas = cur.fetchone()["total"] or 0
+    alertas_dev = cur.fetchone()["total"] or 0
+    cur.execute("""
+        SELECT COUNT(*) AS total FROM conciliaciones
+        WHERE estado = 'con_alerta' AND fecha >= ?
+    """, (hace_7_dias,))
+    alertas_concil = cur.fetchone()["total"] or 0
+    alertas_criticas = alertas_dev + alertas_concil
 
     cur.execute("SELECT COUNT(*) AS total FROM gasolineras WHERE estado = 'activo'")
     gasolineras_activas = cur.fetchone()["total"] or 0

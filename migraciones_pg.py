@@ -267,6 +267,72 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    # ── habilitaciones ────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS habilitaciones (
+        id                 SERIAL PRIMARY KEY,
+        cliente_id         INTEGER NOT NULL REFERENCES clientes(id),
+        unidad_id          INTEGER NOT NULL REFERENCES vehiculos(id),
+        gasolinera_id      INTEGER NOT NULL REFERENCES gasolineras(id),
+        tarjeta_id         INTEGER NOT NULL REFERENCES tarjetas(id),
+        subinventario_id   INTEGER REFERENCES subinventarios(id),
+        litros_autorizados NUMERIC(14,2) NOT NULL DEFAULT 0,
+        litros_despachados NUMERIC(14,2) NOT NULL DEFAULT 0,
+        fecha_habilitacion DATE NOT NULL,
+        fecha_vencimiento  DATE,
+        estado             TEXT NOT NULL DEFAULT 'pendiente',
+        observaciones      TEXT,
+        creado_por         INTEGER NOT NULL REFERENCES usuarios(id),
+        aprobado_por       INTEGER REFERENCES usuarios(id),
+        created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ── despachos ─────────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS despachos (
+        id                 SERIAL PRIMARY KEY,
+        habilitacion_id    INTEGER NOT NULL UNIQUE REFERENCES habilitaciones(id),
+        gasolinera_id      INTEGER NOT NULL REFERENCES gasolineras(id),
+        tarjeta_id         INTEGER NOT NULL REFERENCES tarjetas(id),
+        cliente_id         INTEGER NOT NULL REFERENCES clientes(id),
+        unidad_id          INTEGER NOT NULL REFERENCES vehiculos(id),
+        litros_despachados NUMERIC(14,2) NOT NULL DEFAULT 0,
+        foto_ticket_url    TEXT,
+        foto_vehiculo_url  TEXT,
+        foto_odometro_url  TEXT,
+        odometro_km        INTEGER,
+        observaciones      TEXT,
+        fecha_despacho     TIMESTAMP NOT NULL,
+        operario_id        INTEGER NOT NULL REFERENCES usuarios(id),
+        estado             TEXT NOT NULL DEFAULT 'completado',
+        created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ── conciliaciones ────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS conciliaciones (
+        id                    SERIAL PRIMARY KEY,
+        gasolinera_id         INTEGER NOT NULL REFERENCES gasolineras(id),
+        fecha                 DATE NOT NULL,
+        turno                 TEXT,
+        saldo_fisico_inicio_l NUMERIC(14,2) NOT NULL DEFAULT 0,
+        saldo_fisico_fin_l    NUMERIC(14,2) NOT NULL DEFAULT 0,
+        total_entrada_l       NUMERIC(14,2) NOT NULL DEFAULT 0,
+        total_despachado_l    NUMERIC(14,2) NOT NULL DEFAULT 0,
+        diferencia_l          NUMERIC(14,2) NOT NULL DEFAULT 0,
+        diferencia_porcentaje NUMERIC(8,4) NOT NULL DEFAULT 0,
+        estado                TEXT NOT NULL DEFAULT 'borrador',
+        observaciones         TEXT,
+        responsable_id        INTEGER NOT NULL REFERENCES usuarios(id),
+        created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
     if not cur.fetchone():

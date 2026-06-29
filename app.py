@@ -20,6 +20,9 @@ from blueprints.recepciones import recepciones_bp
 from blueprints.transferencias import transferencias_bp
 from blueprints.unidades import unidades_bp
 from blueprints.tarjetas import tarjetas_bp
+from blueprints.habilitaciones import habilitaciones_bp
+from blueprints.despachos import despachos_bp
+from blueprints.conciliacion import conciliacion_bp
 
 
 app = Flask(__name__)
@@ -113,6 +116,15 @@ app.register_blueprint(recepciones_bp)
 app.register_blueprint(transferencias_bp)
 app.register_blueprint(unidades_bp)
 app.register_blueprint(tarjetas_bp)
+app.register_blueprint(habilitaciones_bp)
+app.register_blueprint(despachos_bp)
+app.register_blueprint(conciliacion_bp)
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+for _sub in ["tickets", "vehiculos", "odometros"]:
+    os.makedirs(os.path.join(UPLOAD_FOLDER, _sub), exist_ok=True)
 
 # Inicializar base de datos y migraciones
 if USE_POSTGRES:

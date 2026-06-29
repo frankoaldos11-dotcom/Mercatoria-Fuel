@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar Despacho — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operativa / Despachos</span>
+        <h1>Registrar despacho</h1>
+        <p>Ejecución física de una habilitación aprobada.</p>
+    </div>
+    <a href="/despachos" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+{% if not habilitaciones %}
+<div class="panel" style="padding:40px;text-align:center;">
+    <i class="bi bi-toggle-on" style="font-size:48px;color:var(--muted);display:block;margin-bottom:12px;opacity:0.4;"></i>
+    <p style="font-size:16px;color:var(--muted);margin:0 0 16px;">No hay habilitaciones aprobadas pendientes de despacho.</p>
+    <a href="/habilitaciones" class="btn btn-primary"><i class="bi bi-toggle-on"></i> Ver habilitaciones</a>
+</div>
+{% else %}
+
+<div class="panel">
+    <form method="POST" action="/despachos/crear" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Habilitación aprobada <span style="color:var(--danger)">*</span></label>
+                <select name="habilitacion_id" id="sel-hab" class="form-select" required>
+                    <option value="">Seleccionar habilitación...</option>
+                    {% for h in habilitaciones %}
+                    <option value="{{ h.id }}"
+                            data-litros="{{ h.litros_autorizados }}"
+                            {{ 'selected' if h.id|string == hab_pre or h.id|string == request.form.get('habilitacion_id','') }}>
+                        #{{ h.id }} — {{ h.cliente_nombre }} / {{ h.unidad_chapa }}
+                        {% if h.chofer_nombre %}({{ h.chofer_nombre }}){% endif %}
+                        — {{ h.gasolinera_nombre }} — **** {{ h.tarjeta_parcial }}
+                        — {{ "{:,.2f}".format(h.litros_autorizados) }} L aut.
+                    </option>
+                    {% endfor %}
+                </select>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                    Solo aparecen habilitaciones aprobadas sin despacho registrado.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros realmente despachados <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros_despachados" id="inp-litros" class="form-control"
+                       value="{{ request.form.get('litros_despachados', '') }}"
+                       min="0.01" step="0.01" required placeholder="0.00">
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="litros-hint"></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Odómetro (km, opcional)</label>
+                <input type="number" name="odometro_km" class="form-control"
+                       value="{{ request.form.get('odometro_km', '') }}"
+                       min="0" step="1" placeholder="123456">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Foto del ticket <span style="color:var(--danger)">*</span></label>
+                <input type="file" name="foto_ticket" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">JPG, PNG o WEBP. Obligatorio.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Foto del vehículo (opcional)</label>
+                <input type="file" name="foto_vehiculo" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Foto del odómetro (opcional)</label>
+                <input type="file" name="foto_odometro" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+            </div>
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Incidencias, notas del operario...">{{ request.form.get('observaciones', '') }}</textarea>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Confirmar despacho
+            </button>
+            <a href="/despachos" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const habilitaciones = {
+    {% for h in habilitaciones %}
+    "{{ h.id }}": {{ h.litros_autorizados }},
+    {% endfor %}
+};
+
+const selHab = document.getElementById('sel-hab');
+const inpLitros = document.getElementById('inp-litros');
+const litrosHint = document.getElementById('litros-hint');
+
+selHab.addEventListener('change', function() {
+    const lit = habilitaciones[this.value];
+    if (lit !== undefined) {
+        inpLitros.value = lit.toFixed(2);
+        litrosHint.textContent = `Litros autorizados: ${lit.toLocaleString('es', {minimumFractionDigits:2})} L`;
+    } else {
+        litrosHint.textContent = '';
+    }
+});
+
+if (selHab.value) selHab.dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

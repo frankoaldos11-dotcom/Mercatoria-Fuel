@@ -63,3 +63,25 @@ TIPOS_MOVIMIENTO = [
 ESTADOS_RECEPCION = ["pendiente", "confirmada", "anulada"]
 
 ESTADOS_TRANSFERENCIA = ["en_transito", "recibida", "anulada"]
+
+ESTADOS_HABILITACION = ["pendiente", "aprobada", "despachada", "cancelada", "conciliada"]
+
+ESTADOS_HABILITACION_LABELS = {
+    "pendiente":  "Pendiente",
+    "aprobada":   "Aprobada",
+    "despachada": "Despachada",
+    "cancelada":  "Cancelada",
+    "conciliada": "Conciliada",
+}
+
+ESTADOS_DESPACHO = ["completado", "anulado"]
+
+ESTADOS_CONCILIACION = ["borrador", "cerrada", "con_alerta"]
+
+TURNOS_CONCILIACION = ["manana", "tarde", "noche"]
+
+TURNOS_CONCILIACION_LABELS = {
+    "manana": "Mañana",
+    "tarde":  "Tarde",
+    "noche":  "Noche",
+}

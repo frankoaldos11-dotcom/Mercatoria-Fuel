@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block titulo %}Conciliación #{{ conciliacion.id }} — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operativa / Conciliación</span>
+        <h1>Conciliación #{{ conciliacion.id }}</h1>
+        <p>{{ conciliacion.gasolinera_nombre }} — {{ conciliacion.fecha }}</p>
+    </div>
+    <a href="/conciliacion" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Conciliación registrada correctamente.
+</div>
+{% endif %}
+
+<!-- Estado badge -->
+<div class="panel mb-4">
+    <div class="panel-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+            {% if conciliacion.estado == 'cerrada' %}
+            <span class="badge badge-ok" style="font-size:15px;padding:6px 14px;">
+                <i class="bi bi-check-circle"></i> Cerrada
+            </span>
+            <span style="font-size:13px;color:var(--muted);">Diferencia dentro del margen aceptable (≤ 0.5%)</span>
+            {% elif conciliacion.estado == 'con_alerta' %}
+            <span class="badge badge-danger" style="font-size:15px;padding:6px 14px;">
+                <i class="bi bi-exclamation-triangle"></i> Con alerta
+            </span>
+            <span style="font-size:13px;color:var(--danger);">La diferencia supera el 0.5% del total despachado</span>
+            {% else %}
+            <span class="badge badge-neutral" style="font-size:15px;padding:6px 14px;">Borrador</span>
+            {% endif %}
+        </div>
+        <div style="font-size:13px;color:var(--muted);">Responsable: {{ conciliacion.responsable_nombre }}</div>
+    </div>
+</div>
+
+<!-- Comparación visual -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+    <!-- Sistema -->
+    <div class="panel">
+        <div class="panel-header" style="background:#f0f9ff;border-radius:12px 12px 0 0;">
+            <h2 style="margin:0;color:var(--info);">
+                <i class="bi bi-cpu"></i> Datos del sistema
+            </h2>
+        </div>
+        <div style="padding:0 24px 24px;">
+            <div style="margin:16px 0;padding:14px;background:var(--panel-soft);border-radius:8px;">
+                <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;margin-bottom:4px;">Total entradas del día</div>
+                <div style="font-size:26px;font-weight:700;color:var(--info);">{{ "{:,.2f}".format(conciliacion.total_entrada_l) }} L</div>
+            </div>
+            <div style="padding:14px;background:var(--panel-soft);border-radius:8px;">
+                <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;margin-bottom:4px;">Total despachado del día</div>
+                <div style="font-size:26px;font-weight:700;color:var(--text);">{{ "{:,.2f}".format(conciliacion.total_despachado_l) }} L</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Físico -->
+    <div class="panel">
+        <div class="panel-header" style="background:#f0fdf4;border-radius:12px 12px 0 0;">
+            <h2 style="margin:0;color:var(--success);">
+                <i class="bi bi-person-check"></i> Reporte físico
+            </h2>
+        </div>
+        <div style="padding:0 24px 24px;">
+            <div style="margin:16px 0;padding:14px;background:var(--panel-soft);border-radius:8px;">
+                <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;margin-bottom:4px;">Saldo físico inicio de turno</div>
+                <div style="font-size:26px;font-weight:700;">{{ "{:,.2f}".format(conciliacion.saldo_fisico_inicio_l) }} L</div>
+            </div>
+            <div style="padding:14px;background:var(--panel-soft);border-radius:8px;">
+                <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;margin-bottom:4px;">Saldo físico cierre de turno</div>
+                <div style="font-size:26px;font-weight:700;">{{ "{:,.2f}".format(conciliacion.saldo_fisico_fin_l) }} L</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Resultado -->
+<div class="panel mb-4" style="border:2px solid {% if conciliacion.estado == 'cerrada' %}#86efac{% elif conciliacion.estado == 'con_alerta' %}var(--danger){% else %}var(--border){% endif %};">
+    <div style="padding:24px;text-align:center;">
+        <div style="font-size:13px;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;color:var(--muted);margin-bottom:8px;">
+            Diferencia final (saldo_fin − saldo_inicio − entrada + despachado)
+        </div>
+        <div style="font-size:42px;font-weight:800;color:{% if conciliacion.estado == 'cerrada' %}var(--success){% elif conciliacion.estado == 'con_alerta' %}var(--danger){% else %}var(--text){% endif %};">
+            {{ "{:+,.2f}".format(conciliacion.diferencia_l) }} L
+        </div>
+        {% if conciliacion.diferencia_porcentaje > 0.001 %}
+        <div style="font-size:16px;color:var(--muted);margin-top:4px;">
+            {{ "{:.3%}".format(conciliacion.diferencia_porcentaje) }} sobre total despachado
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Metadatos -->
+<div class="panel">
+    <div class="panel-header"><h2>Información adicional</h2></div>
+    <div style="padding:0 24px 24px;">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px 0;color:var(--muted);width:30%;">Gasolinera</td>
+                <td style="padding:8px 0;font-weight:600;">{{ conciliacion.gasolinera_nombre }}</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px 0;color:var(--muted);">Fecha</td>
+                <td style="padding:8px 0;">{{ conciliacion.fecha }}</td>
+            </tr>
+            {% if conciliacion.turno %}
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px 0;color:var(--muted);">Turno</td>
+                <td style="padding:8px 0;">{{ turno_labels.get(conciliacion.turno, conciliacion.turno) }}</td>
+            </tr>
+            {% endif %}
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px 0;color:var(--muted);">Responsable</td>
+                <td style="padding:8px 0;">{{ conciliacion.responsable_nombre }}</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px 0;color:var(--muted);">Registrado</td>
+                <td style="padding:8px 0;">{{ conciliacion.created_at[:16] if conciliacion.created_at else '—' }}</td>
+            </tr>
+            {% if conciliacion.observaciones %}
+            <tr>
+                <td style="padding:8px 0;color:var(--muted);">Observaciones</td>
+                <td style="padding:8px 0;">{{ conciliacion.observaciones }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+{% endblock %}

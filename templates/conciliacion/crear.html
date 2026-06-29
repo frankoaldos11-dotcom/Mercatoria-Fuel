@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva Conciliación — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operativa / Conciliación</span>
+        <h1>Nueva conciliación</h1>
+        <p>Cierre de turno: datos del sistema vs. reporte físico.</p>
+    </div>
+    <a href="/conciliacion" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<!-- Paso 1: Seleccionar gasolinera y fecha para precargar datos -->
+{% if not gasolinera_id_pre %}
+<div class="panel mb-4">
+    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;">
+        <h2 style="margin:0;">Paso 1 — Seleccionar gasolinera y fecha</h2>
+    </div>
+    <form method="GET" action="/conciliacion/crear" style="padding:0 24px 24px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div>
+            <label class="form-label">Gasolinera</label>
+            <select name="gasolinera_id" class="form-select" style="min-width:220px;" required>
+                <option value="">Seleccionar...</option>
+                {% for g in gasolineras %}
+                <option value="{{ g.id }}">{{ g.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Fecha</label>
+            <input type="date" name="fecha" class="form-control" value="{{ hoy }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:auto;">
+            <i class="bi bi-arrow-right"></i> Ver datos calculados
+        </button>
+    </form>
+</div>
+{% else %}
+
+<!-- Paso 2: Formulario completo con datos precalculados -->
+{% if datos_calculados %}
+<div class="panel mb-4" style="background:#f0fdf4;border:1px solid #86efac;">
+    <div style="padding:16px 24px;">
+        <h3 style="margin:0 0 12px;font-size:15px;color:#166534;">
+            <i class="bi bi-calculator"></i> Datos calculados por el sistema — {{ gasolinera_pre_row.nombre if gasolinera_pre_row else '' }} / {{ fecha_pre }}
+        </h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+                <div style="font-size:12px;color:#166534;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;">Total entradas del día</div>
+                <div style="font-size:22px;font-weight:700;color:#166534;">{{ "{:,.2f}".format(datos_calculados.total_entrada_l) }} L</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:#166534;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;">Total despachado del día</div>
+                <div style="font-size:22px;font-weight:700;color:#166534;">{{ "{:,.2f}".format(datos_calculados.total_despachado_l) }} L</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="panel">
+    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:0;">
+        <h2 style="margin:0;">Paso 2 — Reporte físico del turno</h2>
+        <a href="/conciliacion/crear" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Cambiar</a>
+    </div>
+    <form method="POST" action="/conciliacion/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="gasolinera_id" value="{{ gasolinera_id_pre }}">
+        <input type="hidden" name="fecha" value="{{ fecha_pre }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Turno (opcional)</label>
+                <select name="turno" class="form-select">
+                    <option value="">Sin turno específico</option>
+                    {% for t in turnos %}
+                    <option value="{{ t }}" {{ 'selected' if request.form.get('turno') == t }}>{{ turno_labels.get(t, t) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3"></div>
+
+            <div class="mb-3">
+                <label class="form-label">Saldo físico al inicio del turno (L) <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="saldo_fisico_inicio_l" class="form-control" id="inp-inicio"
+                       value="{{ request.form.get('saldo_fisico_inicio_l', '0') }}"
+                       min="0" step="0.01" required oninput="calcDiff()">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Saldo físico al cierre del turno (L) <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="saldo_fisico_fin_l" class="form-control" id="inp-fin"
+                       value="{{ request.form.get('saldo_fisico_fin_l', '0') }}"
+                       min="0" step="0.01" required oninput="calcDiff()">
+            </div>
+
+            <!-- Vista previa de diferencia calculada -->
+            {% if datos_calculados %}
+            <div class="mb-3" style="grid-column:1/-1;">
+                <div id="diff-preview" style="background:var(--panel-soft);border:1px solid var(--border);border-radius:8px;padding:14px 18px;font-size:14px;">
+                    <strong>Diferencia estimada:</strong> <span id="diff-val" style="font-size:18px;font-weight:700;">—</span>
+                    <span style="font-size:12px;color:var(--muted);margin-left:8px;">
+                        (saldo_fin − saldo_inicio − total_entrada + total_despachado)
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="3"
+                          placeholder="Obligatorio si la diferencia supera el 0.5%...">{{ request.form.get('observaciones', '') }}</textarea>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                    Si la diferencia supera el 0.5% del total despachado, las observaciones son obligatorias.
+                </div>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Cerrar conciliación
+            </button>
+            <a href="/conciliacion" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if datos_calculados %}
+<script>
+const totalEntrada = {{ datos_calculados.total_entrada_l }};
+const totalDespachado = {{ datos_calculados.total_despachado_l }};
+
+function calcDiff() {
+    const inicio = parseFloat(document.getElementById('inp-inicio').value) || 0;
+    const fin = parseFloat(document.getElementById('inp-fin').value) || 0;
+    const diff = fin - (inicio + totalEntrada - totalDespachado);
+    const el = document.getElementById('diff-val');
+    el.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(2) + ' L';
+    el.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : (Math.abs(diff) / (totalDespachado || 1) > 0.005 ? 'var(--danger)' : 'var(--warning)');
+}
+calcDiff();
+</script>
+{% endif %}
+{% endblock %}
