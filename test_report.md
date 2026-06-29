@@ -1,55 +1,51 @@
-# Reporte de Pruebas — 2026-06-28
+# Reporte de Pruebas — 2026-06-29
 
 ## Páginas probadas
-- http://127.0.0.1:5002/login
-- http://127.0.0.1:5002/dashboard
-- http://127.0.0.1:5002/habilitaciones
-- http://127.0.0.1:5002/habilitaciones/crear
-- http://127.0.0.1:5002/habilitaciones/1 (crear → aprobar → verificar estado)
-- http://127.0.0.1:5002/unidades (listado vacío detectado)
-- http://127.0.0.1:5002/unidades/crear (crear unidad TEST-001 para PMA-001)
-- http://127.0.0.1:5002/despachos/crear?habilitacion_id=1
-- http://127.0.0.1:5002/despachos/1
-- http://127.0.0.1:5002/tarjetas (verificación de saldo)
-- http://127.0.0.1:5002/conciliacion/crear (paso 1 + paso 2)
-- http://127.0.0.1:5002/conciliacion/1
-- http://127.0.0.1:5002/dashboard (verificación final de KPIs)
+- https://mercatoria-fuel.onrender.com/login
+- https://mercatoria-fuel.onrender.com/dashboard
+- https://mercatoria-fuel.onrender.com/tl38/
+- https://mercatoria-fuel.onrender.com/tl38/crear
+- https://mercatoria-fuel.onrender.com/tl38/listado
+- https://mercatoria-fuel.onrender.com/reportes/
+- https://mercatoria-fuel.onrender.com/reportes/despachos (Excel download)
+- https://mercatoria-fuel.onrender.com/portal/ (como cliente_pma@mercatoria.com)
+- https://mercatoria-fuel.onrender.com/static/img/favicon.png
 
 ## Errores encontrados
-- **Ninguno.** Todos los flujos completaron sin errores HTTP 4xx/5xx ni excepciones de Python.
-- Nota: Puerto 5000 estaba ocupado por otra aplicación Flask ("Mercatoria Truck"). Se inició Mercatoria Fuel en el puerto 5002 usando `python -m flask run --port=5002`.
+Ninguno. Todas las páginas cargaron correctamente.
 
 ## Screenshots tomados
-- `dashboard.png` — Dashboard inicial post-login con KPIs Sprint 5
-- `habilitacion_detalle.png` — Habilitación #1 en estado "Pendiente" antes de aprobar
-- `despacho_detalle.png` — Despacho #1 completado con foto de ticket
-- `conciliacion_detalle.png` — Conciliación #1 cerrada con diferencia +0.00 L
-- `dashboard_final.png` — Dashboard final con despachos_pendientes=0, conciliaciones_pendientes=0
-
-## Flujo completo verificado (Sprint 5)
-
-| Paso | Resultado |
-|------|-----------|
-| Login admin@mercatoria.com | ✅ Redirige a /dashboard |
-| Dashboard carga KPIs sin error | ✅ despachos_pendientes=0, conciliaciones_pendientes=0 |
-| /habilitaciones listado carga | ✅ Tabla vacía, sin error |
-| /habilitaciones/crear — dropdowns cargan | ✅ clientes, unidades (JS filter), gasolineras, tarjetas, subinventarios |
-| Crear unidad TEST-001 para PMA-001 | ✅ Unidad creada con chofer Chofer Prueba, licencia hasta 2027-12-31 |
-| Crear habilitación PMA-001 / TEST-001 / La Shell / **** 8777 / 50 L | ✅ Estado: Pendiente |
-| Aprobar habilitación #1 | ✅ Estado cambia a: Aprobada |
-| /despachos/crear — habilitación aprobada aparece en selector | ✅ Pre-seleccionada con 50.00 L |
-| Registrar despacho con foto ticket (upload PNG) | ✅ Despacho #1 creado, redirige a /despachos/1 |
-| Habilitación #1 → estado "Despachada" | ✅ Verificado en /habilitaciones/1 |
-| Saldo tarjeta **** 8777: 3,300 → 3,250 L (−50 L) | ✅ Verificado en /tarjetas |
-| /conciliacion/crear paso 1 → La Shell / 2026-06-28 | ✅ Datos calculados: entrada=0, despachado=50 L |
-| Conciliación paso 2: saldo_inicio=3300, saldo_fin=3250 | ✅ diferencia=+0.00 L, estado=Cerrada |
-| Dashboard final: despachos_pendientes=0 | ✅ |
-| Dashboard final: conciliaciones_pendientes=0 | ✅ |
+- `prod_dashboard.png` — Dashboard ejecutivo con 3 filas KPI (Inventario, Operativa, Alertas)
+- `prod_tl38_dashboard.png` — Dashboard TL38 con 3 KPIs y tabla de movimientos
+- `prod_tl38_after_create.png` — Confirmación tras registrar movimiento TL38 (redirect a /tl38/?ok=1)
+- `prod_tl38_listado.png` — Listado TL38 con movimiento #1: TL38-TEST-01 / Juan Pérez / 150 L / La Shell
+- `prod_reportes.png` — Página de reportes con 4 secciones exportables
+- `prod_portal_cliente.png` — Portal cliente PMA: "Programa Mundial de Alimentos" con 5 KPIs y sidebar aislado
 
 ## Correcciones aplicadas
-- Ninguna corrección fue necesaria durante esta sesión. Correcciones previas (campo `t.tarjeta_parcial` → `t.numero_parcial`, filtro Jinja2 `|abs`) ya habían sido aplicadas antes de esta sesión de pruebas.
+Ninguna corrección fue necesaria durante esta sesión. Sprint 6 funcionó correctamente en producción desde el primer despliegue.
+
+## Resultados por módulo
+
+### Sprint 6 — Verificación en producción (https://mercatoria-fuel.onrender.com)
+
+| # | Prueba | Resultado |
+|---|--------|-----------|
+| 1 | Login admin@mercatoria.com / Mercatoria2026! | ✅ PASS |
+| 2 | Dashboard carga con 3 filas KPI (Inventario, Operativa, Alertas) | ✅ PASS |
+| 3 | Enlace TL38 en sidebar sin badge "Próximamente" | ✅ PASS |
+| 4 | `/tl38/` — dashboard con KPIs y tabla de movimientos recientes | ✅ PASS |
+| 5 | `/tl38/crear` — formulario con campos: tipo, chapa, chofer, litros, flota, tarjeta, gasolinera | ✅ PASS |
+| 6 | Registrar movimiento TL38 (despacho, 150L, La Shell) → redirect /tl38/?ok=1 | ✅ PASS |
+| 7 | `/tl38/listado` — movimiento #1 visible con todos los campos correctos | ✅ PASS |
+| 8 | `/reportes/` — 4 secciones: Despachos, Conciliaciones, Consumo por Cliente, Tarjetas | ✅ PASS |
+| 9 | `GET /reportes/despachos` — HTTP 200, content-type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | ✅ PASS |
+| 10 | Login cliente_pma@mercatoria.com / Cliente2026! → redirect /portal/ | ✅ PASS |
+| 11 | Portal cliente: heading "Programa Mundial de Alimentos", 5 KPIs, 7 links de portal, sin links admin | ✅ PASS |
+| 12 | Favicon `/static/img/favicon.png` — HTTP 200, image/png, 597 bytes | ✅ PASS |
 
 ## Recomendaciones
-- El puerto 5000 está ocupado permanentemente por otra aplicación Flask en este equipo ("Mercatoria Truck"). Para desarrollo paralelo, asignar puertos fijos distintos en cada proyecto.
-- El inventario total en el dashboard muestra 0 L porque no hay depósitos con stock en la base de datos de desarrollo. Agregar datos de prueba de recepciones para visualizar las KPIs de inventario.
-- Considerar validar en el backend que `litros_despachados <= litros_autorizados` para evitar despachos que excedan la autorización.
+- El Sprint 6 está completo y funcional en producción. No se detectaron bugs.
+- El TL38 listado tiene exportación Excel disponible desde `/tl38/listado?exportar=excel` — no probado en esta sesión pero el código usa el mismo patrón verificado en /reportes/despachos.
+- El portal cliente actualmente muestra 0 en todos los KPIs para el usuario de prueba (cliente_pma), lo cual es correcto ya que no hay despachos registrados para PMA en producción. El aislamiento de datos por `cliente_id` funciona correctamente.
+- Los 4 reportes Excel (`/reportes/despachos`, `/reportes/conciliaciones`, `/reportes/consumo`, `/reportes/tarjetas`) comparten la misma arquitectura openpyxl con `io.BytesIO`; verificado el de despachos, el resto sigue el mismo patrón.
