@@ -342,6 +342,7 @@ def cerrar_turno():
     fecha = request.form.get("fecha", "")
     saldo_inicio_str = request.form.get("saldo_fisico_inicio", "0").replace(",", ".")
     saldo_fin_str = request.form.get("saldo_fisico_fin", "0").replace(",", ".")
+    observaciones = request.form.get("observaciones", "").strip() or None
 
     try:
         saldo_inicio = float(saldo_inicio_str)
@@ -375,11 +376,11 @@ def cerrar_turno():
         INSERT INTO conciliaciones
             (gasolinera_id, fecha, saldo_fisico_inicio_l, saldo_fisico_fin_l,
              total_entrada_l, total_despachado_l, diferencia_l, diferencia_porcentaje,
-             estado, responsable_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             estado, responsable_id, observaciones)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (gasolinera_id, fecha,
           saldo_inicio, saldo_fin, total_entrada, total_despachado,
-          diferencia, diff_pct, estado, session.get("user_id")))
+          diferencia, diff_pct, estado, session.get("user_id"), observaciones))
 
     conn.commit()
     conn.close()

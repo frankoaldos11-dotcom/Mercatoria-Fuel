@@ -133,14 +133,33 @@
             <tbody>
                 {% for s in subinventarios %}
                 {% set pct = (s.litros_reservados / stock_total * 100) if stock_total else 0 %}
-                <tr {% if not s.activo %}style="opacity:0.55;"{% endif %}>
-                    <td><strong>{{ s.nombre }}</strong></td>
-                    <td><span class="badge badge-info">{{ subinventario_labels.get(s.tipo, s.tipo) }}</span></td>
+                {% set es_reserva = s.tipo in ('cliente', 'mercatoria_interna', 'reserva_general') %}
+                {% if es_reserva %}
+                {% set row_bg = 'background:#EFF6FF;' %}
+                {% elif s.tipo == 'disponible_venta' %}
+                {% set row_bg = 'background:#F0FDF4;' %}
+                {% else %}
+                {% set row_bg = '' %}
+                {% endif %}
+                <tr style="{{ row_bg }}{{ 'opacity:0.55;' if not s.activo }}">
+                    <td>
+                        <strong>{{ s.nombre }}</strong>
+                        {% if es_reserva %}
+                        <i class="bi bi-lock-fill" style="font-size:11px;color:#3B82F6;margin-left:4px;" title="Reserva — no despacha directamente"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if es_reserva %}
+                        <span class="badge" style="background:#DBEAFE;color:#1E40AF;">{{ subinventario_labels.get(s.tipo, s.tipo) }}</span>
+                        {% else %}
+                        <span class="badge badge-ok">{{ subinventario_labels.get(s.tipo, s.tipo) }}</span>
+                        {% endif %}
+                    </td>
                     <td>
                         <strong>{{ "{:,.2f}".format(s.litros_reservados) }} L</strong>
                         {% if s.activo and stock_total %}
                         <div style="width:100px;height:5px;background:#E5E7EB;border-radius:3px;margin-top:4px;">
-                            <div style="width:{{ [pct,100]|min|int }}%;height:5px;border-radius:3px;background:var(--primary);"></div>
+                            <div style="width:{{ [pct,100]|min|int }}%;height:5px;border-radius:3px;background:{{ '#3B82F6' if es_reserva else 'var(--success)' }};"></div>
                         </div>
                         {% endif %}
                     </td>
@@ -156,7 +175,19 @@
                     </td>
                     <td>
                         {% if session.get('rol') in ('admin', 'pm') %}
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <form method="POST" action="/gasolineras/{{ gasolinera.id }}/subinventarios/{{ s.id }}/mover" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="dir" value="up">
+                                <button type="submit" class="btn btn-sm btn-secondary" title="Subir prioridad"
+                                        {% if loop.first %}disabled{% endif %}>↑</button>
+                            </form>
+                            <form method="POST" action="/gasolineras/{{ gasolinera.id }}/subinventarios/{{ s.id }}/mover" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="dir" value="down">
+                                <button type="submit" class="btn btn-sm btn-secondary" title="Bajar prioridad"
+                                        {% if loop.last %}disabled{% endif %}>↓</button>
+                            </form>
                             <a href="/gasolineras/{{ gasolinera.id }}/subinventarios/{{ s.id }}/editar" class="btn btn-soft btn-sm">
                                 <i class="bi bi-pencil"></i>
                             </a>

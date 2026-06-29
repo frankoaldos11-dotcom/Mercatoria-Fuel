@@ -45,12 +45,16 @@
 
             <div class="mb-3">
                 <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
-                <select name="tipo_combustible" class="form-select" required>
-                    <option value="">Seleccionar...</option>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 0;">
                     {% for tc in tipos_combustible %}
-                    <option value="{{ tc }}">{{ combustible_labels.get(tc, tc) }}</option>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
+                        <input type="checkbox" name="tipo_combustible" value="{{ tc }}"
+                               style="width:16px;height:16px;"
+                               {{ 'checked' if request.form.getlist('tipo_combustible') and tc in request.form.getlist('tipo_combustible') }}>
+                        {{ combustible_labels.get(tc, tc) }}
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
             </div>
 
             <div class="mb-3">

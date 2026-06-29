@@ -68,8 +68,8 @@ def listado():
         condiciones.append("d.region = ?")
         params.append(filtro_region)
     if filtro_combustible:
-        condiciones.append("d.tipo_combustible = ?")
-        params.append(filtro_combustible)
+        condiciones.append("d.tipo_combustible LIKE ?")
+        params.append(f"%{filtro_combustible}%")
     if filtro_estado:
         condiciones.append("d.estado = ?")
         params.append(filtro_estado)
@@ -176,7 +176,8 @@ def crear():
         nombre = request.form.get("nombre", "").strip()
         region = request.form.get("region", "").strip()
         direccion = request.form.get("direccion", "").strip()
-        tipo_combustible = request.form.get("tipo_combustible", "").strip()
+        tipos_sel = [t for t in request.form.getlist("tipo_combustible") if t in TIPOS_COMBUSTIBLE]
+        tipo_combustible = ",".join(tipos_sel)
         capacidad_str = request.form.get("capacidad_l", "0").strip()
         responsable = request.form.get("responsable", "").strip()
         notas = request.form.get("notas", "").strip()
@@ -186,8 +187,8 @@ def crear():
             error = "El nombre es obligatorio."
         elif region not in REGIONES:
             error = "Región no válida."
-        elif tipo_combustible not in TIPOS_COMBUSTIBLE:
-            error = "Tipo de combustible no válido."
+        elif not tipos_sel:
+            error = "Selecciona al menos un tipo de combustible."
         else:
             try:
                 capacidad = float(capacidad_str)
@@ -235,7 +236,8 @@ def editar(id):
         nombre = request.form.get("nombre", "").strip()
         region = request.form.get("region", "").strip()
         direccion = request.form.get("direccion", "").strip()
-        tipo_combustible = request.form.get("tipo_combustible", "").strip()
+        tipos_sel = [t for t in request.form.getlist("tipo_combustible") if t in TIPOS_COMBUSTIBLE]
+        tipo_combustible = ",".join(tipos_sel)
         capacidad_str = request.form.get("capacidad_l", "0").strip()
         responsable = request.form.get("responsable", "").strip()
         notas = request.form.get("notas", "").strip()
@@ -245,8 +247,8 @@ def editar(id):
             error = "El nombre es obligatorio."
         elif region not in REGIONES:
             error = "Región no válida."
-        elif tipo_combustible not in TIPOS_COMBUSTIBLE:
-            error = "Tipo de combustible no válido."
+        elif not tipos_sel:
+            error = "Selecciona al menos un tipo de combustible."
         else:
             try:
                 capacidad = float(capacidad_str)

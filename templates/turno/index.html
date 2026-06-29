@@ -36,7 +36,7 @@
     </div>
     <div style="padding:20px;">
         <div id="hab-error" style="display:none;background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;"></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;">
             <div>
                 <label class="form-label">Cliente *</label>
                 <select id="inp-cliente" class="form-select">
@@ -53,6 +53,11 @@
                 </select>
             </div>
             <div>
+                <label class="form-label">Litros *</label>
+                <input type="text" id="inp-litros" class="form-control"
+                       inputmode="decimal" placeholder="0">
+            </div>
+            <div>
                 <label class="form-label">Tarjeta *</label>
                 <select id="inp-tarjeta" class="form-select">
                     <option value="">Seleccionar...</option>
@@ -62,11 +67,6 @@
                     {% endif %}
                     {% endfor %}
                 </select>
-            </div>
-            <div>
-                <label class="form-label">Litros *</label>
-                <input type="text" id="inp-litros" class="form-control"
-                       inputmode="decimal" placeholder="0">
             </div>
             <div style="padding-top:20px;">
                 <button type="button" onclick="agregarHabilitacion()" class="btn btn-primary w-100">
@@ -96,7 +96,7 @@
                     <th style="text-align:right;">Aut. (L)</th>
                     <th style="text-align:right;">Desp. (L)</th>
                     <th>Estado</th>
-                    {% if rol in ('admin', 'pm', 'operario') %}<th>Acciones</th>{% endif %}
+                    {% if rol in ('admin', 'pm', 'operario', 'operario_gasolinera') %}<th>Acciones</th>{% endif %}
                 </tr>
             </thead>
             <tbody id="tbody-habs">
@@ -110,9 +110,9 @@
                     <td style="text-align:right;font-weight:700;">{{ "{:,.2f}".format(h.litros_autorizados) }}</td>
                     <td style="text-align:right;color:var(--primary);font-weight:700;" id="desp-{{ h.id }}">{{ "{:,.2f}".format(h.litros_despachados) }}</td>
                     <td><span class="badge-estado badge" id="estado-{{ h.id }}">{{ h.estado }}</span></td>
-                    {% if rol in ('admin', 'pm', 'operario') %}
+                    {% if rol in ('admin', 'pm', 'operario', 'operario_gasolinera') %}
                     <td>
-                        <div style="display:flex;gap:4px;">
+                        <div style="display:flex;gap:4px;" id="acciones-{{ h.id }}">
                             {% if h.estado == 'pendiente' and rol in ('admin', 'pm') %}
                             <button class="btn btn-sm btn-success" onclick="aprobar({{ h.id }})">
                                 <i class="bi bi-check-lg"></i> Aprobar
@@ -143,39 +143,52 @@
 <!-- Sección de cierre de turno / conciliación -->
 {% if not conciliacion_existente %}
 <div class="panel mb-4">
-    <div class="panel-header">
+    <div class="panel-header" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#collapse-cerrar" aria-expanded="false">
         <h2><i class="bi bi-check2-square"></i> Cerrar turno</h2>
+        <i class="bi bi-chevron-down" id="chevron-cerrar" style="transition:transform 0.2s;"></i>
     </div>
-    <form method="POST" action="/turno/cerrar">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="gasolinera_id" value="{{ gasolinera_id }}">
-        <input type="hidden" name="fecha" value="{{ fecha }}">
-        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end;">
-            <div>
-                <label class="form-label">Saldo físico al inicio del turno (L) *</label>
-                <input type="text" name="saldo_fisico_inicio" class="form-control"
-                       inputmode="decimal" placeholder="0.00" required
-                       id="inp-saldo-inicio" oninput="calcDiff()">
-            </div>
-            <div>
-                <label class="form-label">Saldo físico al cierre del turno (L) *</label>
-                <input type="text" name="saldo_fisico_fin" class="form-control"
-                       inputmode="decimal" placeholder="0.00" required
-                       id="inp-saldo-fin" oninput="calcDiff()">
-            </div>
-            <div>
-                <label class="form-label">Diferencia calculada</label>
-                <div id="diff-display" style="padding:10px 13px;border:1px solid var(--border);border-radius:11px;font-weight:700;font-size:15px;color:var(--muted);min-height:42px;">
-                    —
+    <div class="collapse" id="collapse-cerrar">
+        <form method="POST" action="/turno/cerrar">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="gasolinera_id" value="{{ gasolinera_id }}">
+            <input type="hidden" name="fecha" value="{{ fecha }}">
+            <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end;">
+                <div>
+                    <label class="form-label">Saldo físico al inicio del turno (L) *</label>
+                    <input type="text" name="saldo_fisico_inicio" class="form-control"
+                           inputmode="decimal" placeholder="0.00" required
+                           id="inp-saldo-inicio" oninput="calcDiff()">
+                </div>
+                <div>
+                    <label class="form-label">Saldo físico al cierre del turno (L) *</label>
+                    <input type="text" name="saldo_fisico_fin" class="form-control"
+                           inputmode="decimal" placeholder="0.00" required
+                           id="inp-saldo-fin" oninput="calcDiff()">
+                </div>
+                <div>
+                    <label class="form-label">Diferencia calculada</label>
+                    <div id="diff-display" style="padding:10px 13px;border:1px solid var(--border);border-radius:11px;font-weight:700;font-size:15px;color:var(--muted);min-height:42px;">
+                        —
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-lock"></i> Cerrar turno
+                    </button>
                 </div>
             </div>
-            <div>
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-lock"></i> Cerrar turno
-                </button>
+            <div id="bloque-observaciones" style="display:none;padding:0 20px 20px;">
+                <div style="background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;padding:12px 16px;">
+                    <label class="form-label" style="font-weight:700;color:#92400E;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Diferencia mayor al 0.5% — Observaciones requeridas *
+                    </label>
+                    <textarea name="observaciones" id="inp-observaciones" class="form-control"
+                              rows="3" placeholder="Explica la causa de la diferencia..."></textarea>
+                </div>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
 {% else %}
 <div class="panel mb-4">
@@ -275,11 +288,27 @@ function calcDiff() {
     const ini = parseFloat(document.getElementById('inp-saldo-inicio')?.value.replace(',', '.')) || 0;
     const fin = parseFloat(document.getElementById('inp-saldo-fin')?.value.replace(',', '.')) || 0;
     const el = document.getElementById('diff-display');
+    const bloqueObs = document.getElementById('bloque-observaciones');
+    const inpObs = document.getElementById('inp-observaciones');
     if (!el) return;
     if (ini === 0 && fin === 0) { el.textContent = '—'; el.style.color = 'var(--muted)'; return; }
     const diff = fin - ini;
+    const pct = ini > 0 ? Math.abs(diff / ini * 100) : 0;
     el.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString('es', {minimumFractionDigits:2}) + ' L';
-    el.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : (Math.abs(diff/ini*100) > 0.5 ? 'var(--danger)' : 'var(--warning)');
+    el.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : (pct > 0.5 ? 'var(--danger)' : 'var(--warning)');
+    if (bloqueObs && inpObs) {
+        const mostrar = pct > 0.5;
+        bloqueObs.style.display = mostrar ? '' : 'none';
+        inpObs.required = mostrar;
+    }
+}
+
+// Rotar chevron al expandir/colapsar
+const collapseEl = document.getElementById('collapse-cerrar');
+const chevron = document.getElementById('chevron-cerrar');
+if (collapseEl && chevron) {
+    collapseEl.addEventListener('show.bs.collapse', () => { chevron.style.transform = 'rotate(180deg)'; });
+    collapseEl.addEventListener('hide.bs.collapse', () => { chevron.style.transform = ''; });
 }
 
 // Agregar habilitación inline

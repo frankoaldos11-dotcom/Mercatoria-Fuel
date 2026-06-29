@@ -88,9 +88,9 @@
                     </td>
                     <td>{{ d.region }}</td>
                     <td>
-                        <span class="badge badge-info">
-                            {{ combustible_labels.get(d.tipo_combustible, d.tipo_combustible) }}
-                        </span>
+                        {% for tc in (d.tipo_combustible or '').split(',') if tc %}
+                        <span class="badge badge-info" style="margin-right:2px;">{{ combustible_labels.get(tc.strip(), tc.strip()) }}</span>
+                        {% endfor %}
                     </td>
                     <td>
                         {% set pct = (d.stock_actual / d.capacidad_l * 100) if d.capacidad_l else 0 %}

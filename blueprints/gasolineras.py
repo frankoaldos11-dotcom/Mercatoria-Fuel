@@ -380,7 +380,6 @@ def subinventario_crear(id):
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
         tipo = request.form.get("tipo", "").strip()
-        orden_str = request.form.get("orden_prioridad", "0").strip()
         litros_str = request.form.get("litros_reservados", "0").strip()
         cliente_id = request.form.get("cliente_id", "").strip() or None
 
@@ -389,10 +388,6 @@ def subinventario_crear(id):
         elif tipo not in TIPOS_SUBINVENTARIO:
             error = "Tipo no válido."
         else:
-            try:
-                orden = int(orden_str)
-            except ValueError:
-                orden = 0
             try:
                 litros = float(litros_str)
             except ValueError:
@@ -419,6 +414,11 @@ def subinventario_crear(id):
                     )
                     conn.close()
                 else:
+                    cur.execute("""
+                        SELECT COALESCE(MAX(orden_prioridad), -1) + 1 AS siguiente
+                        FROM subinventarios WHERE gasolinera_id = ? AND activo = 1
+                    """, (id,))
+                    orden = cur.fetchone()["siguiente"]
                     cur.execute("""
                         INSERT INTO subinventarios
                             (gasolinera_id, nombre, tipo, orden_prioridad, litros_reservados, cliente_id, activo)
@@ -467,7 +467,6 @@ def subinventario_editar(id, sub_id):
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
         tipo = request.form.get("tipo", "").strip()
-        orden_str = request.form.get("orden_prioridad", "0").strip()
         litros_str = request.form.get("litros_reservados", "0").strip()
         cliente_id = request.form.get("cliente_id", "").strip() or None
 
@@ -476,10 +475,6 @@ def subinventario_editar(id, sub_id):
         elif tipo not in TIPOS_SUBINVENTARIO:
             error = "Tipo no válido."
         else:
-            try:
-                orden = int(orden_str)
-            except ValueError:
-                orden = 0
             try:
                 litros = float(litros_str)
             except ValueError:
@@ -509,11 +504,11 @@ def subinventario_editar(id, sub_id):
                     litros_anterior = float(sub["litros_reservados"])
                     cur.execute("""
                         UPDATE subinventarios
-                        SET nombre = ?, tipo = ?, orden_prioridad = ?,
+                        SET nombre = ?, tipo = ?,
                             litros_reservados = ?, cliente_id = ?,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = ?
-                    """, (nombre, tipo, orden, litros, cliente_id or None, sub_id))
+                    """, (nombre, tipo, litros, cliente_id or None, sub_id))
 
                     if abs(litros - litros_anterior) > 0.001:
                         delta = litros - litros_anterior
@@ -566,6 +561,53 @@ def subinventario_toggle(id, sub_id):
         cur.execute(
             "UPDATE subinventarios SET activo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             (nuevo, sub_id)
+        )
+        conn.commit()
+    conn.close()
+    return redirect(f"/gasolineras/{id}?ok=1")
+
+
+# ── Subinventarios: mover (↑↓) ───────────────────────────────────────────────
+
+@gasolineras_bp.route("/<int:id>/subinventarios/<int:sub_id>/mover", methods=["POST"])
+def subinventario_mover(id, sub_id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/gasolineras/{id}?access_error=Sin+permisos")
+
+    direction = request.form.get("dir", "down")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, orden_prioridad FROM subinventarios WHERE id = ? AND gasolinera_id = ? AND activo = 1",
+        (sub_id, id),
+    )
+    actual = cur.fetchone()
+    if not actual:
+        conn.close()
+        return redirect(f"/gasolineras/{id}")
+
+    cur.execute("""
+        SELECT id, orden_prioridad FROM subinventarios
+        WHERE gasolinera_id = ? AND activo = 1 AND orden_prioridad {} ?
+        ORDER BY orden_prioridad {} LIMIT 1
+    """.format("<" if direction == "up" else ">",
+               "DESC" if direction == "up" else "ASC"),
+        (id, actual["orden_prioridad"]),
+    )
+    vecino = cur.fetchone()
+
+    if vecino:
+        cur.execute(
+            "UPDATE subinventarios SET orden_prioridad = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (vecino["orden_prioridad"], sub_id),
+        )
+        cur.execute(
+            "UPDATE subinventarios SET orden_prioridad = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (actual["orden_prioridad"], vecino["id"]),
         )
         conn.commit()
     conn.close()

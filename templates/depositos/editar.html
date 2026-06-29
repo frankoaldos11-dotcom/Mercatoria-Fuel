@@ -50,14 +50,17 @@
 
             <div class="mb-3">
                 <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
-                <select name="tipo_combustible" class="form-select" required>
-                    <option value="">Seleccionar...</option>
+                {% set combustibles_actuales = (request.form.getlist('tipo_combustible') if request.method == 'POST' else deposito.tipo_combustible.split(',') if deposito.tipo_combustible else []) %}
+                <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 0;">
                     {% for tc in tipos_combustible %}
-                    <option value="{{ tc }}" {{ 'selected' if deposito.tipo_combustible == tc }}>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
+                        <input type="checkbox" name="tipo_combustible" value="{{ tc }}"
+                               style="width:16px;height:16px;"
+                               {{ 'checked' if tc in combustibles_actuales }}>
                         {{ combustible_labels.get(tc, tc) }}
-                    </option>
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
             </div>
 
             <div class="mb-3">
