@@ -333,6 +333,34 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    # ── cliente_usuarios ─────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS cliente_usuarios (
+        id         SERIAL PRIMARY KEY,
+        cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+        usuario_id INTEGER NOT NULL UNIQUE REFERENCES usuarios(id),
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ── movimientos_tl38 ─────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS movimientos_tl38 (
+        id             SERIAL PRIMARY KEY,
+        fecha          DATE NOT NULL,
+        gasolinera_id  INTEGER REFERENCES gasolineras(id),
+        tipo           TEXT NOT NULL DEFAULT 'despacho',
+        chapa          TEXT NOT NULL,
+        chofer         TEXT NOT NULL,
+        litros         NUMERIC(14,2) NOT NULL DEFAULT 0,
+        tarjeta_tl38   TEXT,
+        flota          TEXT NOT NULL DEFAULT '599',
+        observaciones  TEXT,
+        responsable_id INTEGER NOT NULL REFERENCES usuarios(id),
+        created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
     if not cur.fetchone():
@@ -369,6 +397,25 @@ def ejecutar_migraciones_pg(bcrypt):
         shell_id = cur.fetchone()[0]
     else:
         shell_id = row_shell[0]
+
+    # ── seed: usuario cliente PMA ────────────────────────────────────────────
+    cur.execute("SELECT id FROM usuarios WHERE email = %s", ("cliente_pma@mercatoria.com",))
+    if not cur.fetchone():
+        hash_cli = bcrypt.generate_password_hash("Cliente2026!").decode("utf-8")
+        cur.execute("""
+            INSERT INTO usuarios (nombre, email, password_hash, rol)
+            VALUES (%s, %s, %s, %s)
+        """, ("Cliente PMA", "cliente_pma@mercatoria.com", hash_cli, "cliente"))
+        cur.execute("SELECT id FROM usuarios WHERE email = %s", ("cliente_pma@mercatoria.com",))
+        cli_user_id = cur.fetchone()[0]
+        cur.execute("SELECT id FROM clientes WHERE codigo = %s", ("PMA-001",))
+        pma_row = cur.fetchone()
+        if pma_row:
+            cur.execute("""
+                INSERT INTO cliente_usuarios (cliente_id, usuario_id)
+                VALUES (%s, %s)
+                ON CONFLICT DO NOTHING
+            """, (pma_row[0], cli_user_id))
 
     # ── seed: tarjetas Fincimex ───────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))

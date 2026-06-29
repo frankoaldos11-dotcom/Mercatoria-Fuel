@@ -1,0 +1,84 @@
+{% extends "base_cliente.html" %}
+{% block titulo %}Consumo Mensual — Portal Cliente{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Portal Cliente</span>
+        <h1>Consumo mensual</h1>
+        <p>Litros despachados por mes en los últimos 12 meses.</p>
+    </div>
+</div>
+
+<div class="panel">
+    <div style="padding:24px;">
+        <canvas id="chartConsumo" style="max-height:360px;"></canvas>
+    </div>
+</div>
+
+{% if labels %}
+<div class="panel mt-4">
+    <div class="panel-header"><h2>Detalle por mes</h2></div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr><th>Mes</th><th style="text-align:right;">Litros despachados</th></tr>
+            </thead>
+            <tbody>
+                {% for i in range(labels|length) %}
+                <tr>
+                    <td>{{ labels[i] }}</td>
+                    <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(valores[i]) }} L</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="panel mt-4">
+    <div style="padding:40px;text-align:center;color:var(--muted);">No hay datos de consumo registrados.</div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const ctx = document.getElementById('chartConsumo').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ labels | tojson }},
+        datasets: [{
+            label: 'Litros despachados',
+            data: {{ valores | tojson }},
+            backgroundColor: 'rgba(232, 106, 44, 0.7)',
+            borderColor: 'rgba(232, 106, 44, 1)',
+            borderWidth: 1,
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ctx.parsed.y.toLocaleString('es', {minimumFractionDigits: 2}) + ' L'
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: val => val.toLocaleString('es') + ' L'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

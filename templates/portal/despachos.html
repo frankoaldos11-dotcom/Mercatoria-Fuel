@@ -1,0 +1,66 @@
+{% extends "base_cliente.html" %}
+{% block titulo %}Mis Despachos — Portal Cliente{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Portal Cliente</span>
+        <h1>Mis despachos</h1>
+    </div>
+    <a href="/portal/despachos?desde={{ filtro_desde }}&hasta={{ filtro_hasta }}&chapa={{ filtro_chapa }}&exportar=excel"
+       class="btn btn-secondary"><i class="bi bi-file-earmark-excel"></i> Exportar Excel</a>
+</div>
+
+<div class="panel mb-4">
+    <form method="GET" action="/portal/despachos" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <input type="text" name="chapa" value="{{ filtro_chapa }}" class="form-control"
+               placeholder="Buscar chapa..." style="max-width:140px;">
+        <input type="date" name="desde" value="{{ filtro_desde }}" class="form-control" style="max-width:145px;" title="Desde">
+        <input type="date" name="hasta" value="{{ filtro_hasta }}" class="form-control" style="max-width:145px;" title="Hasta">
+        <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if filtro_chapa or filtro_desde or filtro_hasta %}
+        <a href="/portal/despachos" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Chapa</th>
+                    <th>Chofer</th>
+                    <th>Gasolinera</th>
+                    <th style="text-align:right;">Litros</th>
+                    <th>Ticket</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in filas %}
+                <tr>
+                    <td style="font-size:12px;color:var(--muted);">{{ f.fecha_despacho }}</td>
+                    <td><strong>{{ f.chapa }}</strong></td>
+                    <td>{{ f.chofer or '—' }}</td>
+                    <td>{{ f.gasolinera }}</td>
+                    <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(f.litros_despachados) }} L</td>
+                    <td>
+                        {% if f.foto_ticket_url %}
+                        <a href="{{ f.foto_ticket_url }}" target="_blank" class="btn btn-soft btn-sm">
+                            <i class="bi bi-image"></i> Ver
+                        </a>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="empty-state">No hay despachos registrados con estos filtros.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

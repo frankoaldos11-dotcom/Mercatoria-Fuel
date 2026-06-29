@@ -1,0 +1,43 @@
+{% extends "base_cliente.html" %}
+{% block titulo %}Consumo por Vehículo — Portal Cliente{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Portal Cliente</span>
+        <h1>Consumo por vehículo</h1>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Chapa</th>
+                    <th>Marca / Modelo</th>
+                    <th style="text-align:right;">Total litros</th>
+                    <th style="text-align:right;">Promedio mensual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in datos %}
+                <tr>
+                    <td><strong>{{ d.chapa }}</strong></td>
+                    <td style="color:var(--muted);">{{ d.marca or '' }} {{ d.modelo or '' }}</td>
+                    <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(d.total) }} L</td>
+                    <td style="text-align:right;color:var(--muted);">
+                        {{ "{:,.2f}".format(d.total / d.meses_activos if d.meses_activos else 0) }} L/mes
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="empty-state">No hay datos de consumo por vehículo.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

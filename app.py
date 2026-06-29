@@ -23,6 +23,9 @@ from blueprints.tarjetas import tarjetas_bp
 from blueprints.habilitaciones import habilitaciones_bp
 from blueprints.despachos import despachos_bp
 from blueprints.conciliacion import conciliacion_bp
+from blueprints.tl38 import tl38_bp
+from blueprints.reportes import reportes_bp
+from blueprints.portal import portal_bp
 
 
 app = Flask(__name__)
@@ -56,12 +59,6 @@ def set_security_headers(response):
     return response
 
 
-# ── Rutas de autenticación — fuente de verdad: este archivo ──────────────────
-# /       → root()   — redirige según sesión
-# /login  → login()  — formulario + POST de autenticación
-# /logout → logout() — destruye sesión
-# La verificación de sesión en blueprints se centraliza en utils/auth.py
-
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("10 per minute")
 def login():
@@ -77,7 +74,6 @@ def login():
             WHERE email = ?
         """, (email,))
         fila = cur.fetchone()
-        conn.close()
 
         if fila and fila["activo"] and bcrypt.check_password_hash(fila["password_hash"], password):
             session.permanent = True
@@ -85,8 +81,22 @@ def login():
             session["nombre"] = fila["nombre"]
             session["rol"] = fila["rol"]
             session["user_id"] = fila["id"]
+
+            # Para usuarios cliente: cargar cliente_id
+            if fila["rol"] == "cliente":
+                cur.execute("""
+                    SELECT cliente_id FROM cliente_usuarios WHERE usuario_id = ?
+                """, (fila["id"],))
+                cu = cur.fetchone()
+                session["cliente_id"] = cu["cliente_id"] if cu else None
+
+            conn.close()
+
+            if fila["rol"] == "cliente":
+                return redirect("/portal/")
             return redirect("/dashboard")
 
+        conn.close()
         return render_template("login.html", error="Credenciales incorrectas")
 
     return render_template("login.html")
@@ -95,6 +105,8 @@ def login():
 @app.route("/")
 def root():
     if "usuario" in session:
+        if session.get("rol") == "cliente":
+            return redirect("/portal/")
         return redirect("/dashboard")
     return redirect("/login")
 
@@ -119,6 +131,9 @@ app.register_blueprint(tarjetas_bp)
 app.register_blueprint(habilitaciones_bp)
 app.register_blueprint(despachos_bp)
 app.register_blueprint(conciliacion_bp)
+app.register_blueprint(tl38_bp)
+app.register_blueprint(reportes_bp)
+app.register_blueprint(portal_bp)
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER

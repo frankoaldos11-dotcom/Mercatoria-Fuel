@@ -1,0 +1,83 @@
+{% extends "base_cliente.html" %}
+{% block titulo %}Mi Resumen — Portal Cliente{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Portal Cliente</span>
+        <h1>{{ cliente.nombre if cliente else 'Mi cuenta' }}</h1>
+        <p>Resumen de consumo y actividad.</p>
+    </div>
+</div>
+
+<div class="kpi-grid">
+
+    <div class="kpi-card">
+        <div class="kpi-icon primary"><i class="bi bi-droplet-fill"></i></div>
+        <div>
+            <span>Consumo este mes</span>
+            <strong>{{ "{:,.2f}".format(consumo_mes) }} L</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon info"><i class="bi bi-calendar3"></i></div>
+        <div>
+            <span>Consumo año en curso</span>
+            <strong>{{ "{:,.2f}".format(consumo_anio) }} L</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'warning' if habilitaciones_activas > 0 else 'neutral' }}">
+            <i class="bi bi-toggle-on"></i>
+        </div>
+        <div>
+            <span>Habilitaciones activas</span>
+            <strong>{{ habilitaciones_activas }}</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon success"><i class="bi bi-box-arrow-right"></i></div>
+        <div>
+            <span>Despachos este mes</span>
+            <strong>{{ despachos_mes }}</strong>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-icon neutral"><i class="bi bi-archive"></i></div>
+        <div>
+            <span>Saldo subinventario</span>
+            <strong>{{ "{:,.2f}".format(saldo_subinventario) }} L</strong>
+        </div>
+    </div>
+
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px;">
+    <a href="/portal/despachos" style="text-decoration:none;">
+        <div class="panel" style="padding:20px;text-align:center;cursor:pointer;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+            <i class="bi bi-box-arrow-right" style="font-size:28px;color:var(--primary);"></i>
+            <div style="font-weight:700;margin-top:8px;">Mis despachos</div>
+            <div style="font-size:12px;color:var(--muted);">Historial y exportación</div>
+        </div>
+    </a>
+    <a href="/portal/consumo-mensual" style="text-decoration:none;">
+        <div class="panel" style="padding:20px;text-align:center;cursor:pointer;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+            <i class="bi bi-bar-chart-line" style="font-size:28px;color:var(--info);"></i>
+            <div style="font-weight:700;margin-top:8px;">Consumo mensual</div>
+            <div style="font-size:12px;color:var(--muted);">Últimos 12 meses</div>
+        </div>
+    </a>
+    <a href="/portal/unidades" style="text-decoration:none;">
+        <div class="panel" style="padding:20px;text-align:center;cursor:pointer;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+            <i class="bi bi-truck" style="font-size:28px;color:var(--success);"></i>
+            <div style="font-weight:700;margin-top:8px;">Mis vehículos</div>
+            <div style="font-size:12px;color:var(--muted);">Estado de licencias</div>
+        </div>
+    </a>
+</div>
+
+{% endblock %}

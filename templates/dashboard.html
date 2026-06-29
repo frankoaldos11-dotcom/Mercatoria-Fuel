@@ -1,7 +1,5 @@
 {% extends "base.html" %}
-
 {% block titulo %}Dashboard — Mercatoria Fuel{% endblock %}
-
 {% block contenido %}
 
 <div class="page-header">
@@ -19,38 +17,44 @@
     </div>
 </div>
 
-<div class="kpi-grid">
-
+<!-- Fila 1: Inventario -->
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Inventario</div>
+<div class="kpi-grid" style="margin-bottom:24px;">
     <div class="kpi-card">
-        <div class="kpi-icon primary">
-            <i class="bi bi-droplet-fill"></i>
-        </div>
+        <div class="kpi-icon primary"><i class="bi bi-droplet-fill"></i></div>
         <div>
             <span>Inventario total</span>
             <strong>{{ "{:,.0f}".format(inventario_total) }} L</strong>
         </div>
     </div>
-
     <div class="kpi-card">
-        <div class="kpi-icon info">
-            <i class="bi bi-lock-fill"></i>
-        </div>
+        <div class="kpi-icon info"><i class="bi bi-lock-fill"></i></div>
         <div>
             <span>Inventario reservado</span>
             <strong>{{ "{:,.0f}".format(inventario_reservado) }} L</strong>
         </div>
     </div>
-
     <div class="kpi-card">
-        <div class="kpi-icon success">
-            <i class="bi bi-droplet-half"></i>
-        </div>
+        <div class="kpi-icon success"><i class="bi bi-droplet-half"></i></div>
         <div>
             <span>Disponible para venta</span>
             <strong>{{ "{:,.0f}".format(disponible_venta) }} L</strong>
         </div>
     </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'info' if combustible_transito > 0 else 'neutral' }}">
+            <i class="bi bi-arrow-left-right"></i>
+        </div>
+        <div>
+            <span>Combustible en tránsito</span>
+            <strong>{{ "{:,.0f}".format(combustible_transito) }} L</strong>
+        </div>
+    </div>
+</div>
 
+<!-- Fila 2: Operativa -->
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Operativa</div>
+<div class="kpi-grid" style="margin-bottom:24px;">
     <div class="kpi-card">
         <div class="kpi-icon {{ 'danger' if tarjetas_bajo_saldo > 0 else 'neutral' }}">
             <i class="bi bi-credit-card-2-front"></i>
@@ -60,76 +64,78 @@
             <strong>{{ tarjetas_bajo_saldo }}</strong>
         </div>
     </div>
-
     <div class="kpi-card">
-        <div class="kpi-icon {{ 'warning' if conciliaciones_pendientes > 0 else 'neutral' }}">
-            <i class="bi bi-check2-square"></i>
+        <div class="kpi-icon {{ 'warning' if devoluciones_pendientes > 0 else 'neutral' }}">
+            <i class="bi bi-arrow-counterclockwise"></i>
         </div>
         <div>
-            <span>Conciliaciones pendientes</span>
-            <strong>{{ conciliaciones_pendientes }}</strong>
+            <span>Devoluciones pendientes</span>
+            <strong>{{ devoluciones_pendientes }}</strong>
         </div>
     </div>
-
     <div class="kpi-card">
         <div class="kpi-icon {{ 'warning' if despachos_pendientes > 0 else 'neutral' }}">
             <i class="bi bi-box-arrow-right"></i>
         </div>
         <div>
-            <span>Despachos pendientes</span>
+            <span>Habilitaciones sin despacho</span>
             <strong>{{ despachos_pendientes }}</strong>
         </div>
     </div>
-
     <div class="kpi-card">
-        <div class="kpi-icon {{ 'info' if transferencias_transito > 0 else 'neutral' }}">
-            <i class="bi bi-arrow-left-right"></i>
+        <div class="kpi-icon {{ 'warning' if conciliaciones_pendientes > 0 else 'neutral' }}">
+            <i class="bi bi-check2-square"></i>
         </div>
         <div>
-            <span>Transferencias en tránsito</span>
-            <strong>{{ "{:,.0f}".format(transferencias_transito) }} L</strong>
+            <span>Conciliaciones pendientes hoy</span>
+            <strong>{{ conciliaciones_pendientes }}</strong>
         </div>
     </div>
+</div>
 
-    <div class="kpi-card">
-        <div class="kpi-icon {{ 'danger' if alertas_criticas > 0 else 'neutral' }}">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-        </div>
-        <div>
-            <span>Alertas críticas</span>
-            <strong>{{ alertas_criticas }}</strong>
-        </div>
-    </div>
-
+<!-- Fila 3: Alertas -->
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Alertas</div>
+<div class="kpi-grid" style="margin-bottom:32px;">
     <div class="kpi-card" style="{{ 'border:2px solid var(--warning);' if licencias_por_vencer > 0 else '' }}">
         <div class="kpi-icon {{ 'warning' if licencias_por_vencer > 0 else 'neutral' }}">
             <i class="bi bi-card-checklist"></i>
         </div>
         <div>
-            <span>Licencias por vencer</span>
+            <span>Licencias por vencer (≤30 días)</span>
             <strong>{{ licencias_por_vencer }}</strong>
         </div>
     </div>
-
-</div>
-
-<div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'danger' if conciliaciones_con_alerta > 0 else 'neutral' }}">
+            <i class="bi bi-exclamation-square"></i>
+        </div>
+        <div>
+            <span>Conciliaciones con alerta (7 días)</span>
+            <strong>{{ conciliaciones_con_alerta }}</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'danger' if alertas_criticas > 0 else 'neutral' }}">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div>
+            <span>Alertas críticas total</span>
+            <strong>{{ alertas_criticas }}</strong>
+        </div>
+    </div>
     <a href="/gasolineras" style="text-decoration:none;color:inherit;display:block;">
     <div class="kpi-card" style="cursor:pointer;">
-        <div class="kpi-icon success">
-            <i class="bi bi-fuel-pump-fill"></i>
-        </div>
+        <div class="kpi-icon success"><i class="bi bi-fuel-pump-fill"></i></div>
         <div>
             <span>Gasolineras activas</span>
             <strong>{{ gasolineras_activas }}</strong>
         </div>
     </div>
     </a>
-
 </div>
 
-<div class="panel mt-4" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;">
+<!-- Acciones rápidas Sprint 5 -->
+<div class="panel mt-0 mb-4" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;">
     <a href="/habilitaciones?estado=pendiente" style="text-decoration:none;color:inherit;display:block;padding:20px 24px;border-right:1px solid var(--border);">
         <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;margin-bottom:6px;">Habilitaciones pendientes</div>
         <div style="font-size:24px;font-weight:800;">→ Ver</div>
@@ -145,6 +151,71 @@
         <div style="font-size:24px;font-weight:800;">→ Ir</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px;">Cerrar turno con lectura física</div>
     </a>
+</div>
+
+<!-- Actividad reciente -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+    <!-- Últimos 10 despachos -->
+    <div class="panel">
+        <div class="panel-header">
+            <h2>Últimos despachos</h2>
+            <a href="/despachos" class="btn btn-soft btn-sm"><i class="bi bi-arrow-right"></i> Ver todos</a>
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Chapa</th>
+                        <th>Gasolinera</th>
+                        <th style="text-align:right;">Litros</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in despachos_recientes %}
+                    <tr>
+                        <td style="font-size:12px;color:var(--muted);">{{ d.fecha_despacho }}</td>
+                        <td style="font-size:13px;font-weight:600;">{{ d.cliente }}</td>
+                        <td><span class="badge badge-neutral">{{ d.chapa }}</span></td>
+                        <td style="font-size:12px;">{{ d.gasolinera }}</td>
+                        <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.0f}".format(d.litros_despachados) }} L</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-state" style="padding:20px;">Sin despachos aún.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top 5 clientes del mes -->
+    <div class="panel">
+        <div class="panel-header">
+            <h2>Top clientes — mes actual</h2>
+            <a href="/reportes/" class="btn btn-soft btn-sm"><i class="bi bi-file-earmark-excel"></i> Reportes</a>
+        </div>
+        <div style="padding:0 24px 24px;">
+            {% for c in top_clientes %}
+            {% set max_total = top_clientes[0].total if top_clientes else 1 %}
+            <div style="margin-bottom:14px;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span style="font-weight:600;">{{ c.nombre }}</span>
+                    <span style="color:var(--primary);font-weight:700;">{{ "{:,.0f}".format(c.total) }} L</span>
+                </div>
+                <div style="background:var(--border);border-radius:4px;height:6px;">
+                    <div style="background:var(--primary);border-radius:4px;height:6px;width:{{ ((c.total / max_total * 100) if max_total > 0 else 0)|int }}%;"></div>
+                </div>
+            </div>
+            {% else %}
+            <div style="padding:20px 0;color:var(--muted);font-size:13px;">Sin consumo este mes.</div>
+            {% endfor %}
+        </div>
+    </div>
+
 </div>
 
 {% endblock %}

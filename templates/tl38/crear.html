@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block titulo %}Nuevo Movimiento TL38 — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">TL38</span>
+        <h1>Registrar movimiento</h1>
+    </div>
+    <a href="/tl38/" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/tl38/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Fecha <span style="color:var(--danger)">*</span></label>
+                <input type="date" name="fecha" class="form-control"
+                       value="{{ request.form.get('fecha', hoy) }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo <span style="color:var(--danger)">*</span></label>
+                <select name="tipo" class="form-select" required>
+                    {% for t in tipos %}
+                    <option value="{{ t }}" {{ 'selected' if request.form.get('tipo', 'despacho') == t }}>{{ t|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Chapa / Matrícula <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="chapa" class="form-control"
+                       value="{{ request.form.get('chapa', '') }}"
+                       placeholder="Ej. EYH-123" required style="text-transform:uppercase;">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Chofer <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="chofer" class="form-control"
+                       value="{{ request.form.get('chofer', '') }}"
+                       placeholder="Nombre del conductor" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="litros" class="form-control"
+                       value="{{ request.form.get('litros', '') }}"
+                       min="0.01" step="0.01" required placeholder="0.00">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Flota</label>
+                <input type="text" name="flota" class="form-control"
+                       value="{{ request.form.get('flota', '599') }}"
+                       placeholder="599">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tarjeta TL38</label>
+                <input type="text" name="tarjeta_tl38" class="form-control"
+                       value="{{ request.form.get('tarjeta_tl38', '') }}"
+                       placeholder="Número de tarjeta (opcional)">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Gasolinera</label>
+                <select name="gasolinera_id" class="form-select">
+                    <option value="">Sin gasolinera específica</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}" {{ 'selected' if g.id|string == request.form.get('gasolinera_id', '') }}>{{ g.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Notas adicionales...">{{ request.form.get('observaciones', '') }}</textarea>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Registrar movimiento
+            </button>
+            <a href="/tl38/" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

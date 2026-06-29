@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block titulo %}TL38 — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Módulo independiente</span>
+        <h1>TL38</h1>
+        <p>Control de movimientos de combustible de la flota TL38.</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <a href="/tl38/crear" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nuevo movimiento</a>
+        <a href="/tl38/listado" class="btn btn-secondary"><i class="bi bi-list-ul"></i> Ver todos</a>
+        <a href="/tl38/importar" class="btn btn-secondary"><i class="bi bi-upload"></i> Importar Excel</a>
+    </div>
+</div>
+
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Movimiento registrado correctamente.
+</div>
+{% endif %}
+
+<!-- KPIs del mes -->
+<div class="kpi-grid" style="margin-bottom:28px;">
+    <div class="kpi-card">
+        <div class="kpi-icon success"><i class="bi bi-box-arrow-in-down"></i></div>
+        <div>
+            <span>Entradas del mes</span>
+            <strong>{{ "{:,.2f}".format(total_entradas_mes) }} L</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon primary"><i class="bi bi-box-arrow-right"></i></div>
+        <div>
+            <span>Despachos del mes</span>
+            <strong>{{ "{:,.2f}".format(total_despachos_mes) }} L</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'danger' if diferencia_mes < -0.01 else ('success' if diferencia_mes > 0.01 else 'neutral') }}">
+            <i class="bi bi-calculator"></i>
+        </div>
+        <div>
+            <span>Diferencia (entradas − despachos)</span>
+            <strong>{{ "{:+,.2f}".format(diferencia_mes) }} L</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Movimientos recientes -->
+<div class="panel">
+    <div class="panel-header">
+        <h2>Movimientos recientes</h2>
+        <a href="/tl38/listado" class="btn btn-soft btn-sm"><i class="bi bi-arrow-right"></i> Ver todos</a>
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Chapa</th>
+                    <th>Chofer</th>
+                    <th>Flota</th>
+                    <th>Tarjeta</th>
+                    <th style="text-align:right;">Litros</th>
+                    <th>Gasolinera</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in recientes %}
+                <tr>
+                    <td style="font-size:12px;color:var(--muted);">{{ m.fecha }}</td>
+                    <td>
+                        {% if m.tipo == 'entrada' %}
+                        <span class="badge badge-ok">Entrada</span>
+                        {% elif m.tipo == 'despacho' %}
+                        <span class="badge badge-info">Despacho</span>
+                        {% else %}
+                        <span class="badge badge-warn">Ajuste</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ m.chapa }}</strong></td>
+                    <td>{{ m.chofer }}</td>
+                    <td><span class="badge badge-neutral">{{ m.flota }}</span></td>
+                    <td style="font-size:12px;">{{ m.tarjeta_tl38 or '—' }}</td>
+                    <td style="text-align:right;font-weight:700;">{{ "{:,.2f}".format(m.litros) }} L</td>
+                    <td style="font-size:12px;">{{ m.gasolinera_nombre or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        <i class="bi bi-lightning-charge" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                        No hay movimientos TL38 registrados.
+                        <br><a href="/tl38/crear" class="btn btn-primary mt-3">
+                            <i class="bi bi-plus-lg"></i> Registrar el primero
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

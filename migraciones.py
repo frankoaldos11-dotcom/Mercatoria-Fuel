@@ -354,6 +354,34 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── cliente_usuarios ─────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS cliente_usuarios (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+        usuario_id INTEGER NOT NULL UNIQUE REFERENCES usuarios(id),
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
+    # ── movimientos_tl38 ─────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS movimientos_tl38 (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha          TEXT NOT NULL,
+        gasolinera_id  INTEGER REFERENCES gasolineras(id),
+        tipo           TEXT NOT NULL DEFAULT 'despacho',
+        chapa          TEXT NOT NULL,
+        chofer         TEXT NOT NULL,
+        litros         REAL NOT NULL DEFAULT 0,
+        tarjeta_tl38   TEXT,
+        flota          TEXT NOT NULL DEFAULT '599',
+        observaciones  TEXT,
+        responsable_id INTEGER NOT NULL REFERENCES usuarios(id),
+        created_at     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = ?", ("admin@mercatoria.com",))
     if not cur.fetchone():
@@ -390,6 +418,23 @@ def ejecutar_migraciones(bcrypt):
         shell_id = cur.lastrowid
     else:
         shell_id = row_shell["id"]
+
+    # ── seed: usuario cliente PMA ────────────────────────────────────────────
+    cur.execute("SELECT id FROM usuarios WHERE email = ?", ("cliente_pma@mercatoria.com",))
+    if not cur.fetchone():
+        hash_cli = bcrypt.generate_password_hash("Cliente2026!").decode("utf-8")
+        cur.execute("""
+            INSERT INTO usuarios (nombre, email, password_hash, rol)
+            VALUES (?, ?, ?, ?)
+        """, ("Cliente PMA", "cliente_pma@mercatoria.com", hash_cli, "cliente"))
+        cli_user_id = cur.lastrowid
+        cur.execute("SELECT id FROM clientes WHERE codigo = ?", ("PMA-001",))
+        pma_row = cur.fetchone()
+        if pma_row:
+            cur.execute("""
+                INSERT OR IGNORE INTO cliente_usuarios (cliente_id, usuario_id)
+                VALUES (?, ?)
+            """, (pma_row["id"], cli_user_id))
 
     # ── seed: tarjetas Fincimex ───────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = ?", ("admin@mercatoria.com",))

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block titulo %}TL38 Movimientos — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">TL38</span>
+        <h1>Listado de movimientos</h1>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <a href="/tl38/crear" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nuevo</a>
+        <a href="/tl38/" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="panel mb-4">
+    <form method="GET" action="/tl38/listado" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <select name="tipo" class="form-select" style="max-width:140px;">
+            <option value="">Todos los tipos</option>
+            {% for t in tipos %}
+            <option value="{{ t }}" {{ 'selected' if filtro_tipo == t }}>{{ t|title }}</option>
+            {% endfor %}
+        </select>
+        <select name="flota" class="form-select" style="max-width:130px;">
+            <option value="">Todas las flotas</option>
+            {% for f in flotas %}
+            <option value="{{ f }}" {{ 'selected' if filtro_flota == f }}>{{ f }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="desde" value="{{ filtro_desde }}" class="form-control" style="max-width:145px;" title="Desde">
+        <input type="date" name="hasta" value="{{ filtro_hasta }}" class="form-control" style="max-width:145px;" title="Hasta">
+        <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if filtro_tipo or filtro_flota or filtro_desde or filtro_hasta %}
+        <a href="/tl38/listado" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+        <a href="/tl38/listado?tipo={{ filtro_tipo }}&flota={{ filtro_flota }}&desde={{ filtro_desde }}&hasta={{ filtro_hasta }}&exportar=excel"
+           class="btn btn-secondary ms-auto"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Chapa</th>
+                    <th>Chofer</th>
+                    <th>Flota</th>
+                    <th>Tarjeta</th>
+                    <th style="text-align:right;">Litros</th>
+                    <th>Gasolinera</th>
+                    <th>Responsable</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movimientos %}
+                <tr>
+                    <td><strong>#{{ m.id }}</strong></td>
+                    <td style="font-size:12px;color:var(--muted);">{{ m.fecha }}</td>
+                    <td>
+                        {% if m.tipo == 'entrada' %}
+                        <span class="badge badge-ok">Entrada</span>
+                        {% elif m.tipo == 'despacho' %}
+                        <span class="badge badge-info">Despacho</span>
+                        {% else %}
+                        <span class="badge badge-warn">Ajuste</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ m.chapa }}</strong></td>
+                    <td>{{ m.chofer }}</td>
+                    <td><span class="badge badge-neutral">{{ m.flota }}</span></td>
+                    <td style="font-size:12px;">{{ m.tarjeta_tl38 or '—' }}</td>
+                    <td style="text-align:right;font-weight:700;">{{ "{:,.2f}".format(m.litros) }} L</td>
+                    <td style="font-size:12px;">{{ m.gasolinera_nombre or '—' }}</td>
+                    <td style="font-size:12px;color:var(--muted);">{{ m.responsable_nombre }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="empty-state">No hay movimientos que coincidan con los filtros.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

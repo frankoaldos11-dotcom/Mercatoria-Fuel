@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block titulo %}Reportes — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Sistema</span>
+        <h1>Reportes exportables</h1>
+        <p>Genera y descarga reportes en formato Excel.</p>
+    </div>
+</div>
+
+<!-- Reporte Despachos -->
+<div class="panel mb-4">
+    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:0;">
+        <div>
+            <h2 style="margin:0;"><i class="bi bi-box-arrow-right" style="color:var(--primary);"></i> Reporte de Despachos</h2>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">Historial completo de despachos con filtros por cliente, gasolinera y rango de fechas.</p>
+        </div>
+    </div>
+    <form method="GET" action="/reportes/despachos" style="padding:20px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+        <div>
+            <label class="form-label">Cliente</label>
+            <select name="cliente_id" class="form-select" style="min-width:200px;">
+                <option value="">Todos los clientes</option>
+                {% for c in clientes %}
+                <option value="{{ c.id }}">{{ c.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Gasolinera</label>
+            <select name="gasolinera_id" class="form-select" style="min-width:160px;">
+                <option value="">Todas</option>
+                {% for g in gasolineras %}
+                <option value="{{ g.id }}">{{ g.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Desde</label>
+            <input type="date" name="desde" class="form-control" style="width:145px;">
+        </div>
+        <div>
+            <label class="form-label">Hasta</label>
+            <input type="date" name="hasta" value="{{ hoy }}" class="form-control" style="width:145px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:auto;">
+            <i class="bi bi-file-earmark-excel"></i> Descargar Excel
+        </button>
+    </form>
+</div>
+
+<!-- Reporte Conciliaciones -->
+<div class="panel mb-4">
+    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:0;">
+        <div>
+            <h2 style="margin:0;"><i class="bi bi-check2-square" style="color:var(--success);"></i> Reporte de Conciliaciones</h2>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">Conciliaciones por gasolinera con diferencias y estados.</p>
+        </div>
+    </div>
+    <form method="GET" action="/reportes/conciliaciones" style="padding:20px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+        <div>
+            <label class="form-label">Gasolinera</label>
+            <select name="gasolinera_id" class="form-select" style="min-width:160px;">
+                <option value="">Todas</option>
+                {% for g in gasolineras %}
+                <option value="{{ g.id }}">{{ g.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Mes (YYYY-MM)</label>
+            <input type="month" name="mes" class="form-control" style="width:160px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:auto;">
+            <i class="bi bi-file-earmark-excel"></i> Descargar Excel
+        </button>
+    </form>
+</div>
+
+<!-- Reporte Consumo por Cliente -->
+<div class="panel mb-4">
+    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:0;">
+        <div>
+            <h2 style="margin:0;"><i class="bi bi-buildings" style="color:var(--info);"></i> Consumo por Cliente</h2>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">Excel multi-hoja: una hoja por cliente con consumo por vehículo y chofer.</p>
+        </div>
+    </div>
+    <form method="GET" action="/reportes/consumo" style="padding:20px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+        <div>
+            <label class="form-label">Desde</label>
+            <input type="date" name="desde" class="form-control" style="width:145px;">
+        </div>
+        <div>
+            <label class="form-label">Hasta</label>
+            <input type="date" name="hasta" value="{{ hoy }}" class="form-control" style="width:145px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:auto;">
+            <i class="bi bi-file-earmark-excel"></i> Descargar Excel
+        </button>
+    </form>
+</div>
+
+<!-- Reporte Tarjetas -->
+<div class="panel">
+    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:0;">
+        <div>
+            <h2 style="margin:0;"><i class="bi bi-credit-card-2-front" style="color:var(--warning);"></i> Estado de Tarjetas</h2>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">Saldo usable, retenido y última recarga de todas las tarjetas.</p>
+        </div>
+    </div>
+    <div style="padding:20px 24px;">
+        <a href="/reportes/tarjetas" class="btn btn-primary">
+            <i class="bi bi-file-earmark-excel"></i> Descargar Excel
+        </a>
+    </div>
+</div>
+
+{% endblock %}

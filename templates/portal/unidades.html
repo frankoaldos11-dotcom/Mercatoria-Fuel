@@ -1,0 +1,67 @@
+{% extends "base_cliente.html" %}
+{% block titulo %}Mis Vehículos — Portal Cliente{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Portal Cliente</span>
+        <h1>Mis vehículos y choferes</h1>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Chapa</th>
+                    <th>Vehículo</th>
+                    <th>Combustible</th>
+                    <th>Estado</th>
+                    <th>Chofer</th>
+                    <th>Licencia</th>
+                    <th>Vencimiento</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in datos %}
+                <tr>
+                    <td><strong>{{ d.chapa }}</strong></td>
+                    <td style="color:var(--muted);font-size:13px;">{{ d.marca or '' }} {{ d.modelo or '' }}</td>
+                    <td>
+                        <span class="badge badge-neutral">{{ d.tipo_combustible }}</span>
+                    </td>
+                    <td>
+                        {% if d.estado == 'activo' %}
+                        <span class="badge badge-ok">Activo</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ d.chofer or '—' }}</td>
+                    <td style="font-size:12px;color:var(--muted);">{{ d.licencia_numero or '—' }}</td>
+                    <td>
+                        {% if d.licencia_vencimiento %}
+                            {% if d.licencia_vencimiento < hoy %}
+                            <span class="badge badge-danger">Vencida {{ d.licencia_vencimiento }}</span>
+                            {% elif d.licencia_vencimiento <= (hoy[:7] + '-31') %}
+                            <span class="badge badge-warn">Próxima {{ d.licencia_vencimiento }}</span>
+                            {% else %}
+                            <span style="font-size:13px;">{{ d.licencia_vencimiento }}</span>
+                            {% endif %}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">No hay vehículos registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
