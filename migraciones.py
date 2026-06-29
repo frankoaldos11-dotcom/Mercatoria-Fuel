@@ -382,6 +382,37 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── puertos ───────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS puertos (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre     TEXT NOT NULL,
+        region     TEXT NOT NULL,
+        activo     INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
+    # ── llegadas_puerto ───────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS llegadas_puerto (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        puerto_id           INTEGER NOT NULL REFERENCES puertos(id),
+        numero_isotanque    TEXT NOT NULL,
+        tipo_combustible    TEXT NOT NULL,
+        litros              REAL NOT NULL DEFAULT 0,
+        fecha_llegada       TEXT NOT NULL,
+        deposito_destino_id INTEGER REFERENCES depositos(id),
+        fecha_transferencia TEXT,
+        estado              TEXT NOT NULL DEFAULT 'en_puerto',
+        observaciones       TEXT,
+        responsable_id      INTEGER NOT NULL REFERENCES usuarios(id),
+        created_at          TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at          TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
     # ── configuracion ────────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS configuracion (
@@ -481,6 +512,16 @@ def ejecutar_migraciones(bcrypt):
                     VALUES (?, date('now'), ?, 'pendiente', ?, ?, ?)
                 """, (nueva_id, saldo_retenido, fecha_estimada_seed, admin_id,
                       f"Devolución inicial — tarjeta ****{num_parcial}"))
+
+    # ── seed: puertos ─────────────────────────────────────────────────────────
+    puertos_seed = [
+        ("Puerto Mariel",   "Occidente"),
+        ("Puerto Santiago", "Oriente"),
+    ]
+    for nombre_p, region_p in puertos_seed:
+        cur.execute("SELECT id FROM puertos WHERE nombre = ?", (nombre_p,))
+        if not cur.fetchone():
+            cur.execute("INSERT INTO puertos (nombre, region) VALUES (?, ?)", (nombre_p, region_p))
 
     # ── seed: configuracion ───────────────────────────────────────────────────
     params_default = [

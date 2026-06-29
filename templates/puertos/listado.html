@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block titulo %}Puertos — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operaciones</span>
+        <h1>Puertos</h1>
+        <p>Registro de llegadas de isotanques al país.</p>
+    </div>
+    {% if session.get('rol') in ['admin', 'pm', 'operario_deposito'] %}
+    <a href="/puertos/crear" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Registrar llegada
+    </a>
+    {% endif %}
+</div>
+
+{% if request.args.get('ok') %}
+<div style="background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;">
+    <i class="bi bi-check-circle-fill"></i> Operación realizada con éxito.
+</div>
+{% endif %}
+
+<!-- Filtros -->
+<div class="panel mb-4">
+    <form method="GET" action="/puertos/" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <select name="puerto_id" class="form-select" style="max-width:200px;">
+            <option value="">Todos los puertos</option>
+            {% for p in puertos %}
+            <option value="{{ p.id }}" {{ 'selected' if filtro_puerto == p.id|string }}>{{ p.nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="estado" class="form-select" style="max-width:160px;">
+            <option value="">Todos los estados</option>
+            {% for e in estados %}
+            <option value="{{ e }}" {{ 'selected' if filtro_estado == e }}>{{ estado_labels[e] }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="fecha" class="form-control" style="max-width:160px;"
+               value="{{ filtro_fecha }}">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Filtrar</button>
+        <a href="/puertos/" class="btn btn-secondary">Limpiar</a>
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Isotanque</th>
+                    <th>Puerto</th>
+                    <th>Combustible</th>
+                    <th style="text-align:right;">Litros</th>
+                    <th>Fecha llegada</th>
+                    <th>Depósito destino</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in llegadas %}
+                <tr>
+                    <td><strong>#{{ l.id }}</strong></td>
+                    <td style="font-weight:600;font-family:monospace;">{{ l.numero_isotanque }}</td>
+                    <td style="font-size:13px;">{{ l.puerto_nombre }}</td>
+                    <td><span class="badge badge-neutral">{{ combustible_labels.get(l.tipo_combustible, l.tipo_combustible) }}</span></td>
+                    <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(l.litros) }} L</td>
+                    <td style="font-size:13px;color:var(--muted);">{{ l.fecha_llegada }}</td>
+                    <td style="font-size:13px;">{{ l.deposito_nombre or '—' }}</td>
+                    <td>
+                        {% if l.estado == 'transferido' %}
+                        <span class="badge" style="background:#dcfce7;color:#166534;font-weight:700;">Transferido</span>
+                        {% elif l.estado == 'anulado' %}
+                        <span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:700;">Anulado</span>
+                        {% else %}
+                        <span class="badge" style="background:#fef9c3;color:#854d0e;font-weight:700;">En puerto</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="/puertos/{{ l.id }}" class="btn btn-sm btn-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="empty-state">No hay llegadas registradas con los filtros seleccionados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

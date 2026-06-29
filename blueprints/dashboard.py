@@ -140,10 +140,10 @@ def dashboard():
     """, (mes_inicio, mes_fin))
     top_clientes = cur.fetchall()
 
-    # ── Vista operario: habilitaciones aprobadas pendientes de despacho ──────
+    # ── Vista por rol ─────────────────────────────────────────────────────────
     rol = session.get("rol", "")
 
-    if rol == "operario":
+    if rol in ("operario", "operario_gasolinera"):
         cur.execute("""
             SELECT h.id, h.litros_autorizados, h.fecha_habilitacion,
                    cli.nombre AS cliente, v.chapa, g.nombre AS gasolinera,
@@ -166,6 +166,23 @@ def dashboard():
             "dashboard_operario.html",
             despachos_pendientes=despachos_pendientes,
             habs_pendientes=habs_pendientes,
+        )
+
+    if rol == "operario_deposito":
+        cur.execute("""
+            SELECT lp.id, lp.numero_isotanque, lp.tipo_combustible,
+                   lp.litros, lp.fecha_llegada,
+                   p.nombre AS puerto_nombre
+            FROM llegadas_puerto lp
+            JOIN puertos p ON p.id = lp.puerto_id
+            WHERE lp.estado = 'en_puerto'
+            ORDER BY lp.fecha_llegada ASC LIMIT 20
+        """)
+        llegadas_pendientes = cur.fetchall()
+        conn.close()
+        return render_template(
+            "dashboard_operario_deposito.html",
+            llegadas_pendientes=llegadas_pendientes,
         )
 
     conn.close()

@@ -7,17 +7,17 @@ from werkzeug.utils import secure_filename
 
 from database import conectar
 from utils.auth import requiere_login
-from utils.constants import ROLES_ADMIN_PM, TURNOS_CONCILIACION, TURNOS_CONCILIACION_LABELS
+from utils.constants import ROLES_ADMIN_PM, TURNOS_CONCILIACION, TURNOS_CONCILIACION_LABELS, ROLES_OPERARIO_GAS
 
 turno_bp = Blueprint("turno", __name__, url_prefix="/turno")
 
 _ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 
-def _requiere_pm_o_admin():
+def _requiere_operario_gas():
     if "usuario" not in session:
         return redirect("/login")
-    if session.get("rol") not in ROLES_ADMIN_PM + ["operario"]:
+    if session.get("rol") not in ROLES_OPERARIO_GAS:
         return redirect("/dashboard")
     return None
 
@@ -37,7 +37,7 @@ def index():
     hoy = date.today().isoformat()
     gasolinera_id = request.args.get("gasolinera_id", "").strip()
     fecha = request.args.get("fecha", hoy).strip()
-    turno = request.args.get("turno", "").strip()
+    turno = ""  # eliminado del flujo
 
     conn = conectar()
     cur = conn.cursor()
@@ -91,17 +91,11 @@ def index():
         """, params)
         habilitaciones = cur.fetchall()
 
-        if turno:
-            cur.execute("""
-                SELECT * FROM conciliaciones
-                WHERE gasolinera_id = ? AND fecha = ? AND turno = ?
-            """, (gasolinera_id, fecha, turno))
-        else:
-            cur.execute("""
-                SELECT * FROM conciliaciones
-                WHERE gasolinera_id = ? AND fecha = ?
-                ORDER BY id DESC LIMIT 1
-            """, (gasolinera_id, fecha))
+        cur.execute("""
+            SELECT * FROM conciliaciones
+            WHERE gasolinera_id = ? AND fecha = ?
+            ORDER BY id DESC LIMIT 1
+        """, (gasolinera_id, fecha))
         conciliacion_existente = cur.fetchone()
 
     conn.close()
@@ -115,9 +109,6 @@ def index():
         habilitaciones=habilitaciones,
         gasolinera_id=gasolinera_id,
         fecha=fecha,
-        turno=turno,
-        turnos=TURNOS_CONCILIACION,
-        turno_labels=TURNOS_CONCILIACION_LABELS,
         hoy=hoy,
         conciliacion_existente=conciliacion_existente,
         rol=session.get("rol"),
@@ -349,7 +340,6 @@ def cerrar_turno():
 
     gasolinera_id = request.form.get("gasolinera_id", "")
     fecha = request.form.get("fecha", "")
-    turno_val = request.form.get("turno", "")
     saldo_inicio_str = request.form.get("saldo_fisico_inicio", "0").replace(",", ".")
     saldo_fin_str = request.form.get("saldo_fisico_fin", "0").replace(",", ".")
 
@@ -357,7 +347,7 @@ def cerrar_turno():
         saldo_inicio = float(saldo_inicio_str)
         saldo_fin = float(saldo_fin_str)
     except ValueError:
-        return redirect(f"/turno/?gasolinera_id={gasolinera_id}&fecha={fecha}&turno={turno_val}&access_error=Saldos+inválidos")
+        return redirect(f"/turno/?gasolinera_id={gasolinera_id}&fecha={fecha}&access_error=Saldos+inválidos")
 
     conn = conectar()
     cur = conn.cursor()
@@ -383,14 +373,14 @@ def cerrar_turno():
 
     cur.execute("""
         INSERT INTO conciliaciones
-            (gasolinera_id, fecha, turno, saldo_fisico_inicio_l, saldo_fisico_fin_l,
+            (gasolinera_id, fecha, saldo_fisico_inicio_l, saldo_fisico_fin_l,
              total_entrada_l, total_despachado_l, diferencia_l, diferencia_porcentaje,
              estado, responsable_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (gasolinera_id, fecha, turno_val or None,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (gasolinera_id, fecha,
           saldo_inicio, saldo_fin, total_entrada, total_despachado,
           diferencia, diff_pct, estado, session.get("user_id")))
 
     conn.commit()
     conn.close()
-    return redirect(f"/turno/?gasolinera_id={gasolinera_id}&fecha={fecha}&turno={turno_val}&ok=1")
+    return redirect(f"/turno/?gasolinera_id={gasolinera_id}&fecha={fecha}&ok=1")

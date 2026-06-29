@@ -50,9 +50,9 @@
                 <label class="form-label">Rol <span style="color:var(--danger)">*</span></label>
                 <select name="rol" id="sel-rol" class="form-select" required
                         {{ 'disabled' if usuario.id == session.get('user_id') }}>
-                    {% for r in roles %}
-                    <option value="{{ r }}" {{ 'selected' if request.form.get('rol', usuario.rol) == r }}>
-                        {{ r|title }}
+                    {% for r_val, r_label in roles %}
+                    <option value="{{ r_val }}" {{ 'selected' if request.form.get('rol', usuario.rol) == r_val }}>
+                        {{ r_label }}
                     </option>
                     {% endfor %}
                 </select>

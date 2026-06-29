@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar llegada — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operaciones / Puertos</span>
+        <h1>Registrar llegada</h1>
+        <p>Registro de isotanque recibido en puerto. El depósito destino se asigna después.</p>
+    </div>
+    <a href="/puertos/" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/puertos/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Puerto <span style="color:var(--danger)">*</span></label>
+                <select name="puerto_id" class="form-select" required>
+                    <option value="">Seleccionar puerto...</option>
+                    {% for p in puertos %}
+                    <option value="{{ p.id }}"
+                        {{ 'selected' if request.form.get('puerto_id', '') == p.id|string }}>
+                        {{ p.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">N.° de contenedor / isotanque <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="numero_isotanque" class="form-control"
+                       value="{{ request.form.get('numero_isotanque', '') }}"
+                       required placeholder="Ej. TCKU1234567">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <select name="tipo_combustible" class="form-select" required>
+                    <option value="">Seleccionar...</option>
+                    {% for tc in tipos_combustible %}
+                    <option value="{{ tc }}"
+                        {{ 'selected' if request.form.get('tipo_combustible', '') == tc }}>
+                        {{ combustible_labels[tc] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros recibidos <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="litros" class="form-control"
+                       inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
+                       value="{{ request.form.get('litros', '') }}"
+                       required placeholder="0.00">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha de llegada <span style="color:var(--danger)">*</span></label>
+                <input type="date" name="fecha_llegada" class="form-control"
+                       value="{{ request.form.get('fecha_llegada', hoy) }}" required>
+            </div>
+
+            <div class="mb-3" style="grid-column: 1 / -1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Notas adicionales (opcional)">{{ request.form.get('observaciones', '') }}</textarea>
+            </div>
+
+        </div>
+
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;margin:0 24px 20px;font-size:13px;color:#166534;">
+            <i class="bi bi-info-circle-fill"></i>
+            El isotanque quedará en estado <strong>En puerto</strong>. El depósito destino se asigna en el detalle, cuando se confirme la transferencia.
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Registrar llegada
+            </button>
+            <a href="/puertos/" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

@@ -5,7 +5,15 @@ from utils.auth import requiere_rol, requiere_login
 
 usuarios_bp = Blueprint("usuarios", __name__, url_prefix="/usuarios")
 
-_ROLES_LISTA = ["admin", "pm", "operario", "supervisor", "cliente"]
+_ROLES_LISTA = [
+    ("admin",               "Admin"),
+    ("pm",                  "PM"),
+    ("operario",            "Operario"),
+    ("operario_deposito",   "Operario Depósito"),
+    ("operario_gasolinera", "Operario Gasolinera"),
+    ("supervisor",          "Supervisor"),
+    ("cliente",             "Cliente"),
+]
 
 
 def _solo_admin():

@@ -30,6 +30,11 @@
             <span class="brand-name">Mercatoria Fuel</span>
         </div>
 
+        {% set _rol = session.get('rol', '') %}
+        {% set _es_dep = _rol in ['admin', 'pm', 'supervisor', 'operario_deposito'] %}
+        {% set _es_gas = _rol in ['admin', 'pm', 'supervisor', 'operario', 'operario_gasolinera'] %}
+        {% set _es_adm = _rol in ['admin', 'pm', 'supervisor'] %}
+
         <nav class="sidebar-nav">
 
             <div class="nav-section">Operaciones</div>
@@ -39,9 +44,10 @@
                 <span>Dashboard</span>
             </a>
 
-            <a href="/gasolineras/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/gasolineras') else '' }}">
-                <i class="bi bi-fuel-pump"></i>
-                <span>Gasolineras</span>
+            {% if _es_dep %}
+            <a href="/puertos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/puertos') else '' }}">
+                <i class="bi bi-water"></i>
+                <span>Puertos</span>
             </a>
 
             <a href="/depositos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/depositos') else '' }}">
@@ -49,16 +55,20 @@
                 <span>Depósitos</span>
             </a>
 
-            <a href="/recepciones/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/recepciones') else '' }}">
-                <i class="bi bi-box-arrow-in-down"></i>
-                <span>Recepciones</span>
-            </a>
-
             <a href="/transferencias/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/transferencias') else '' }}">
                 <i class="bi bi-arrow-left-right"></i>
                 <span>Transferencias</span>
             </a>
+            {% endif %}
 
+            {% if _es_gas %}
+            <a href="/gasolineras/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/gasolineras') else '' }}">
+                <i class="bi bi-fuel-pump"></i>
+                <span>Gasolineras</span>
+            </a>
+            {% endif %}
+
+            {% if _es_adm %}
             <div class="nav-section">Comercial</div>
 
             <a href="/clientes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/clientes') else '' }}">
@@ -75,7 +85,9 @@
                 <i class="bi bi-credit-card-2-front"></i>
                 <span>Tarjetas</span>
             </a>
+            {% endif %}
 
+            {% if _es_gas %}
             <div class="nav-section">Operativa</div>
 
             <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') else '' }}">
@@ -97,7 +109,9 @@
                 <i class="bi bi-check2-square"></i>
                 <span>Conciliación</span>
             </a>
+            {% endif %}
 
+            {% if _es_adm %}
             <div class="nav-section">Sistema</div>
 
             <a href="/reportes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/reportes') else '' }}">
@@ -109,8 +123,9 @@
                 <i class="bi bi-lightning-charge"></i>
                 <span>TL38</span>
             </a>
+            {% endif %}
 
-            {% if session.get('rol') in ['admin', 'pm'] %}
+            {% if _rol in ['admin', 'pm'] %}
             <a href="/usuarios/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/usuarios') else '' }}">
                 <i class="bi bi-people"></i>
                 <span>Usuarios</span>
@@ -139,13 +154,16 @@
             <span class="topbar-user">
                 <i class="bi bi-person-circle"></i> {{ session.get('nombre', '') }}
             </span>
-            {% set _rol = session.get('rol', '') %}
             {% if _rol == 'admin' %}
             <span class="role-badge role-admin">ADMIN</span>
             {% elif _rol == 'pm' %}
             <span class="role-badge role-pm">PM</span>
             {% elif _rol == 'operario' %}
             <span class="role-badge role-operario">OP</span>
+            {% elif _rol == 'operario_deposito' %}
+            <span class="role-badge role-operario-deposito">OP-DEP</span>
+            {% elif _rol == 'operario_gasolinera' %}
+            <span class="role-badge role-operario-gasolinera">OP-GAS</span>
             {% elif _rol == 'supervisor' %}
             <span class="role-badge role-supervisor">SUP</span>
             {% elif _rol == 'cliente' %}

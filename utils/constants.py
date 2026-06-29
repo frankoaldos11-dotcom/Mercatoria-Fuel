@@ -1,12 +1,16 @@
 ROLES = {
-    "ADMIN":      "admin",
-    "PM":         "pm",
-    "OPERARIO":   "operario",
-    "SUPERVISOR": "supervisor",
-    "CLIENTE":    "cliente",
+    "ADMIN":              "admin",
+    "PM":                 "pm",
+    "OPERARIO":           "operario",
+    "OPERARIO_DEPOSITO":  "operario_deposito",
+    "OPERARIO_GASOLINERA":"operario_gasolinera",
+    "SUPERVISOR":         "supervisor",
+    "CLIENTE":            "cliente",
 }
 
 ROLES_ADMIN_PM = ["admin", "pm"]
+ROLES_OPERARIO_GAS = ["admin", "pm", "operario", "operario_gasolinera"]
+ROLES_OPERARIO_DEP = ["admin", "pm", "operario_deposito"]
 
 REGIONES = ["Occidente", "Centro", "Oriente"]
 
@@ -77,6 +81,14 @@ ESTADOS_HABILITACION_LABELS = {
 ESTADOS_DESPACHO = ["completado", "anulado"]
 
 ESTADOS_CONCILIACION = ["borrador", "cerrada", "con_alerta"]
+
+ESTADOS_LLEGADA_PUERTO = ["en_puerto", "transferido", "anulado"]
+
+ESTADOS_LLEGADA_LABELS = {
+    "en_puerto":  "En puerto",
+    "transferido": "Transferido",
+    "anulado":    "Anulado",
+}
 
 TURNOS_CONCILIACION = ["manana", "tarde", "noche"]
 

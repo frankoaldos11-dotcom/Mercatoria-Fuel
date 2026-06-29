@@ -22,13 +22,7 @@
         </select>
         <input type="date" name="fecha" class="form-control" style="max-width:160px;"
                value="{{ fecha }}" required>
-        <select name="turno" class="form-select" style="max-width:140px;">
-            <option value="">Turno (opc.)</option>
-            {% for t in turnos %}
-            <option value="{{ t }}" {{ 'selected' if turno == t }}>{{ turno_labels[t] }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Cargar turno</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Cargar</button>
     </form>
 </div>
 
@@ -88,7 +82,7 @@
 <div class="panel mb-4">
     <div class="panel-header">
         <h2>Habilitaciones del turno</h2>
-        <span style="font-size:13px;color:var(--muted);">{{ gasolinera_id }} · {{ fecha }}{% if turno %} · {{ turno_labels.get(turno, turno) }}{% endif %}</span>
+        <span style="font-size:13px;color:var(--muted);">{{ gasolinera_id }} · {{ fecha }}</span>
     </div>
     <div class="table-wrapper">
         <table class="data-table" id="tabla-habs">
@@ -156,7 +150,6 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="gasolinera_id" value="{{ gasolinera_id }}">
         <input type="hidden" name="fecha" value="{{ fecha }}">
-        <input type="hidden" name="turno" value="{{ turno }}">
         <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end;">
             <div>
                 <label class="form-label">Saldo físico al inicio del turno (L) *</label>
@@ -251,7 +244,6 @@
 const CSRF_TOKEN = "{{ csrf_token() }}";
 const GASOLINERA_ID = "{{ gasolinera_id }}";
 const FECHA = "{{ fecha }}";
-const TURNO = "{{ turno }}";
 
 // Datos de unidades para filtrar por cliente
 const todasUnidades = [

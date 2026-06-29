@@ -29,6 +29,7 @@ from blueprints.portal import portal_bp
 from blueprints.usuarios import usuarios_bp
 from blueprints.configuracion import configuracion_bp
 from blueprints.turno import turno_bp
+from blueprints.puertos import puertos_bp
 
 
 app = Flask(__name__)
@@ -140,6 +141,7 @@ app.register_blueprint(portal_bp)
 app.register_blueprint(usuarios_bp)
 app.register_blueprint(configuracion_bp)
 app.register_blueprint(turno_bp)
+app.register_blueprint(puertos_bp)
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER

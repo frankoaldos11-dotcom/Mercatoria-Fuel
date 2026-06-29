@@ -420,11 +420,13 @@ body {
     letter-spacing: 0.07em;
 }
 
-.role-admin    { background: #fee2e2; color: #991b1b; }
-.role-pm       { background: #dbeafe; color: #1e40af; }
-.role-operario { background: #dcfce7; color: #166534; }
-.role-supervisor { background: #f1f5f9; color: #475569; }
-.role-cliente  { background: #ffedd5; color: #9a3412; }
+.role-admin              { background: #fee2e2; color: #991b1b; }
+.role-pm                 { background: #dbeafe; color: #1e40af; }
+.role-operario           { background: #dcfce7; color: #166534; }
+.role-operario-deposito  { background: #d1fae5; color: #065f46; }
+.role-operario-gasolinera{ background: #bbf7d0; color: #14532d; }
+.role-supervisor         { background: #f1f5f9; color: #475569; }
+.role-cliente            { background: #ffedd5; color: #9a3412; }
 
 /* Eliminar flechitas de inputs numéricos globalmente */
 input[type=number]::-webkit-inner-spin-button,
