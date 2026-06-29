@@ -110,6 +110,7 @@
                 <span>TL38</span>
             </a>
 
+            {% if session.get('rol') in ['admin', 'pm'] %}
             <a href="/usuarios/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/usuarios') else '' }}">
                 <i class="bi bi-people"></i>
                 <span>Usuarios</span>
@@ -119,6 +120,7 @@
                 <i class="bi bi-sliders"></i>
                 <span>Configuración</span>
             </a>
+            {% endif %}
 
             <hr class="nav-divider">
 
