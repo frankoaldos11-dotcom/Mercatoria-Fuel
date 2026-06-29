@@ -1,46 +1,79 @@
 # Reporte de Pruebas — 2026-06-29
 
-## Páginas probadas
-- https://mercatoria-fuel.onrender.com/login
-- https://mercatoria-fuel.onrender.com/dashboard (como admin y como operario)
-- https://mercatoria-fuel.onrender.com/gasolineras/
-- https://mercatoria-fuel.onrender.com/clientes/
-- https://mercatoria-fuel.onrender.com/usuarios/
-- https://mercatoria-fuel.onrender.com/usuarios/crear
-- https://mercatoria-fuel.onrender.com/turno/
-- https://mercatoria-fuel.onrender.com/configuracion/
-- https://mercatoria-fuel.onrender.com/unidades/crear
+## Commit verificado
+`3e4890e` — fix: rol validation in usuarios crear/editar (string vs tuple comparison)
 
-## Errores encontrados
-- **favicon.ico 404** — Se sirve `favicon.png` en el `<link rel="icon">` pero el navegador también solicita `favicon.ico` automáticamente. Cosmético, no afecta funcionalidad.
-- **503 en cold start** — Render free tier tardó ~35 s en despertar. Primera solicitud a `/login` recibió 503 transitorio. Normal en este plan de hosting.
-- Sin errores de consola JS en ninguna página de producción.
-- Sin errores HTTP 4xx/5xx en rutas de la aplicación.
+## Páginas probadas
+- /login (admin, op_deposito, op_gasolinera, cliente_pma)
+- /usuarios/crear (roles operario_deposito y operario_gasolinera)
+- /usuarios/2/editar (rol cliente)
+- /dashboard (op_deposito y op_gasolinera — verificación de sidebar)
+- /portal/ (cliente_pma)
+
+---
+
+## Resultados por punto
+
+| # | Verificación | Resultado | Detalle |
+|---|-------------|-----------|---------|
+| 1 | Crear usuario con rol `operario_deposito` | ✅ PASS | Redirige a `/usuarios/?ok=1` sin error |
+| 2 | Crear usuario con rol `operario_gasolinera` | ✅ PASS | Redirige a `/usuarios/?ok=1` sin error |
+| 3 | Editar usuario con rol `cliente` (sin cambiar rol) | ✅ PASS | Redirige a `/usuarios/?ok=1` sin error |
+| 4 | Login `op_deposito@mercatoria.com` | ✅ PASS | Llega a Dashboard Depósito |
+| 5 | Sidebar `operario_deposito` — solo OPERACIONES | ✅ PASS | Ve: Dashboard, Puertos, Depósitos, Transferencias, Salir |
+| 6 | Login `op_gasolinera@mercatoria.com` | ✅ PASS | Llega a Dashboard Operario |
+| 7 | Sidebar `operario_gasolinera` — solo OPERATIVA | ✅ PASS | Ve: Dashboard, Gasolineras, Turno del día, Habilitaciones, Despachos, Conciliación, Salir |
+| 8 | Login `cliente_pma@mercatoria.com` / `Cliente2026!` | ✅ PASS | Redirige a `/portal/` — "Mi Resumen — Portal Cliente" |
+| 9 | Portal cliente — nombre y KPIs cargan | ✅ PASS | Muestra "Programa Mundial de Alimentos", secciones del portal |
+
+---
+
+## Bug corregido
+
+### ✅ RESUELTO — `rol not in _ROLES_LISTA` (string vs tuplas)
+
+- **Archivo:** `blueprints/usuarios.py` líneas 84 y 166
+- **Causa:** `_ROLES_LISTA` es lista de tuplas; `"cliente" not in [("cliente","Cliente"), ...]` siempre `True`
+- **Fix:** `rol not in [r[0] for r in _ROLES_LISTA]`
+- **Impacto anterior:** ningún usuario podía ser creado ni editado con ningún rol
+- **Estado:** PASS en producción tras deploy `3e4890e`
+
+---
+
+## Bug 2 — Diagnóstico (no era código)
+
+- **Síntoma reportado:** "cliente_pma no puede hacer login — credenciales incorrectas"
+- **Resultado del test:** Login con `cliente_pma@mercatoria.com` / `Cliente2026!` PASA → redirige a `/portal/`
+- **Conclusión:** No hay filtro por rol en el login (`app.py:82`). La causa más probable fue que el admin intentó resetear la contraseña vía editar → Bug 1 rechazaba el intento → confusión sobre cuál era la contraseña vigente
+- **Contraseña del seed:** `Cliente2026!`
+
+---
+
+## Errores de consola
+
+Sin errores de consola en ninguna de las páginas verificadas.
+
+---
 
 ## Screenshots tomados
-- `01_dashboard.png` — Dashboard admin: KPIs completos (Inventario, Operativa, Alertas), badge ADMIN rojo en topbar, sidebar reordenado con 4 secciones
-- `02_turno.png` — Página Turno del día: selector gasolinera/fecha/turno + botón "Cargar turno"
-- `03_configuracion.png` — Configuración del sistema: "Compra mínima por habilitación" = 500 L, editable
-- `04_usuarios_listado.png` — Listado usuarios con badges de rol coloreados (Operario=verde, Cliente=naranja, Admin=rojo)
-- `05_dashboard_operario.png` — Dashboard operario: vista simplificada "Habilitaciones pendientes", badge OP verde, botón "Ir al Turno del día"
-- `06_unidades_crear_c9.png` — Formulario nueva unidad: link "Añadir cliente nuevo" visible bajo el selector de cliente
 
-## Correcciones aplicadas — Post-launch v1.0 (commit 3dd0514)
+| Archivo | Pantalla |
+|---------|----------|
+| `fix_usuarios_listado.png` | Listado de usuarios post-creación (3 usuarios) |
+| `fix_usuarios_listado_completo.png` | Listado completo con op_deposito y op_gasolinera creados |
+| `fix_op_deposito_dashboard.png` | Dashboard Depósito — sidebar solo muestra OPERACIONES |
+| `fix_op_gasolinera_dashboard.png` | Dashboard Operario — sidebar solo muestra OPERATIVA |
+| `bug2_login_cliente_ok.png` | Portal cliente — login exitoso, nombre "Programa Mundial de Alimentos" |
 
-| # | Corrección | Resultado |
-|---|-----------|-----------|
-| C1 | Sidebar URLs con trailing slash — Flask blueprint fix | ✅ PASS |
-| C2 | Orden sidebar: OPERACIONES / COMERCIAL / OPERATIVA (con Turno del día) / SISTEMA | ✅ PASS |
-| C3 | Campos litros → `type=text inputmode=decimal` (sin flechitas spinner) | ✅ PASS (código aplicado) |
-| C4 | CRUD Usuarios completo: crear, listar, badges de rol, redirige con ?ok=1 | ✅ PASS |
-| C5 | Página Turno del día (`/turno/`) accesible con selector y layout AJAX | ✅ PASS |
-| C6 | Configuración del sistema: compra mínima 500 L, editable por admin | ✅ PASS |
-| C7 | Dashboard por rol: admin full / operario simplificado con CTA Turno del día | ✅ PASS |
-| C8 | Badge de rol en topbar: nombre de usuario + badge coloreado por rol | ✅ PASS |
-| C9 | Botón "Añadir cliente nuevo" en `/unidades/crear` abre `/clientes/crear` en nueva pestaña | ✅ PASS |
+---
 
-## Recomendaciones
-- **favicon.ico**: Agregar un `favicon.ico` estático o configurar un redirect para eliminar el 404 cosmético que genera el navegador.
-- **Sidebar y roles**: El operario puede ver los links de `/usuarios/` y `/configuracion/` en el sidebar, aunque las rutas están protegidas con `requiere_rol`. Considerar filtrar los ítems del sidebar según `session.get('rol')` para mayor claridad UX.
-- **Turno del día — flujo AJAX end-to-end**: La página carga correctamente. El flujo completo (añadir habilitación, aprobar, despachar, cerrar turno) requiere una gasolinera activa y tarjeta con saldo para prueba en producción. No probado en esta sesión por no haber datos suficientes en el entorno.
-- **C3 — cuota_mensual_l en /unidades/crear**: Verificar que el campo `cuota_mensual_l` también fue cambiado a `type=text inputmode=decimal` (el commit lo incluye pero no fue probado visualmente con inspección de código fuente de la página).
+## Correcciones aplicadas
+
+- `blueprints/usuarios.py:84` — `rol not in _ROLES_LISTA` → `rol not in [r[0] for r in _ROLES_LISTA]`
+- `blueprints/usuarios.py:166` — ídem
+
+## Recomendaciones pendientes
+
+- **Sin responsive móvil** — sidebar `width: 280px` fijo en `static/css/admin.css`, app inutilizable en < 768px (bug crítico sin resolver)
+- **Selector depósito en puertos/isotanque** — query filtra `tipo_combustible` por igualdad exacta; puede no encontrar depósitos con multi-combustible (`"diesel,gasolina"`)
+- **Base de datos efímera** — usar PostgreSQL en Render (actualmente SQLite en local/dev) para no perder datos entre redeployments
