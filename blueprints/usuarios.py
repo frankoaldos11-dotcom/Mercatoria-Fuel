@@ -81,7 +81,7 @@ def crear():
             error = "La contraseña debe tener al menos 8 caracteres."
         elif password != confirm:
             error = "Las contraseñas no coinciden."
-        elif rol not in _ROLES_LISTA:
+        elif rol not in [r[0] for r in _ROLES_LISTA]:
             error = "Rol inválido."
         elif rol == "cliente" and not cliente_id:
             error = "Debe seleccionar el cliente asociado para usuarios con rol cliente."
@@ -163,7 +163,7 @@ def editar(uid):
             error = "La contraseña debe tener al menos 8 caracteres."
         elif password and password != confirm:
             error = "Las contraseñas no coinciden."
-        elif rol not in _ROLES_LISTA:
+        elif rol not in [r[0] for r in _ROLES_LISTA]:
             error = "Rol inválido."
         elif propio and rol != usuario["rol"]:
             error = "No puedes cambiar tu propio rol."
