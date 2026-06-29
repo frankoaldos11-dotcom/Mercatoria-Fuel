@@ -50,9 +50,6 @@ def ejecutar_migraciones_pg(bcrypt):
     # ── columnas añadidas a gasolineras post-v1 ───────────────────────────────
     cur.execute("ALTER TABLE gasolineras ADD COLUMN IF NOT EXISTS provincia TEXT")
 
-    # ── columnas añadidas a movimientos post-v3 ───────────────────────────────
-    cur.execute("ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS tipo_combustible TEXT")
-
     cur.execute("""
     CREATE TABLE IF NOT EXISTS subinventarios (
         id                SERIAL PRIMARY KEY,
@@ -87,6 +84,9 @@ def ejecutar_migraciones_pg(bcrypt):
         created_at               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    # ── columnas añadidas a movimientos post-v3 ───────────────────────────────
+    cur.execute("ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS tipo_combustible TEXT")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS auditoria (
