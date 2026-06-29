@@ -57,7 +57,7 @@
             </thead>
             <tbody>
                 {% for m in movimientos %}
-                <tr>
+                <tr style="cursor:pointer;" onclick="location.href='/tl38/{{ m.id }}'">
                     <td><strong>#{{ m.id }}</strong></td>
                     <td style="font-size:12px;color:var(--muted);">{{ m.fecha }}</td>
                     <td>

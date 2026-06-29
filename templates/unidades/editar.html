@@ -92,12 +92,6 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Cuota mensual (litros)</label>
-                <input type="number" name="cuota_mensual_l" class="form-control"
-                       value="{{ unidad.cuota_mensual_l or '' }}" min="0" step="0.01">
-            </div>
-
-            <div class="mb-3">
                 <label class="form-label">Color</label>
                 <input type="text" name="color" class="form-control" value="{{ unidad.color or '' }}">
             </div>
@@ -133,12 +127,6 @@
                 <label class="form-label">N.° de licencia</label>
                 <input type="text" name="licencia_numero" class="form-control"
                        value="{{ unidad.licencia_numero or '' }}">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Vencimiento de licencia</label>
-                <input type="date" name="licencia_vencimiento" class="form-control"
-                       value="{{ unidad.licencia_vencimiento[:10] if unidad.licencia_vencimiento else '' }}">
             </div>
 
             <div class="mb-3">

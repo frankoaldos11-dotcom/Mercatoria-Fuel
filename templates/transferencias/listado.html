@@ -69,7 +69,6 @@
                     <th>Combustible</th>
                     <th>L. solicitados</th>
                     <th>L. recibidos</th>
-                    <th>Pipa / Chofer</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -101,12 +100,6 @@
                         {% else %}—{% endif %}
                     </td>
                     <td>
-                        {{ t.pipa_chapa or '—' }}
-                        {% if t.chofer_pipa %}
-                        <br><span style="font-size:11px;color:var(--muted);">{{ t.chofer_pipa }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
                         {% if t.estado == 'en_transito' %}
                         <span class="badge badge-warn">En tránsito</span>
                         {% elif t.estado == 'recibida' %}
@@ -119,8 +112,8 @@
                         <div class="d-flex gap-2">
                             {% if t.estado == 'en_transito' %}
                                 {% if session.get('rol') in ('admin', 'pm') %}
-                                <a href="/transferencias/{{ t.id }}/confirmar_llegada" class="btn btn-success btn-sm">
-                                    <i class="bi bi-box-arrow-in-down"></i> Llegada
+                                <a href="/transferencias/{{ t.id }}/gestionar" class="btn btn-success btn-sm">
+                                    <i class="bi bi-box-arrow-in-down"></i> Gestionar
                                 </a>
                                 {% endif %}
                                 {% if session.get('rol') == 'admin' %}
@@ -138,7 +131,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="10" class="empty-state">
+                    <td colspan="9" class="empty-state">
                         <i class="bi bi-arrow-left-right" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay transferencias registradas.
                         {% if session.get('rol') in ('admin', 'pm') %}

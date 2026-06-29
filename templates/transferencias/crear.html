@@ -32,7 +32,8 @@
                 <select name="deposito_origen_id" class="form-select" required>
                     <option value="">Seleccionar depósito...</option>
                     {% for d in depositos %}
-                    <option value="{{ d.id }}" data-combustible="{{ d.tipo_combustible }}">
+                    <option value="{{ d.id }}" data-combustible="{{ d.tipo_combustible }}"
+                            {{ 'selected' if deposito_pre == d.id|string }}>
                         {{ d.nombre }} ({{ combustible_labels.get(d.tipo_combustible, d.tipo_combustible) }})
                     </option>
                     {% endfor %}

@@ -96,15 +96,6 @@
 <!-- Fila 3: Alertas -->
 <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Alertas</div>
 <div class="kpi-grid" style="margin-bottom:32px;">
-    <div class="kpi-card" style="{{ 'border:2px solid var(--warning);' if licencias_por_vencer > 0 else '' }}">
-        <div class="kpi-icon {{ 'warning' if licencias_por_vencer > 0 else 'neutral' }}">
-            <i class="bi bi-card-checklist"></i>
-        </div>
-        <div>
-            <span>Licencias por vencer (≤30 días)</span>
-            <strong>{{ licencias_por_vencer }}</strong>
-        </div>
-    </div>
     <div class="kpi-card">
         <div class="kpi-icon {{ 'danger' if conciliaciones_con_alerta > 0 else 'neutral' }}">
             <i class="bi bi-exclamation-square"></i>

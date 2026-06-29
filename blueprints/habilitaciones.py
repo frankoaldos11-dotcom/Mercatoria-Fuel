@@ -188,8 +188,10 @@ def crear():
     """)
     tarjetas = cur.fetchall()
     cur.execute("""
-        SELECT s.id, s.nombre, s.gasolinera_id, s.litros_reservados, s.activo
+        SELECT s.id, s.nombre, s.tipo, s.gasolinera_id, s.litros_reservados, s.activo,
+               cl.nombre AS cliente_nombre
         FROM subinventarios s
+        LEFT JOIN clientes cl ON cl.id = s.cliente_id
         WHERE s.activo = 1
         ORDER BY s.nombre ASC
     """)
@@ -227,7 +229,7 @@ def crear():
                 error = "Los litros deben ser un número válido."
             if not error and litros <= 0:
                 error = "Los litros autorizados deben ser mayores a cero."
-            if not error:
+            if not error and not subinventario_id:
                 conn2 = conectar()
                 cur2 = conn2.cursor()
                 cur2.execute("SELECT valor FROM configuracion WHERE clave = 'compra_minima_litros'")
@@ -304,6 +306,7 @@ def aprobar(id):
         return redirect(f"/habilitaciones/{id}?access_error=Solo+se+pueden+aprobar+habilitaciones+pendientes")
 
     error = None
+    tarjeta_link = None
     litros = float(hab["litros_autorizados"])
 
     if hab["unidad_estado"] != "activo":
@@ -317,6 +320,7 @@ def aprobar(id):
             f"Saldo insuficiente en la tarjeta. Disponible: {float(hab['saldo_usable_l']):,.2f} L, "
             f"requerido: {litros:,.2f} L."
         )
+        tarjeta_link = hab["tarjeta_id"]
     elif hab["subinventario_id"] and hab["sub_litros"] is not None:
         if float(hab["sub_litros"]) < litros - 0.001:
             error = (
@@ -326,7 +330,8 @@ def aprobar(id):
 
     if error:
         conn.close()
-        return redirect(f"/habilitaciones/{id}?access_error={error.replace(' ', '+')}")
+        link_param = f"&tarjeta_link={tarjeta_link}" if tarjeta_link else ""
+        return redirect(f"/habilitaciones/{id}?access_error={error.replace(' ', '+')}{link_param}")
 
     cur.execute("""
         UPDATE habilitaciones

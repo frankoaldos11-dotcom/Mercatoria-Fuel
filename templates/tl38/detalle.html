@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block titulo %}TL38 #{{ mov.id }} — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">TL38 / Movimiento</span>
+        <h1>Movimiento #{{ mov.id }}</h1>
+        <p>{{ mov.fecha }} — {{ mov.chapa }}</p>
+    </div>
+    <a href="/tl38/listado" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+    <div class="panel">
+        <div class="panel-header"><h2>Datos del movimiento</h2></div>
+        <div style="padding:0 24px 24px;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);width:40%;">Tipo</td>
+                    <td style="padding:8px 0;">
+                        {% if mov.tipo == 'entrada' %}
+                        <span class="badge badge-ok">Entrada</span>
+                        {% elif mov.tipo == 'despacho' %}
+                        <span class="badge badge-info">Despacho</span>
+                        {% else %}
+                        <span class="badge badge-warn">Ajuste</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Fecha</td>
+                    <td style="padding:8px 0;font-weight:600;">{{ mov.fecha }}</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Litros</td>
+                    <td style="padding:8px 0;font-size:22px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(mov.litros) }} L</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Chapa</td>
+                    <td style="padding:8px 0;font-weight:600;">{{ mov.chapa }}</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Chofer</td>
+                    <td style="padding:8px 0;">{{ mov.chofer }}</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Flota</td>
+                    <td style="padding:8px 0;"><span class="badge badge-neutral">{{ mov.flota or '—' }}</span></td>
+                </tr>
+                {% if mov.tarjeta_tl38 %}
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Tarjeta TL38</td>
+                    <td style="padding:8px 0;font-family:monospace;">{{ mov.tarjeta_tl38 }}</td>
+                </tr>
+                {% endif %}
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Gasolinera</td>
+                    <td style="padding:8px 0;">{{ mov.gasolinera_nombre or '—' }}</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Responsable</td>
+                    <td style="padding:8px 0;">{{ mov.responsable_nombre }}</td>
+                </tr>
+                {% if mov.observaciones %}
+                <tr>
+                    <td style="padding:8px 0;color:var(--muted);">Observaciones</td>
+                    <td style="padding:8px 0;">{{ mov.observaciones }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header"><h2>Registro</h2></div>
+        <div style="padding:16px 24px 24px;font-size:13px;color:var(--muted);">
+            <div style="margin-bottom:8px;"><strong>Creado:</strong> {{ mov.created_at or '—' }}</div>
+            {% if session.get('rol') in ('admin', 'pm') %}
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+                <a href="/tl38/listado" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-list"></i> Volver al listado
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

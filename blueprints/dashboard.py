@@ -88,13 +88,7 @@ def dashboard():
     conciliaciones_pendientes = cur.fetchone()["total"] or 0
 
     # ── Fila 3: Alertas ───────────────────────────────────────────────────────
-    cur.execute("""
-        SELECT COUNT(*) AS total FROM choferes
-        WHERE estado = 'activo'
-        AND licencia_vencimiento IS NOT NULL
-        AND licencia_vencimiento <= ?
-    """, (limite_30,))
-    licencias_por_vencer = cur.fetchone()["total"] or 0
+    licencias_por_vencer = 0
 
     cur.execute("""
         SELECT COUNT(*) AS total FROM conciliaciones

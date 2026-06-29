@@ -120,7 +120,6 @@ def crear():
         tipo_combustible = request.form.get("tipo_combustible", "").strip()
         litros_str = request.form.get("litros_solicitados", "0").strip()
         fecha_salida = request.form.get("fecha_salida", "").strip()
-        pipa_chapa = request.form.get("pipa_chapa", "").strip()
         chofer_pipa = request.form.get("chofer_pipa", "").strip()
         no_documento = request.form.get("no_documento", "").strip()
         observaciones = request.form.get("observaciones", "").strip()
@@ -158,11 +157,11 @@ def crear():
                 cur.execute("""
                     INSERT INTO transferencias
                         (deposito_origen_id, gasolinera_destino_id, tipo_combustible,
-                         litros_solicitados, fecha_salida, pipa_chapa, chofer_pipa,
+                         litros_solicitados, fecha_salida, chofer_pipa,
                          no_documento, observaciones, responsable_id, estado)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'en_transito')
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'en_transito')
                 """, (deposito_id, gasolinera_id, tipo_combustible, litros,
-                      fecha_salida, pipa_chapa or None, chofer_pipa or None,
+                      fecha_salida, chofer_pipa or None,
                       no_documento or None, observaciones or None, session.get("user_id")))
                 nueva_id = cur.lastrowid
                 # Insertar movimiento de salida — descuenta del depósito
@@ -187,7 +186,110 @@ def crear():
         tipos_combustible=TIPOS_COMBUSTIBLE,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=date.today().isoformat(),
+        deposito_pre=request.args.get("deposito_id", "") or request.form.get("deposito_origen_id", ""),
     )
+
+
+@transferencias_bp.route("/<int:id>/gestionar")
+def gestionar(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect("/transferencias?access_error=Solo+Admin+y+PM")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT t.*, d.nombre AS deposito_nombre, g.nombre AS gasolinera_nombre
+        FROM transferencias t
+        JOIN depositos d ON d.id = t.deposito_origen_id
+        JOIN gasolineras g ON g.id = t.gasolinera_destino_id
+        WHERE t.id = ?
+    """, (id,))
+    transferencia = cur.fetchone()
+
+    if not transferencia:
+        conn.close()
+        return redirect("/transferencias")
+
+    tarjetas = []
+    if transferencia["estado"] == "recibida":
+        cur.execute("""
+            SELECT id, numero_parcial, tipo_combustible, saldo_usable_l
+            FROM tarjetas
+            WHERE gasolinera_id = ? AND estado = 'activa'
+            ORDER BY numero_parcial ASC
+        """, (transferencia["gasolinera_destino_id"],))
+        tarjetas = cur.fetchall()
+
+    conn.close()
+
+    from datetime import date as _date
+    return render_template(
+        "transferencias/gestionar.html",
+        transferencia=transferencia,
+        tarjetas=tarjetas,
+        combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
+        hoy=_date.today().isoformat(),
+    )
+
+
+@transferencias_bp.route("/<int:id>/distribuir", methods=["POST"])
+def distribuir(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/transferencias/{id}/gestionar?access_error=Sin+permisos")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM transferencias WHERE id = ? AND estado = 'recibida'", (id,))
+    transferencia = cur.fetchone()
+
+    if not transferencia:
+        conn.close()
+        return redirect("/transferencias")
+
+    assignments = []
+    for key, value in request.form.items():
+        if key.startswith("litros_tarjeta_") and value.strip():
+            try:
+                tarjeta_id = int(key.replace("litros_tarjeta_", ""))
+                litros_val = float(value.strip().replace(",", "."))
+                if litros_val > 0:
+                    assignments.append((tarjeta_id, litros_val))
+            except (ValueError, KeyError):
+                pass
+
+    if not assignments:
+        conn.close()
+        return redirect(f"/transferencias/{id}/gestionar?access_error=Ingresa+litros+para+al+menos+una+tarjeta")
+
+    from datetime import date as _date
+    fecha_hoy = _date.today().isoformat()
+    for tarjeta_id, litros_val in assignments:
+        cur.execute("""
+            INSERT INTO movimientos
+                (tipo, fecha, gasolinera_id, tipo_combustible, litros, responsable_id, observaciones)
+            VALUES ('asignacion_tarjeta', ?, ?, ?, ?, ?, ?)
+        """, (
+            fecha_hoy,
+            transferencia["gasolinera_destino_id"],
+            transferencia["tipo_combustible"],
+            litros_val,
+            session.get("user_id"),
+            f"Asignación a tarjeta #{tarjeta_id} desde transferencia #{id}",
+        ))
+        cur.execute(
+            "UPDATE tarjetas SET saldo_usable_l = saldo_usable_l + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (litros_val, tarjeta_id)
+        )
+
+    conn.commit()
+    conn.close()
+    return redirect(f"/transferencias/{id}/gestionar?ok=1")
 
 
 @transferencias_bp.route("/<int:id>/confirmar_llegada", methods=["GET", "POST"])
@@ -197,6 +299,9 @@ def confirmar_llegada(id):
         return redir
     if _requiere_admin_pm():
         return redirect("/transferencias?access_error=Solo+Admin+y+PM+pueden+confirmar+llegadas")
+
+    if request.method == "GET":
+        return redirect(f"/transferencias/{id}/gestionar")
 
     conn = conectar()
     cur = conn.cursor()
@@ -270,7 +375,7 @@ def confirmar_llegada(id):
             ))
             conn.commit()
             conn.close()
-            return redirect("/transferencias?ok=1")
+            return redirect(f"/transferencias/{id}/gestionar?ok=1")
 
     from datetime import date
     return render_template(

@@ -39,13 +39,9 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Región <span style="color:var(--danger)">*</span></label>
-                <select name="region" class="form-select" required>
-                    <option value="">Seleccionar...</option>
-                    {% for r in regiones %}
-                    <option value="{{ r }}" {{ 'selected' if deposito.region == r }}>{{ r }}</option>
-                    {% endfor %}
-                </select>
+                <label class="form-label">Provincia <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="region" class="form-control"
+                       value="{{ deposito.region or '' }}" required>
             </div>
 
             <div class="mb-3">
@@ -61,12 +57,6 @@
                     </label>
                     {% endfor %}
                 </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Capacidad (litros) <span style="color:var(--danger)">*</span></label>
-                <input type="number" name="capacidad_l" class="form-control"
-                       value="{{ deposito.capacidad_l }}" min="0" step="0.01" required>
             </div>
 
             <div class="mb-3" style="grid-column: 1 / -1;">

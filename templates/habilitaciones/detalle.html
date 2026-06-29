@@ -19,6 +19,9 @@
 {% if request.args.get('access_error') %}
 <div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
+    {% if request.args.get('tarjeta_link') %}
+    — <a href="/tarjetas/{{ request.args.get('tarjeta_link') }}" style="color:#991B1B;font-weight:700;">Recargar tarjeta →</a>
+    {% endif %}
 </div>
 {% endif %}
 

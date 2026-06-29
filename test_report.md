@@ -2,50 +2,45 @@
 
 ## Páginas probadas
 - https://mercatoria-fuel.onrender.com/login
-- https://mercatoria-fuel.onrender.com/dashboard
-- https://mercatoria-fuel.onrender.com/tl38/
-- https://mercatoria-fuel.onrender.com/tl38/crear
-- https://mercatoria-fuel.onrender.com/tl38/listado
-- https://mercatoria-fuel.onrender.com/reportes/
-- https://mercatoria-fuel.onrender.com/reportes/despachos (Excel download)
-- https://mercatoria-fuel.onrender.com/portal/ (como cliente_pma@mercatoria.com)
-- https://mercatoria-fuel.onrender.com/static/img/favicon.png
+- https://mercatoria-fuel.onrender.com/dashboard (como admin y como operario)
+- https://mercatoria-fuel.onrender.com/gasolineras/
+- https://mercatoria-fuel.onrender.com/clientes/
+- https://mercatoria-fuel.onrender.com/usuarios/
+- https://mercatoria-fuel.onrender.com/usuarios/crear
+- https://mercatoria-fuel.onrender.com/turno/
+- https://mercatoria-fuel.onrender.com/configuracion/
+- https://mercatoria-fuel.onrender.com/unidades/crear
 
 ## Errores encontrados
-Ninguno. Todas las páginas cargaron correctamente.
+- **favicon.ico 404** — Se sirve `favicon.png` en el `<link rel="icon">` pero el navegador también solicita `favicon.ico` automáticamente. Cosmético, no afecta funcionalidad.
+- **503 en cold start** — Render free tier tardó ~35 s en despertar. Primera solicitud a `/login` recibió 503 transitorio. Normal en este plan de hosting.
+- Sin errores de consola JS en ninguna página de producción.
+- Sin errores HTTP 4xx/5xx en rutas de la aplicación.
 
 ## Screenshots tomados
-- `prod_dashboard.png` — Dashboard ejecutivo con 3 filas KPI (Inventario, Operativa, Alertas)
-- `prod_tl38_dashboard.png` — Dashboard TL38 con 3 KPIs y tabla de movimientos
-- `prod_tl38_after_create.png` — Confirmación tras registrar movimiento TL38 (redirect a /tl38/?ok=1)
-- `prod_tl38_listado.png` — Listado TL38 con movimiento #1: TL38-TEST-01 / Juan Pérez / 150 L / La Shell
-- `prod_reportes.png` — Página de reportes con 4 secciones exportables
-- `prod_portal_cliente.png` — Portal cliente PMA: "Programa Mundial de Alimentos" con 5 KPIs y sidebar aislado
+- `01_dashboard.png` — Dashboard admin: KPIs completos (Inventario, Operativa, Alertas), badge ADMIN rojo en topbar, sidebar reordenado con 4 secciones
+- `02_turno.png` — Página Turno del día: selector gasolinera/fecha/turno + botón "Cargar turno"
+- `03_configuracion.png` — Configuración del sistema: "Compra mínima por habilitación" = 500 L, editable
+- `04_usuarios_listado.png` — Listado usuarios con badges de rol coloreados (Operario=verde, Cliente=naranja, Admin=rojo)
+- `05_dashboard_operario.png` — Dashboard operario: vista simplificada "Habilitaciones pendientes", badge OP verde, botón "Ir al Turno del día"
+- `06_unidades_crear_c9.png` — Formulario nueva unidad: link "Añadir cliente nuevo" visible bajo el selector de cliente
 
-## Correcciones aplicadas
-Ninguna corrección fue necesaria durante esta sesión. Sprint 6 funcionó correctamente en producción desde el primer despliegue.
+## Correcciones aplicadas — Post-launch v1.0 (commit 3dd0514)
 
-## Resultados por módulo
-
-### Sprint 6 — Verificación en producción (https://mercatoria-fuel.onrender.com)
-
-| # | Prueba | Resultado |
-|---|--------|-----------|
-| 1 | Login admin@mercatoria.com / Mercatoria2026! | ✅ PASS |
-| 2 | Dashboard carga con 3 filas KPI (Inventario, Operativa, Alertas) | ✅ PASS |
-| 3 | Enlace TL38 en sidebar sin badge "Próximamente" | ✅ PASS |
-| 4 | `/tl38/` — dashboard con KPIs y tabla de movimientos recientes | ✅ PASS |
-| 5 | `/tl38/crear` — formulario con campos: tipo, chapa, chofer, litros, flota, tarjeta, gasolinera | ✅ PASS |
-| 6 | Registrar movimiento TL38 (despacho, 150L, La Shell) → redirect /tl38/?ok=1 | ✅ PASS |
-| 7 | `/tl38/listado` — movimiento #1 visible con todos los campos correctos | ✅ PASS |
-| 8 | `/reportes/` — 4 secciones: Despachos, Conciliaciones, Consumo por Cliente, Tarjetas | ✅ PASS |
-| 9 | `GET /reportes/despachos` — HTTP 200, content-type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | ✅ PASS |
-| 10 | Login cliente_pma@mercatoria.com / Cliente2026! → redirect /portal/ | ✅ PASS |
-| 11 | Portal cliente: heading "Programa Mundial de Alimentos", 5 KPIs, 7 links de portal, sin links admin | ✅ PASS |
-| 12 | Favicon `/static/img/favicon.png` — HTTP 200, image/png, 597 bytes | ✅ PASS |
+| # | Corrección | Resultado |
+|---|-----------|-----------|
+| C1 | Sidebar URLs con trailing slash — Flask blueprint fix | ✅ PASS |
+| C2 | Orden sidebar: OPERACIONES / COMERCIAL / OPERATIVA (con Turno del día) / SISTEMA | ✅ PASS |
+| C3 | Campos litros → `type=text inputmode=decimal` (sin flechitas spinner) | ✅ PASS (código aplicado) |
+| C4 | CRUD Usuarios completo: crear, listar, badges de rol, redirige con ?ok=1 | ✅ PASS |
+| C5 | Página Turno del día (`/turno/`) accesible con selector y layout AJAX | ✅ PASS |
+| C6 | Configuración del sistema: compra mínima 500 L, editable por admin | ✅ PASS |
+| C7 | Dashboard por rol: admin full / operario simplificado con CTA Turno del día | ✅ PASS |
+| C8 | Badge de rol en topbar: nombre de usuario + badge coloreado por rol | ✅ PASS |
+| C9 | Botón "Añadir cliente nuevo" en `/unidades/crear` abre `/clientes/crear` en nueva pestaña | ✅ PASS |
 
 ## Recomendaciones
-- El Sprint 6 está completo y funcional en producción. No se detectaron bugs.
-- El TL38 listado tiene exportación Excel disponible desde `/tl38/listado?exportar=excel` — no probado en esta sesión pero el código usa el mismo patrón verificado en /reportes/despachos.
-- El portal cliente actualmente muestra 0 en todos los KPIs para el usuario de prueba (cliente_pma), lo cual es correcto ya que no hay despachos registrados para PMA en producción. El aislamiento de datos por `cliente_id` funciona correctamente.
-- Los 4 reportes Excel (`/reportes/despachos`, `/reportes/conciliaciones`, `/reportes/consumo`, `/reportes/tarjetas`) comparten la misma arquitectura openpyxl con `io.BytesIO`; verificado el de despachos, el resto sigue el mismo patrón.
+- **favicon.ico**: Agregar un `favicon.ico` estático o configurar un redirect para eliminar el 404 cosmético que genera el navegador.
+- **Sidebar y roles**: El operario puede ver los links de `/usuarios/` y `/configuracion/` en el sidebar, aunque las rutas están protegidas con `requiere_rol`. Considerar filtrar los ítems del sidebar según `session.get('rol')` para mayor claridad UX.
+- **Turno del día — flujo AJAX end-to-end**: La página carga correctamente. El flujo completo (añadir habilitación, aprobar, despachar, cerrar turno) requiere una gasolinera activa y tarjeta con saldo para prueba en producción. No probado en esta sesión por no haber datos suficientes en el entorno.
+- **C3 — cuota_mensual_l en /unidades/crear**: Verificar que el campo `cuota_mensual_l` también fue cambiado a `type=text inputmode=decimal` (el commit lo incluye pero no fue probado visualmente con inspección de código fuente de la página).

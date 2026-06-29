@@ -48,6 +48,18 @@
     </div>
 </div>
 
+<!-- Gráfico 6 meses -->
+{% if chart_labels %}
+<div class="panel mb-4">
+    <div class="panel-header">
+        <h2>Entradas vs. Despachos — últimos 6 meses</h2>
+    </div>
+    <div style="padding:16px 24px 24px;">
+        <canvas id="chart-tl38" height="100"></canvas>
+    </div>
+</div>
+{% endif %}
+
 <!-- Movimientos recientes -->
 <div class="panel">
     <div class="panel-header">
@@ -104,4 +116,39 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+{% if chart_labels %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('chart-tl38'), {
+    type: 'bar',
+    data: {
+        labels: {{ chart_labels | tojson }},
+        datasets: [
+            {
+                label: 'Entradas (L)',
+                data: {{ chart_entradas | tojson }},
+                backgroundColor: 'rgba(22,163,74,0.7)',
+                borderColor: 'rgba(22,163,74,1)',
+                borderWidth: 1,
+            },
+            {
+                label: 'Despachos (L)',
+                data: {{ chart_despachos | tojson }},
+                backgroundColor: 'rgba(59,130,246,0.7)',
+                borderColor: 'rgba(59,130,246,1)',
+                borderWidth: 1,
+            },
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('es') + ' L' } } }
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

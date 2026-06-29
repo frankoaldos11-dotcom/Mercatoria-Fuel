@@ -143,7 +143,7 @@
                 {% endif %}
                 <tr style="{{ row_bg }}{{ 'opacity:0.55;' if not s.activo }}">
                     <td>
-                        <strong>{{ s.nombre }}</strong>
+                        <strong>{% if s.tipo == 'cliente' and s.cliente_nombre %}{{ s.cliente_nombre }}{% else %}{{ s.nombre }}{% endif %}</strong>
                         {% if es_reserva %}
                         <i class="bi bi-lock-fill" style="font-size:11px;color:#3B82F6;margin-left:4px;" title="Reserva — no despacha directamente"></i>
                         {% endif %}

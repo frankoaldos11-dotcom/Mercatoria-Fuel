@@ -63,6 +63,26 @@ def dashboard():
     cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre")
     gasolineras = cur.fetchall()
 
+    # 6-month chart data
+    year, month = hoy.year, hoy.month - 5
+    if month <= 0:
+        month += 12
+        year -= 1
+    desde_6m = date(year, month, 1).isoformat()
+    cur.execute("""
+        SELECT strftime('%Y-%m', fecha) AS mes,
+               COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN litros ELSE 0 END), 0) AS entradas,
+               COALESCE(SUM(CASE WHEN tipo = 'despacho' THEN litros ELSE 0 END), 0) AS despachos
+        FROM movimientos_tl38
+        WHERE fecha >= ?
+        GROUP BY mes
+        ORDER BY mes ASC
+    """, (desde_6m,))
+    chart_rows = cur.fetchall()
+    chart_labels = [r["mes"] for r in chart_rows]
+    chart_entradas = [round(float(r["entradas"]), 2) for r in chart_rows]
+    chart_despachos = [round(float(r["despachos"]), 2) for r in chart_rows]
+
     conn.close()
 
     return render_template(
@@ -73,6 +93,9 @@ def dashboard():
         recientes=recientes,
         gasolineras=gasolineras,
         tipos=_TIPOS_TL38,
+        chart_labels=chart_labels,
+        chart_entradas=chart_entradas,
+        chart_despachos=chart_despachos,
     )
 
 
@@ -154,6 +177,32 @@ def listado():
         filtro_desde=filtro_desde,
         filtro_hasta=filtro_hasta,
     )
+
+
+# ── Detalle ───────────────────────────────────────────────────────────────────
+
+@tl38_bp.route("/<int:id>")
+def detalle(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT m.*, g.nombre AS gasolinera_nombre, u.nombre AS responsable_nombre
+        FROM movimientos_tl38 m
+        LEFT JOIN gasolineras g ON g.id = m.gasolinera_id
+        LEFT JOIN usuarios u ON u.id = m.responsable_id
+        WHERE m.id = ?
+    """, (id,))
+    mov = cur.fetchone()
+    conn.close()
+
+    if not mov:
+        return redirect("/tl38/listado")
+
+    return render_template("tl38/detalle.html", mov=mov)
 
 
 # ── Crear movimiento ──────────────────────────────────────────────────────────

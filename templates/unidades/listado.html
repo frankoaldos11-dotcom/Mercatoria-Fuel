@@ -73,10 +73,8 @@
                     <th>Cliente</th>
                     <th>Vehículo</th>
                     <th>Combustible</th>
-                    <th>Cuota mensual</th>
                     <th>Chofer / Conductor</th>
                     <th>C.I.</th>
-                    <th>Licencia</th>
                     <th>Teléfono</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -84,15 +82,7 @@
             </thead>
             <tbody>
                 {% for u in lista %}
-                {% if u.licencia_vencimiento %}
-                    {% set venc = u.licencia_vencimiento[:10] %}
-                    {% set licencia_vencida = venc < hoy %}
-                    {% set licencia_proxima = venc <= limite_30 and not licencia_vencida %}
-                {% else %}
-                    {% set licencia_vencida = false %}
-                    {% set licencia_proxima = false %}
-                {% endif %}
-                <tr {% if licencia_vencida %}style="background:rgba(220,38,38,0.04);"{% elif licencia_proxima %}style="background:rgba(245,158,11,0.04);"{% endif %}>
+                <tr>
                     <td>
                         <a href="/clientes/{{ u.cliente_id }}" style="font-weight:600;color:var(--primary);text-decoration:none;">
                             {{ u.cliente_nombre }}
@@ -108,7 +98,6 @@
                     <td>
                         <span class="badge badge-info">{{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }}</span>
                     </td>
-                    <td>{{ "{:,.0f}".format(u.cuota_mensual_l) ~ " L" if u.cuota_mensual_l else '—' }}</td>
                     <td>
                         {% if u.chofer_nombre %}
                         <strong>{{ u.chofer_nombre }}</strong>
@@ -119,18 +108,6 @@
                     <td>
                         {% if u.chofer_ci %}
                         <span style="font-family:monospace;">{{ u.chofer_ci }}</span>
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if u.licencia_vencimiento %}
-                            {% set venc = u.licencia_vencimiento[:10] %}
-                            {% if licencia_vencida %}
-                            <span class="badge badge-danger" title="Licencia vencida"><i class="bi bi-exclamation-triangle"></i> {{ venc }}</span>
-                            {% elif licencia_proxima %}
-                            <span class="badge badge-warn" title="Por vencer"><i class="bi bi-clock"></i> {{ venc }}</span>
-                            {% else %}
-                            <span style="font-size:13px;">{{ venc }}</span>
-                            {% endif %}
                         {% else %}—{% endif %}
                     </td>
                     <td>{{ u.telefono or '—' }}</td>
@@ -164,7 +141,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="10" class="empty-state">
+                    <td colspan="8" class="empty-state">
                         <i class="bi bi-truck" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay unidades autorizadas registradas.
                         {% if session.get('rol') in ('admin', 'pm') %}

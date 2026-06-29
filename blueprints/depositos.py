@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
-from utils.constants import REGIONES, TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM
+from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM
 from utils.auth import requiere_login
 
 depositos_bp = Blueprint("depositos", __name__, url_prefix="/depositos")
@@ -65,8 +65,8 @@ def listado():
         like = f"%{buscar}%"
         params.extend([like, like, like])
     if filtro_region:
-        condiciones.append("d.region = ?")
-        params.append(filtro_region)
+        condiciones.append("d.region LIKE ?")
+        params.append(f"%{filtro_region}%")
     if filtro_combustible:
         condiciones.append("d.tipo_combustible LIKE ?")
         params.append(f"%{filtro_combustible}%")
@@ -101,7 +101,6 @@ def listado():
         filtro_region=filtro_region,
         filtro_combustible=filtro_combustible,
         filtro_estado=filtro_estado,
-        regiones=REGIONES,
         tipos_combustible=TIPOS_COMBUSTIBLE,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
     )
@@ -185,15 +184,15 @@ def crear():
 
         if not nombre:
             error = "El nombre es obligatorio."
-        elif region not in REGIONES:
-            error = "Región no válida."
+        elif not region:
+            error = "La provincia es obligatoria."
         elif not tipos_sel:
             error = "Selecciona al menos un tipo de combustible."
         else:
             try:
-                capacidad = float(capacidad_str)
+                capacidad = float(capacidad_str) if capacidad_str else None
             except ValueError:
-                capacidad = 0.0
+                capacidad = None
 
             conn = conectar()
             cur = conn.cursor()
@@ -214,7 +213,6 @@ def crear():
     return render_template(
         "depositos/crear.html",
         error=error,
-        regiones=REGIONES,
         tipos_combustible=TIPOS_COMBUSTIBLE,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
     )
@@ -245,15 +243,15 @@ def editar(id):
 
         if not nombre:
             error = "El nombre es obligatorio."
-        elif region not in REGIONES:
-            error = "Región no válida."
+        elif not region:
+            error = "La provincia es obligatoria."
         elif not tipos_sel:
             error = "Selecciona al menos un tipo de combustible."
         else:
             try:
-                capacidad = float(capacidad_str)
+                capacidad = float(capacidad_str) if capacidad_str else None
             except ValueError:
-                capacidad = 0.0
+                capacidad = None
 
             cur.execute("SELECT * FROM depositos WHERE id = ?", (id,))
             anterior = dict(cur.fetchone() or {})
@@ -284,7 +282,6 @@ def editar(id):
         "depositos/editar.html",
         deposito=deposito,
         error=error,
-        regiones=REGIONES,
         tipos_combustible=TIPOS_COMBUSTIBLE,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
     )

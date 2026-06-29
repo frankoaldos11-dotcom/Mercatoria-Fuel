@@ -84,7 +84,7 @@
                     <option value="{{ s.id }}"
                             data-gasolinera="{{ s.gasolinera_id }}"
                             {{ 'selected' if s.id|string == request.form.get('subinventario_id','') }}>
-                        {{ s.nombre }} ({{ "{:,.2f}".format(s.litros_reservados) }} L reservados)
+                        {% if s.tipo == 'cliente' and s.cliente_nombre %}{{ s.cliente_nombre }} — {{ "{:,.0f}".format(s.litros_reservados) }} L{% else %}{{ s.nombre }} ({{ "{:,.0f}".format(s.litros_reservados) }} L reservados){% endif %}
                     </option>
                     {% endfor %}
                 </select>
@@ -144,7 +144,7 @@ const tarjetas = [
 ];
 const subinventarios = [
     {% for s in subinventarios %}
-    {id: "{{ s.id }}", gasolinera: "{{ s.gasolinera_id }}", label: "{{ s.nombre }} ({{ '{:,.2f}'.format(s.litros_reservados) }} L reservados)"},
+    {id: "{{ s.id }}", gasolinera: "{{ s.gasolinera_id }}", label: "{% if s.tipo == 'cliente' and s.cliente_nombre %}{{ s.cliente_nombre }} — {{ '{:,.0f}'.format(s.litros_reservados) }} L{% else %}{{ s.nombre }} ({{ '{:,.0f}'.format(s.litros_reservados) }} L reservados){% endif %}"},
     {% endfor %}
 ];
 
