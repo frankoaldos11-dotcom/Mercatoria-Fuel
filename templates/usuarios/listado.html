@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Sistema</span>
+        <h1>Usuarios del sistema</h1>
+    </div>
+    <div style="display:flex;gap:10px;">
+        <a href="/usuarios/cambiar-password" class="btn btn-secondary">
+            <i class="bi bi-key"></i> Mi contraseña
+        </a>
+        <a href="/usuarios/crear" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Nuevo usuario
+        </a>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Cliente vinculado</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in lista %}
+                <tr>
+                    <td><strong>{{ u.nombre }}</strong></td>
+                    <td style="font-size:13px;color:var(--muted);">{{ u.email }}</td>
+                    <td>
+                        {% if u.rol == 'admin' %}
+                        <span class="badge" style="background:#fee2e2;color:#991b1b;">Admin</span>
+                        {% elif u.rol == 'pm' %}
+                        <span class="badge" style="background:#dbeafe;color:#1e40af;">PM</span>
+                        {% elif u.rol == 'operario' %}
+                        <span class="badge" style="background:#dcfce7;color:#166534;">Operario</span>
+                        {% elif u.rol == 'supervisor' %}
+                        <span class="badge badge-neutral">Supervisor</span>
+                        {% elif u.rol == 'cliente' %}
+                        <span class="badge" style="background:#ffedd5;color:#9a3412;">Cliente</span>
+                        {% else %}
+                        <span class="badge badge-neutral">{{ u.rol }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:13px;">
+                        {% if u.cliente_nombre %}
+                        <span style="color:var(--muted);">{{ u.cliente_nombre }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if u.activo %}
+                        <span class="badge badge-ok">Activo</span>
+                        {% else %}
+                        <span class="badge badge-danger">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:12px;color:var(--muted);">{{ u.created_at[:10] if u.created_at else '—' }}</td>
+                    <td>
+                        <div style="display:flex;gap:6px;">
+                            <a href="/usuarios/{{ u.id }}/editar" class="btn btn-sm btn-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="/usuarios/{{ u.id }}/toggle" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm {{ 'btn-secondary' if u.activo else 'btn-success' }}"
+                                        title="{{ 'Desactivar' if u.activo else 'Activar' }}">
+                                    <i class="bi bi-{{ 'toggle-on' if u.activo else 'toggle-off' }}"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty-state">No hay usuarios registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

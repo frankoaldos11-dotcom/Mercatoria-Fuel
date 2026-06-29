@@ -454,6 +454,25 @@ def ejecutar_migraciones_pg(bcrypt):
                 """, (nueva_id, saldo_retenido, fecha_estimada_seed, admin_id,
                       f"Devolución inicial — tarjeta ****{num_parcial}"))
 
+    # ── configuracion ─────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS configuracion (
+        clave      TEXT PRIMARY KEY,
+        valor      TEXT NOT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ── seed: configuracion ───────────────────────────────────────────────────
+    params_default = [
+        ("compra_minima_litros", "500"),
+    ]
+    for clave, valor in params_default:
+        cur.execute(
+            "INSERT INTO configuracion (clave, valor) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (clave, valor)
+        )
+
     conn.commit()
     cur.close()
     conn.close()

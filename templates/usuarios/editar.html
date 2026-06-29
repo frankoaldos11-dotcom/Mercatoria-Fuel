@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block titulo %}Editar Usuario — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Sistema / Usuarios</span>
+        <h1>Editar usuario</h1>
+    </div>
+    <a href="/usuarios/" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/usuarios/{{ usuario.id }}/editar">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Nombre completo <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="nombre" class="form-control"
+                       value="{{ request.form.get('nombre', usuario.nombre) }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Email <span style="color:var(--danger)">*</span></label>
+                <input type="email" name="email" class="form-control"
+                       value="{{ request.form.get('email', usuario.email) }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nueva contraseña</label>
+                <input type="password" name="password" class="form-control"
+                       placeholder="Dejar vacío para no cambiar">
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">Mínimo 8 caracteres si se cambia.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Confirmar nueva contraseña</label>
+                <input type="password" name="confirm_password" class="form-control"
+                       placeholder="Repetir nueva contraseña">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Rol <span style="color:var(--danger)">*</span></label>
+                <select name="rol" id="sel-rol" class="form-select" required
+                        {{ 'disabled' if usuario.id == session.get('user_id') }}>
+                    {% for r in roles %}
+                    <option value="{{ r }}" {{ 'selected' if request.form.get('rol', usuario.rol) == r }}>
+                        {{ r|title }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if usuario.id == session.get('user_id') %}
+                <input type="hidden" name="rol" value="{{ usuario.rol }}">
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">No puedes cambiar tu propio rol.</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3" id="bloque-cliente">
+                <label class="form-label">Cliente vinculado</label>
+                <select name="cliente_id" class="form-select">
+                    <option value="">Sin cliente</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}"
+                        {{ 'selected' if request.form.get('cliente_id', usuario.cliente_id|string if usuario.cliente_id else '') == c.id|string }}>
+                        {{ c.nombre }} ({{ c.codigo }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
+                <input type="checkbox" name="activo" value="1" id="chk-activo"
+                       style="width:18px;height:18px;cursor:pointer;"
+                       {{ 'disabled' if usuario.id == session.get('user_id') }}
+                       {{ 'checked' if request.form.get('activo', usuario.activo|string) != '0' and usuario.activo }}>
+                <label for="chk-activo" style="cursor:pointer;font-weight:600;font-size:14px;">Usuario activo</label>
+                {% if usuario.id == session.get('user_id') %}
+                <input type="hidden" name="activo" value="1">
+                {% endif %}
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar cambios
+            </button>
+            <a href="/usuarios/" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const selRol = document.getElementById('sel-rol');
+const bloqueCliente = document.getElementById('bloque-cliente');
+function toggleCliente() {
+    if (!selRol) return;
+    bloqueCliente.style.display = selRol.value === 'cliente' ? '' : 'none';
+}
+if (selRol) selRol.addEventListener('change', toggleCliente);
+toggleCliente();
+</script>
+{% endblock %}

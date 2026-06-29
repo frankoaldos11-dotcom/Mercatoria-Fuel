@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard Operario — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Mi turno</span>
+        <h1>Habilitaciones pendientes</h1>
+        <p>Habilitaciones aprobadas listas para despacho.</p>
+    </div>
+    <a href="/turno/" class="btn btn-primary" style="font-size:15px;padding:12px 20px;">
+        <i class="bi bi-calendar-check"></i> Ir al Turno del día
+    </a>
+</div>
+
+{% if despachos_pendientes > 0 %}
+<div style="background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;color:#92400e;">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size:18px;"></i>
+    Tienes <strong>{{ despachos_pendientes }}</strong> habilitación{{ 'es' if despachos_pendientes != 1 else '' }} aprobada{{ 's' if despachos_pendientes != 1 else '' }} esperando despacho.
+</div>
+{% endif %}
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>Chapa</th>
+                    <th>Gasolinera</th>
+                    <th>Tarjeta</th>
+                    <th style="text-align:right;">Litros aut.</th>
+                    <th>Fecha</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in habs_pendientes %}
+                <tr>
+                    <td><strong>#{{ h.id }}</strong></td>
+                    <td style="font-weight:600;">{{ h.cliente }}</td>
+                    <td><span class="badge badge-neutral">{{ h.chapa }}</span></td>
+                    <td style="font-size:13px;">{{ h.gasolinera }}</td>
+                    <td style="font-size:12px;color:var(--muted);">**** {{ h.tarjeta }}</td>
+                    <td style="text-align:right;font-weight:700;color:var(--primary);">
+                        {{ "{:,.2f}".format(h.litros_autorizados) }} L
+                    </td>
+                    <td style="font-size:12px;color:var(--muted);">{{ h.fecha_habilitacion }}</td>
+                    <td>
+                        <a href="/despachos/crear?hab={{ h.id }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-box-arrow-right"></i> Despachar
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        No hay habilitaciones aprobadas pendientes de despacho.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

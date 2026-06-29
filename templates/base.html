@@ -39,87 +39,90 @@
                 <span>Dashboard</span>
             </a>
 
-            <a href="/gasolineras" class="nav-item {{ 'nav-item-active' if request.path.startswith('/gasolineras') else '' }}">
+            <a href="/gasolineras/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/gasolineras') else '' }}">
                 <i class="bi bi-fuel-pump"></i>
                 <span>Gasolineras</span>
             </a>
 
-            <a href="/depositos" class="nav-item {{ 'nav-item-active' if request.path.startswith('/depositos') else '' }}">
+            <a href="/depositos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/depositos') else '' }}">
                 <i class="bi bi-archive"></i>
                 <span>Depósitos</span>
             </a>
 
-            <a href="/recepciones" class="nav-item {{ 'nav-item-active' if request.path.startswith('/recepciones') else '' }}">
+            <a href="/recepciones/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/recepciones') else '' }}">
                 <i class="bi bi-box-arrow-in-down"></i>
                 <span>Recepciones</span>
             </a>
 
-            <a href="/transferencias" class="nav-item {{ 'nav-item-active' if request.path.startswith('/transferencias') else '' }}">
+            <a href="/transferencias/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/transferencias') else '' }}">
                 <i class="bi bi-arrow-left-right"></i>
                 <span>Transferencias</span>
             </a>
 
             <div class="nav-section">Comercial</div>
 
-            <a href="/clientes" class="nav-item {{ 'nav-item-active' if request.path.startswith('/clientes') else '' }}">
+            <a href="/clientes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/clientes') else '' }}">
                 <i class="bi bi-buildings"></i>
                 <span>Clientes</span>
             </a>
 
-            <a href="/unidades" class="nav-item {{ 'nav-item-active' if request.path.startswith('/unidades') else '' }}">
+            <a href="/unidades/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/unidades') else '' }}">
                 <i class="bi bi-truck"></i>
                 <span>Unidades autorizadas</span>
             </a>
 
-            <a href="/tarjetas" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tarjetas') else '' }}">
+            <a href="/tarjetas/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tarjetas') else '' }}">
                 <i class="bi bi-credit-card-2-front"></i>
                 <span>Tarjetas</span>
             </a>
 
             <div class="nav-section">Operativa</div>
 
-            <a href="/habilitaciones" class="nav-item {{ 'nav-item-active' if request.path.startswith('/habilitaciones') else '' }}">
+            <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') else '' }}">
+                <i class="bi bi-calendar-check"></i>
+                <span>Turno del día</span>
+            </a>
+
+            <a href="/habilitaciones/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/habilitaciones') else '' }}">
                 <i class="bi bi-toggle-on"></i>
                 <span>Habilitaciones</span>
             </a>
 
-            <a href="/despachos" class="nav-item {{ 'nav-item-active' if request.path.startswith('/despachos') else '' }}">
+            <a href="/despachos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/despachos') else '' }}">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Despachos</span>
             </a>
 
-            <a href="/conciliacion" class="nav-item {{ 'nav-item-active' if request.path.startswith('/conciliacion') else '' }}">
+            <a href="/conciliacion/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/conciliacion') else '' }}">
                 <i class="bi bi-check2-square"></i>
                 <span>Conciliación</span>
             </a>
 
-            <a href="/reportes" class="nav-item {{ 'nav-item-active' if request.path.startswith('/reportes') else '' }}">
+            <div class="nav-section">Sistema</div>
+
+            <a href="/reportes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/reportes') else '' }}">
                 <i class="bi bi-bar-chart-line"></i>
                 <span>Reportes</span>
             </a>
-
-            <hr class="nav-divider">
 
             <a href="/tl38/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tl38') else '' }}">
                 <i class="bi bi-lightning-charge"></i>
                 <span>TL38</span>
             </a>
 
-            <hr class="nav-divider">
-
-            <div class="nav-section">Sistema</div>
-
-            <a href="/configuracion" class="nav-item {{ 'nav-item-active' if request.path.startswith('/configuracion') else '' }}">
-                <i class="bi bi-sliders"></i>
-                <span>Configuración</span>
-            </a>
-
-            <a href="/usuarios" class="nav-item {{ 'nav-item-active' if request.path.startswith('/usuarios') else '' }}">
+            <a href="/usuarios/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/usuarios') else '' }}">
                 <i class="bi bi-people"></i>
                 <span>Usuarios</span>
             </a>
 
-            <a href="/logout" class="nav-item logout" style="margin-top: 16px;">
+            <a href="/configuracion/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/configuracion') else '' }}">
+                <i class="bi bi-sliders"></i>
+                <span>Configuración</span>
+            </a>
+
+            <hr class="nav-divider">
+
+            <a href="/logout" class="nav-item logout">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Salir</span>
             </a>
@@ -129,6 +132,25 @@
     </aside>
 
     <main class="main-content">
+
+        <div class="topbar">
+            <span class="topbar-user">
+                <i class="bi bi-person-circle"></i> {{ session.get('nombre', '') }}
+            </span>
+            {% set _rol = session.get('rol', '') %}
+            {% if _rol == 'admin' %}
+            <span class="role-badge role-admin">ADMIN</span>
+            {% elif _rol == 'pm' %}
+            <span class="role-badge role-pm">PM</span>
+            {% elif _rol == 'operario' %}
+            <span class="role-badge role-operario">OP</span>
+            {% elif _rol == 'supervisor' %}
+            <span class="role-badge role-supervisor">SUP</span>
+            {% elif _rol == 'cliente' %}
+            <span class="role-badge role-cliente">CLI</span>
+            {% endif %}
+        </div>
+
         {% if request.args.get('access_error') %}
         <div class="access-error-banner">
             <i class="bi bi-shield-exclamation"></i>

@@ -221,12 +221,22 @@ def crear():
             error = "La fecha de habilitación es obligatoria."
         else:
             try:
-                litros = float(litros_str)
+                litros = float(litros_str.replace(",", "."))
             except ValueError:
                 litros = 0.0
                 error = "Los litros deben ser un número válido."
             if not error and litros <= 0:
                 error = "Los litros autorizados deben ser mayores a cero."
+            if not error:
+                conn2 = conectar()
+                cur2 = conn2.cursor()
+                cur2.execute("SELECT valor FROM configuracion WHERE clave = 'compra_minima_litros'")
+                row_min = cur2.fetchone()
+                conn2.close()
+                if row_min:
+                    minimo = float(row_min["valor"])
+                    if litros < minimo:
+                        error = f"El mínimo de litros por habilitación es {minimo:,.0f} L (configurado en el sistema)."
 
         if not error:
             conn = conectar()

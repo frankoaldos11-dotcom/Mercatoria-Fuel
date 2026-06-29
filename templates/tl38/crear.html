@@ -52,9 +52,10 @@
 
             <div class="mb-3">
                 <label class="form-label">Litros <span style="color:var(--danger)">*</span></label>
-                <input type="number" name="litros" class="form-control"
+                <input type="text" name="litros" class="form-control"
+                       inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        value="{{ request.form.get('litros', '') }}"
-                       min="0.01" step="0.01" required placeholder="0.00">
+                       required placeholder="0.00">
             </div>
 
             <div class="mb-3">

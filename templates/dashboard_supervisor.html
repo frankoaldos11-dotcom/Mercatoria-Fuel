@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Panel de supervisión</span>
+        <h1>Dashboard</h1>
+        <p>Vista de solo lectura — indicadores del sistema.</p>
+    </div>
+</div>
+
+<!-- Fila 1: Inventario -->
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Inventario</div>
+<div class="kpi-grid" style="margin-bottom:24px;">
+    <div class="kpi-card">
+        <div class="kpi-icon primary"><i class="bi bi-droplet-fill"></i></div>
+        <div>
+            <span>Inventario total</span>
+            <strong>{{ "{:,.0f}".format(inventario_total) }} L</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon info"><i class="bi bi-lock-fill"></i></div>
+        <div>
+            <span>Inventario reservado</span>
+            <strong>{{ "{:,.0f}".format(inventario_reservado) }} L</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon success"><i class="bi bi-droplet-half"></i></div>
+        <div>
+            <span>Disponible para venta</span>
+            <strong>{{ "{:,.0f}".format(disponible_venta) }} L</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'info' if combustible_transito > 0 else 'neutral' }}">
+            <i class="bi bi-arrow-left-right"></i>
+        </div>
+        <div>
+            <span>Combustible en tránsito</span>
+            <strong>{{ "{:,.0f}".format(combustible_transito) }} L</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Fila 2: Operativa -->
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Operativa</div>
+<div class="kpi-grid" style="margin-bottom:24px;">
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'danger' if tarjetas_bajo_saldo > 0 else 'neutral' }}">
+            <i class="bi bi-credit-card-2-front"></i>
+        </div>
+        <div>
+            <span>Tarjetas con bajo saldo</span>
+            <strong>{{ tarjetas_bajo_saldo }}</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'warning' if devoluciones_pendientes > 0 else 'neutral' }}">
+            <i class="bi bi-arrow-counterclockwise"></i>
+        </div>
+        <div>
+            <span>Devoluciones pendientes</span>
+            <strong>{{ devoluciones_pendientes }}</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'warning' if despachos_pendientes > 0 else 'neutral' }}">
+            <i class="bi bi-box-arrow-right"></i>
+        </div>
+        <div>
+            <span>Habilitaciones sin despacho</span>
+            <strong>{{ despachos_pendientes }}</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'warning' if conciliaciones_pendientes > 0 else 'neutral' }}">
+            <i class="bi bi-check2-square"></i>
+        </div>
+        <div>
+            <span>Conciliaciones pendientes hoy</span>
+            <strong>{{ conciliaciones_pendientes }}</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Fila 3: Alertas -->
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Alertas</div>
+<div class="kpi-grid" style="margin-bottom:32px;">
+    <div class="kpi-card" style="{{ 'border:2px solid var(--warning);' if licencias_por_vencer > 0 else '' }}">
+        <div class="kpi-icon {{ 'warning' if licencias_por_vencer > 0 else 'neutral' }}">
+            <i class="bi bi-card-checklist"></i>
+        </div>
+        <div>
+            <span>Licencias por vencer (≤30 días)</span>
+            <strong>{{ licencias_por_vencer }}</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'danger' if conciliaciones_con_alerta > 0 else 'neutral' }}">
+            <i class="bi bi-exclamation-square"></i>
+        </div>
+        <div>
+            <span>Conciliaciones con alerta (7 días)</span>
+            <strong>{{ conciliaciones_con_alerta }}</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon {{ 'danger' if alertas_criticas > 0 else 'neutral' }}">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div>
+            <span>Alertas críticas total</span>
+            <strong>{{ alertas_criticas }}</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon success"><i class="bi bi-fuel-pump-fill"></i></div>
+        <div>
+            <span>Gasolineras activas</span>
+            <strong>{{ gasolineras_activas }}</strong>
+        </div>
+    </div>
+</div>
+
+<div style="padding:16px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);font-size:13px;color:var(--muted);text-align:center;">
+    <i class="bi bi-eye"></i> Vista de supervisor — solo lectura. Para acciones operativas use el módulo correspondiente.
+</div>
+
+{% endblock %}

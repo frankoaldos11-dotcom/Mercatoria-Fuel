@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+{% block titulo %}Turno del Día — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operativa</span>
+        <h1>Turno del día</h1>
+        <p>Gestión completa del turno: habilitaciones, despachos y cierre de turno.</p>
+    </div>
+</div>
+
+<!-- Selector de contexto del turno -->
+<div class="panel mb-4">
+    <form method="GET" action="/turno/" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <select name="gasolinera_id" class="form-select" style="max-width:200px;" required>
+            <option value="">Gasolinera...</option>
+            {% for g in gasolineras %}
+            <option value="{{ g.id }}" {{ 'selected' if gasolinera_id == g.id|string }}>{{ g.nombre }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="fecha" class="form-control" style="max-width:160px;"
+               value="{{ fecha }}" required>
+        <select name="turno" class="form-select" style="max-width:140px;">
+            <option value="">Turno (opc.)</option>
+            {% for t in turnos %}
+            <option value="{{ t }}" {{ 'selected' if turno == t }}>{{ turno_labels[t] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Cargar turno</button>
+    </form>
+</div>
+
+{% if gasolinera_id and fecha %}
+
+<!-- Formulario inline para añadir habilitación -->
+{% if rol in ('admin', 'pm') %}
+<div class="panel mb-4" id="panel-nueva-hab">
+    <div class="panel-header">
+        <h2><i class="bi bi-plus-circle"></i> Añadir habilitación</h2>
+    </div>
+    <div style="padding:20px;">
+        <div id="hab-error" style="display:none;background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+            <div>
+                <label class="form-label">Cliente *</label>
+                <select id="inp-cliente" class="form-select">
+                    <option value="">Seleccionar...</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}">{{ c.nombre }} ({{ c.codigo }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Unidad *</label>
+                <select id="inp-unidad" class="form-select">
+                    <option value="">Seleccione cliente...</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Tarjeta *</label>
+                <select id="inp-tarjeta" class="form-select">
+                    <option value="">Seleccionar...</option>
+                    {% for t in tarjetas %}
+                    {% if t.gasolinera_id|string == gasolinera_id %}
+                    <option value="{{ t.id }}">**** {{ t.numero_parcial }} ({{ "{:,.0f}".format(t.saldo_usable_l) }} L)</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Litros *</label>
+                <input type="text" id="inp-litros" class="form-control"
+                       inputmode="decimal" placeholder="0">
+            </div>
+            <div style="padding-top:20px;">
+                <button type="button" onclick="agregarHabilitacion()" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-lg"></i> Añadir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla de habilitaciones del turno -->
+<div class="panel mb-4">
+    <div class="panel-header">
+        <h2>Habilitaciones del turno</h2>
+        <span style="font-size:13px;color:var(--muted);">{{ gasolinera_id }} · {{ fecha }}{% if turno %} · {{ turno_labels.get(turno, turno) }}{% endif %}</span>
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table" id="tabla-habs">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>Chapa</th>
+                    <th>Chofer</th>
+                    <th>Tarjeta</th>
+                    <th style="text-align:right;">Aut. (L)</th>
+                    <th style="text-align:right;">Desp. (L)</th>
+                    <th>Estado</th>
+                    {% if rol in ('admin', 'pm', 'operario') %}<th>Acciones</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody id="tbody-habs">
+                {% for h in habilitaciones %}
+                <tr id="fila-{{ h.id }}" data-hab="{{ h.id }}">
+                    <td><strong>#{{ h.id }}</strong></td>
+                    <td style="font-size:13px;font-weight:600;">{{ h.cliente }}</td>
+                    <td><span class="badge badge-neutral">{{ h.chapa }}</span></td>
+                    <td style="font-size:12px;color:var(--muted);">{{ h.chofer or '—' }}</td>
+                    <td style="font-size:12px;color:var(--muted);">**** {{ h.tarjeta }}</td>
+                    <td style="text-align:right;font-weight:700;">{{ "{:,.2f}".format(h.litros_autorizados) }}</td>
+                    <td style="text-align:right;color:var(--primary);font-weight:700;" id="desp-{{ h.id }}">{{ "{:,.2f}".format(h.litros_despachados) }}</td>
+                    <td><span class="badge-estado badge" id="estado-{{ h.id }}">{{ h.estado }}</span></td>
+                    {% if rol in ('admin', 'pm', 'operario') %}
+                    <td>
+                        <div style="display:flex;gap:4px;">
+                            {% if h.estado == 'pendiente' and rol in ('admin', 'pm') %}
+                            <button class="btn btn-sm btn-success" onclick="aprobar({{ h.id }})">
+                                <i class="bi bi-check-lg"></i> Aprobar
+                            </button>
+                            {% endif %}
+                            {% if h.estado == 'aprobada' %}
+                            <button class="btn btn-sm btn-primary" onclick="abrirModalDespacho({{ h.id }}, {{ h.litros_autorizados }})">
+                                <i class="bi bi-box-arrow-right"></i> Despachar
+                            </button>
+                            {% endif %}
+                            {% if h.estado == 'despachada' %}
+                            <span style="font-size:12px;color:var(--success);font-weight:700;"><i class="bi bi-check-circle-fill"></i> Completado</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr id="fila-vacia">
+                    <td colspan="9" class="empty-state">No hay habilitaciones para este turno. Usa el formulario de arriba para añadir.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Sección de cierre de turno / conciliación -->
+{% if not conciliacion_existente %}
+<div class="panel mb-4">
+    <div class="panel-header">
+        <h2><i class="bi bi-check2-square"></i> Cerrar turno</h2>
+    </div>
+    <form method="POST" action="/turno/cerrar">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="gasolinera_id" value="{{ gasolinera_id }}">
+        <input type="hidden" name="fecha" value="{{ fecha }}">
+        <input type="hidden" name="turno" value="{{ turno }}">
+        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end;">
+            <div>
+                <label class="form-label">Saldo físico al inicio del turno (L) *</label>
+                <input type="text" name="saldo_fisico_inicio" class="form-control"
+                       inputmode="decimal" placeholder="0.00" required
+                       id="inp-saldo-inicio" oninput="calcDiff()">
+            </div>
+            <div>
+                <label class="form-label">Saldo físico al cierre del turno (L) *</label>
+                <input type="text" name="saldo_fisico_fin" class="form-control"
+                       inputmode="decimal" placeholder="0.00" required
+                       id="inp-saldo-fin" oninput="calcDiff()">
+            </div>
+            <div>
+                <label class="form-label">Diferencia calculada</label>
+                <div id="diff-display" style="padding:10px 13px;border:1px solid var(--border);border-radius:11px;font-weight:700;font-size:15px;color:var(--muted);min-height:42px;">
+                    —
+                </div>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-lock"></i> Cerrar turno
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% else %}
+<div class="panel mb-4">
+    <div style="padding:20px;display:flex;align-items:center;gap:14px;">
+        {% if conciliacion_existente.estado == 'cerrada' %}
+        <i class="bi bi-check-circle-fill" style="font-size:28px;color:var(--success);"></i>
+        <div>
+            <strong style="font-size:15px;">Turno cerrado</strong>
+            <div style="font-size:13px;color:var(--muted);">
+                Diferencia: {{ "{:,.2f}".format(conciliacion_existente.diferencia_l) }} L
+                ({{ "{:.2f}".format(conciliacion_existente.diferencia_porcentaje) }}%)
+            </div>
+        </div>
+        {% else %}
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:28px;color:var(--warning);"></i>
+        <div>
+            <strong style="font-size:15px;">Turno con alerta</strong>
+            <div style="font-size:13px;color:var(--muted);">
+                Diferencia: {{ "{:,.2f}".format(conciliacion_existente.diferencia_l) }} L
+                ({{ "{:.2f}".format(conciliacion_existente.diferencia_porcentaje) }}%) — supera 0.5%
+            </div>
+        </div>
+        {% endif %}
+        <a href="/conciliacion/" class="btn btn-soft btn-sm" style="margin-left:auto;">Ver conciliaciones</a>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}{# fin if gasolinera_id and fecha #}
+
+<!-- Modal para registrar despacho -->
+<div class="modal fade" id="modalDespacho" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+            <div style="padding:20px 24px 12px;border-bottom:1px solid var(--border);">
+                <h5 style="margin:0;font-size:17px;font-weight:700;">Registrar despacho</h5>
+            </div>
+            <div style="padding:20px 24px;">
+                <div id="modal-error" style="display:none;background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;"></div>
+                <input type="hidden" id="modal-hab-id">
+                <div class="mb-3">
+                    <label class="form-label">Litros realmente despachados *</label>
+                    <input type="text" id="modal-litros" class="form-control"
+                           inputmode="decimal" placeholder="0.00">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Foto del ticket (opcional)</label>
+                    <input type="file" id="modal-foto" class="form-control"
+                           accept=".jpg,.jpeg,.png,.webp">
+                </div>
+            </div>
+            <div style="padding:0 24px 20px;display:flex;gap:10px;">
+                <button type="button" class="btn btn-primary" onclick="confirmarDespacho()">
+                    <i class="bi bi-check-lg"></i> Confirmar despacho
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CSRF_TOKEN = "{{ csrf_token() }}";
+const GASOLINERA_ID = "{{ gasolinera_id }}";
+const FECHA = "{{ fecha }}";
+const TURNO = "{{ turno }}";
+
+// Datos de unidades para filtrar por cliente
+const todasUnidades = [
+    {% for u in unidades %}
+    { id: "{{ u.id }}", cliente: "{{ u.cliente_id }}", label: "{{ u.chapa }}{% if u.chofer_nombre %} — {{ u.chofer_nombre }}{% endif %}" },
+    {% endfor %}
+];
+
+const selCliente = document.getElementById('inp-cliente');
+const selUnidad = document.getElementById('inp-unidad');
+
+if (selCliente) {
+    selCliente.addEventListener('change', function() {
+        const cid = this.value;
+        const prev = selUnidad.value;
+        selUnidad.innerHTML = '<option value="">Seleccionar unidad...</option>';
+        todasUnidades.filter(u => !cid || u.cliente === cid).forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = u.label;
+            if (u.id === prev) opt.selected = true;
+            selUnidad.appendChild(opt);
+        });
+    });
+}
+
+// Calcular diferencia en cierre de turno
+function calcDiff() {
+    const ini = parseFloat(document.getElementById('inp-saldo-inicio')?.value.replace(',', '.')) || 0;
+    const fin = parseFloat(document.getElementById('inp-saldo-fin')?.value.replace(',', '.')) || 0;
+    const el = document.getElementById('diff-display');
+    if (!el) return;
+    if (ini === 0 && fin === 0) { el.textContent = '—'; el.style.color = 'var(--muted)'; return; }
+    const diff = fin - ini;
+    el.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString('es', {minimumFractionDigits:2}) + ' L';
+    el.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : (Math.abs(diff/ini*100) > 0.5 ? 'var(--danger)' : 'var(--warning)');
+}
+
+// Agregar habilitación inline
+async function agregarHabilitacion() {
+    const errEl = document.getElementById('hab-error');
+    errEl.style.display = 'none';
+
+    const data = {
+        cliente_id: document.getElementById('inp-cliente').value,
+        unidad_id: document.getElementById('inp-unidad').value,
+        gasolinera_id: GASOLINERA_ID,
+        tarjeta_id: document.getElementById('inp-tarjeta').value,
+        litros_autorizados: document.getElementById('inp-litros').value,
+        fecha: FECHA,
+    };
+
+    if (!data.cliente_id || !data.unidad_id || !data.tarjeta_id || !data.litros_autorizados) {
+        errEl.textContent = 'Complete todos los campos obligatorios.';
+        errEl.style.display = '';
+        return;
+    }
+
+    try {
+        const resp = await fetch('/turno/api/habilitacion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify(data),
+        });
+        const json = await resp.json();
+        if (!resp.ok) { errEl.textContent = json.error || 'Error al crear habilitación'; errEl.style.display = ''; return; }
+
+        // Insertar fila en tabla
+        const tbody = document.getElementById('tbody-habs');
+        document.getElementById('fila-vacia')?.remove();
+
+        const fila = document.createElement('tr');
+        fila.id = `fila-${json.id}`;
+        fila.dataset.hab = json.id;
+        fila.innerHTML = `
+            <td><strong>#${json.id}</strong></td>
+            <td style="font-size:13px;font-weight:600;">${json.cliente}</td>
+            <td><span class="badge badge-neutral">${json.chapa}</span></td>
+            <td style="font-size:12px;color:var(--muted);">${json.chofer}</td>
+            <td style="font-size:12px;color:var(--muted);">**** ${json.tarjeta}</td>
+            <td style="text-align:right;font-weight:700;">${json.litros_autorizados.toLocaleString('es',{minimumFractionDigits:2})}</td>
+            <td style="text-align:right;color:var(--primary);font-weight:700;" id="desp-${json.id}">0.00</td>
+            <td><span class="badge badge-warn" id="estado-${json.id}">pendiente</span></td>
+            <td>
+                <div style="display:flex;gap:4px;" id="acciones-${json.id}">
+                    <button class="btn btn-sm btn-success" onclick="aprobar(${json.id})">
+                        <i class="bi bi-check-lg"></i> Aprobar
+                    </button>
+                </div>
+            </td>`;
+        tbody.appendChild(fila);
+
+        // Limpiar formulario
+        document.getElementById('inp-cliente').value = '';
+        document.getElementById('inp-unidad').innerHTML = '<option value="">Seleccione cliente...</option>';
+        document.getElementById('inp-tarjeta').value = '';
+        document.getElementById('inp-litros').value = '';
+
+    } catch (e) {
+        errEl.textContent = 'Error de conexión.';
+        errEl.style.display = '';
+    }
+}
+
+// Aprobar habilitación
+async function aprobar(habId) {
+    const resp = await fetch(`/turno/api/${habId}/aprobar`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN },
+    });
+    const json = await resp.json();
+    if (!resp.ok) { alert(json.error || 'Error al aprobar'); return; }
+
+    // Actualizar fila
+    const estadoEl = document.getElementById(`estado-${habId}`);
+    if (estadoEl) { estadoEl.className = 'badge badge-info'; estadoEl.textContent = 'aprobada'; }
+    const accionesEl = document.getElementById(`acciones-${habId}`);
+    if (accionesEl) {
+        accionesEl.innerHTML = `<button class="btn btn-sm btn-primary" onclick="abrirModalDespacho(${habId}, parseFloat(document.getElementById('fila-${habId}')?.cells[5]?.textContent || '0'))">
+            <i class="bi bi-box-arrow-right"></i> Despachar</button>`;
+    }
+}
+
+// Modal despacho
+const modalDespacho = new bootstrap.Modal(document.getElementById('modalDespacho'));
+
+function abrirModalDespacho(habId, litrosAut) {
+    document.getElementById('modal-hab-id').value = habId;
+    document.getElementById('modal-litros').value = litrosAut.toFixed ? litrosAut.toFixed(2) : litrosAut;
+    document.getElementById('modal-error').style.display = 'none';
+    document.getElementById('modal-foto').value = '';
+    modalDespacho.show();
+}
+
+async function confirmarDespacho() {
+    const habId = document.getElementById('modal-hab-id').value;
+    const litros = document.getElementById('modal-litros').value;
+    const foto = document.getElementById('modal-foto').files[0];
+    const errEl = document.getElementById('modal-error');
+    errEl.style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('litros_despachados', litros);
+    if (foto) fd.append('foto_ticket', foto);
+    fd.append('csrf_token', CSRF_TOKEN);
+
+    try {
+        const resp = await fetch(`/turno/api/${habId}/despachar`, { method: 'POST', body: fd });
+        const json = await resp.json();
+        if (!resp.ok) { errEl.textContent = json.error || 'Error'; errEl.style.display = ''; return; }
+
+        modalDespacho.hide();
+
+        const estadoEl = document.getElementById(`estado-${habId}`);
+        if (estadoEl) { estadoEl.className = 'badge badge-ok'; estadoEl.textContent = 'despachada'; }
+        const despEl = document.getElementById(`desp-${habId}`);
+        if (despEl) despEl.textContent = parseFloat(json.litros).toLocaleString('es',{minimumFractionDigits:2});
+        const accionesEl = document.getElementById(`acciones-${habId}`);
+        if (accionesEl) accionesEl.innerHTML = '<span style="font-size:12px;color:var(--success);font-weight:700;"><i class="bi bi-check-circle-fill"></i> Completado</span>';
+
+    } catch(e) { errEl.textContent = 'Error de conexión.'; errEl.style.display = ''; }
+}
+</script>
+{% endblock %}

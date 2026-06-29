@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, session
 from database import conectar
 from utils.auth import requiere_login
 
@@ -140,7 +140,52 @@ def dashboard():
     """, (mes_inicio, mes_fin))
     top_clientes = cur.fetchall()
 
+    # ── Vista operario: habilitaciones aprobadas pendientes de despacho ──────
+    rol = session.get("rol", "")
+
+    if rol == "operario":
+        cur.execute("""
+            SELECT h.id, h.litros_autorizados, h.fecha_habilitacion,
+                   cli.nombre AS cliente, v.chapa, g.nombre AS gasolinera,
+                   t.numero_parcial AS tarjeta
+            FROM habilitaciones h
+            JOIN clientes cli ON cli.id = h.cliente_id
+            JOIN vehiculos v ON v.id = h.unidad_id
+            JOIN gasolineras g ON g.id = h.gasolinera_id
+            JOIN tarjetas t ON t.id = h.tarjeta_id
+            WHERE h.estado = 'aprobada'
+            AND NOT EXISTS (
+                SELECT 1 FROM despachos d
+                WHERE d.habilitacion_id = h.id AND d.estado = 'completado'
+            )
+            ORDER BY h.fecha_habilitacion ASC LIMIT 20
+        """)
+        habs_pendientes = cur.fetchall()
+        conn.close()
+        return render_template(
+            "dashboard_operario.html",
+            despachos_pendientes=despachos_pendientes,
+            habs_pendientes=habs_pendientes,
+        )
+
     conn.close()
+
+    if rol == "supervisor":
+        return render_template(
+            "dashboard_supervisor.html",
+            inventario_total=inventario_total,
+            inventario_reservado=inventario_reservado,
+            disponible_venta=disponible_venta,
+            combustible_transito=combustible_transito,
+            tarjetas_bajo_saldo=tarjetas_bajo_saldo,
+            devoluciones_pendientes=devoluciones_pendientes,
+            despachos_pendientes=despachos_pendientes,
+            conciliaciones_pendientes=conciliaciones_pendientes,
+            licencias_por_vencer=licencias_por_vencer,
+            conciliaciones_con_alerta=conciliaciones_con_alerta,
+            alertas_criticas=alertas_criticas,
+            gasolineras_activas=gasolineras_activas,
+        )
 
     return render_template(
         "dashboard.html",

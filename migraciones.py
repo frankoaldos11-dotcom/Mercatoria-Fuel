@@ -382,6 +382,15 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── configuracion ────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS configuracion (
+        clave      TEXT PRIMARY KEY,
+        valor      TEXT NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = ?", ("admin@mercatoria.com",))
     if not cur.fetchone():
@@ -472,6 +481,13 @@ def ejecutar_migraciones(bcrypt):
                     VALUES (?, date('now'), ?, 'pendiente', ?, ?, ?)
                 """, (nueva_id, saldo_retenido, fecha_estimada_seed, admin_id,
                       f"Devolución inicial — tarjeta ****{num_parcial}"))
+
+    # ── seed: configuracion ───────────────────────────────────────────────────
+    params_default = [
+        ("compra_minima_litros", "500"),
+    ]
+    for clave, valor in params_default:
+        cur.execute("INSERT OR IGNORE INTO configuracion (clave, valor) VALUES (?, ?)", (clave, valor))
 
     conn.commit()
     conn.close()
