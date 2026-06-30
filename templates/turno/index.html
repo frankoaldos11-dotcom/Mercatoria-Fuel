@@ -56,6 +56,9 @@
                 <label class="form-label">Litros *</label>
                 <input type="text" id="inp-litros" class="form-control"
                        inputmode="decimal" placeholder="0">
+                {% if compra_minima > 0 %}
+                <small class="text-muted" style="font-size:11px;">Mín. {{ compra_minima|int }} L para venta libre</small>
+                {% endif %}
             </div>
             <div>
                 <label class="form-label">Tarjeta *</label>
@@ -257,6 +260,7 @@
 const CSRF_TOKEN = "{{ csrf_token() }}";
 const GASOLINERA_ID = "{{ gasolinera_id }}";
 const FECHA = "{{ fecha }}";
+const COMPRA_MINIMA = {{ compra_minima }};
 
 // Datos de unidades para filtrar por cliente
 const todasUnidades = [
@@ -327,6 +331,13 @@ async function agregarHabilitacion() {
 
     if (!data.cliente_id || !data.unidad_id || !data.tarjeta_id || !data.litros_autorizados) {
         errEl.textContent = 'Complete todos los campos obligatorios.';
+        errEl.style.display = '';
+        return;
+    }
+
+    const litrosVal = parseFloat(data.litros_autorizados.replace(',', '.'));
+    if (COMPRA_MINIMA > 0 && litrosVal < COMPRA_MINIMA) {
+        errEl.textContent = `El mínimo de litros por habilitación es ${COMPRA_MINIMA.toLocaleString('es')} L.`;
         errEl.style.display = '';
         return;
     }

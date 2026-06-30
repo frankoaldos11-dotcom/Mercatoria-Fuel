@@ -66,6 +66,10 @@ def index():
     """)
     tarjetas = cur.fetchall()
 
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'compra_minima_litros'")
+    row_min = cur.fetchone()
+    compra_minima = float(row_min["valor"]) if row_min else 0.0
+
     habilitaciones = []
     conciliacion_existente = None
 
@@ -111,6 +115,7 @@ def index():
         fecha=fecha,
         hoy=hoy,
         conciliacion_existente=conciliacion_existente,
+        compra_minima=compra_minima,
         rol=session.get("rol"),
     )
 

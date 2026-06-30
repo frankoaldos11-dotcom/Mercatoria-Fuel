@@ -432,3 +432,66 @@ body {
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; }
+
+/* ──────────────────── RESPONSIVE MÓVIL ──────────────────── */
+#btn-hamburger { display: none; }
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1040;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 1050;
+        transform: translateX(-280px);
+        transition: transform 0.28s ease;
+    }
+
+    .sidebar.sidebar-open {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    #btn-hamburger {
+        display: inline-flex;
+        align-items: center;
+        margin-right: auto;
+    }
+
+    .main-content {
+        padding: 16px;
+        width: 100%;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .page-header h1 {
+        font-size: 24px;
+    }
+
+    .topbar {
+        flex-wrap: wrap;
+    }
+}

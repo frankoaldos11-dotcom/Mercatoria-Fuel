@@ -171,11 +171,17 @@ def detalle(llegada_id):
         conn.close()
         return redirect("/puertos/")
 
+    tc = llegada["tipo_combustible"]
     cur.execute("""
         SELECT id, nombre, tipo_combustible, estado FROM depositos
-        WHERE estado = 'activo' AND tipo_combustible = ?
+        WHERE estado = 'activo' AND (
+            tipo_combustible = ?
+            OR tipo_combustible LIKE ?
+            OR tipo_combustible LIKE ?
+            OR tipo_combustible LIKE ?
+        )
         ORDER BY nombre ASC
-    """, (llegada["tipo_combustible"],))
+    """, (tc, tc + ',%', '%,' + tc, '%,' + tc + ',%'))
     depositos = cur.fetchall()
     conn.close()
 
