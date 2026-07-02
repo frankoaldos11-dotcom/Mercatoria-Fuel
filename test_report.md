@@ -1,63 +1,94 @@
 # Reporte de Pruebas — 2026-07-02
 
 ## Commits verificados
-- `390a57d` — Sprint 5: C1–C6 correcciones Tienda (panel admin, badges, edición precio, redirect cliente, formato precio, mis vehículos)
+- `390a57d` — Sprint 5: C1–C6 correcciones Tienda
 - `566160e` — fix: expose toggleOtroVehiculo globally in tienda/reservar
+- `3b4deb8` — Roles: puesto_de_mando y operador_gasolinera con gasolinera asignada, sidebar por puesto
+- `6c219e9` — Fix migraciones_pg: reorden esquema antes de seeds + bloque reset temporal guardado por RESET_SCHEMA
+- `033427c` — Retira bloque de reset temporal de migraciones_pg tras reconstruccion exitosa de la base
+- `0f7a8c9` — Fix fechas: reemplazar slicing [:10] por formato seguro datetime en templates (compat PostgreSQL)
 
 ## Páginas probadas
 - https://mercatoria-fuel.onrender.com/login
 - https://mercatoria-fuel.onrender.com/dashboard
-- https://mercatoria-fuel.onrender.com/tienda/
-- https://mercatoria-fuel.onrender.com/tienda/reservar
-- https://mercatoria-fuel.onrender.com/tienda/admin
-- https://mercatoria-fuel.onrender.com/tienda/admin?estado=aprobada
-- https://mercatoria-fuel.onrender.com/tienda/mis-vehiculos/
-- https://mercatoria-fuel.onrender.com/configuracion/
-- https://mercatoria-fuel.onrender.com/qr/23c201f4-c00b-4b68-b93a-bc0f66455913
+- https://mercatoria-fuel.onrender.com/usuarios/
+- https://mercatoria-fuel.onrender.com/usuarios/crear
+- https://mercatoria-fuel.onrender.com/turno/?gasolinera_id=1&fecha=2026-07-02
+- https://mercatoria-fuel.onrender.com/puertos/
+- https://mercatoria-fuel.onrender.com/static/css/admin.css
+- https://mercatoria-fuel.onrender.com/unidades/
+- https://mercatoria-fuel.onrender.com/clientes/1
 
-## Resultados por corrección
+## Resultados por verificación
 
-| # | Corrección | Resultado | Notas |
-|---|-----------|-----------|-------|
-| C1 | Panel admin /tienda/admin — filtros gasolinera+fecha | ✅ PASS | Dropdowns Estado, Gasolinera, Fecha funcionan con submit automático |
-| C1 | Columna VEHÍCULO en tabla admin | ✅ PASS | Muestra descripción del vehículo en cada fila |
-| C1 | Botón Aprobar → auto-asigna tarjeta con saldo suficiente | ✅ PASS | Reserva #1 (600L) aprobada automáticamente, movida a estado Aprobada |
-| C1 | Botón Aprobar → modal tarjeta cuando no hay saldo suficiente | ✅ PASS | Modal DOM presente, JS `mostrarModalTarjeta()` correctamente implementado |
-| C1 | Botón Rechazar → modal con campo motivo obligatorio | ✅ PASS | Modal se abre, textarea y botones Cancelar/Confirmar rechazo visibles |
-| C1 | QR generado al aprobar | ✅ PASS | /qr/{token} renderiza con todos los datos y código QR |
-| C2 | Badge contador en sidebar — Tienda (pendientes) | ✅ PASS | Badge naranja aparece con count de reservas pendientes |
-| C2 | Badge contador en sidebar — Usuarios (pendientes aprobación) | ✅ PASS | Badge naranja junto a "Usuarios" cuando hay usuarios inactivos |
-| C3 | Edición inline de precio en /configuracion/ | ✅ PASS | Lápiz activa modo edición; Guardar via AJAX actualiza valor sin reload |
-| C4 | Cliente logueado en /dashboard redirige a /tienda/ | ✅ PASS | Sesión cliente devuelta a portal Tienda |
-| C5 | Formato precio $X.XX USD/litro en /tienda/ | ✅ PASS | Precio muestra 2 decimales y etiqueta "USD/litro" |
-| C5 | Cálculo precio en /tienda/reservar con toFixed(2) | ✅ PASS | Total estimado muestra 2 decimales |
-| C6 | /tienda/mis-vehiculos/ — listado y formulario | ✅ PASS | Página carga con formulario agregar vehículo e importar Excel |
-| C6 | Dropdown de vehículos en /tienda/reservar | ✅ PASS | Selector muestra vehículos registrados; opciones TEST-001 y "Otro vehículo..." |
-| C6 | Toggle campo libre al seleccionar "Otro vehículo" | ✅ PASS | `toggleOtroVehiculo` global; "otro" → wrap visible, vehículo→ wrap oculto |
-| C6 | Link "Mis vehículos" en nav de base_tienda | ✅ PASS | Enlace visible en navegación del portal cliente |
+### commit 3b4deb8 — Roles Sprint 5
 
-## Errores encontrados y corregidos
+| # | Verificación | Resultado | Notas |
+|---|-------------|-----------|-------|
+| C1 | CSS tipografía: `.nav-section` 13px < `.nav-item` 15px | ✅ PASS | Jerarquía correcta |
+| C2 | Roles en formulario crear usuario: sin roles viejos | ✅ PASS | Lista: admin, pm, puesto_de_mando, operador_gasolinera, supervisor, cliente |
+| C3 | Dropdown gasolinera aparece al seleccionar `operador_gasolinera` | ✅ PASS | `bloque-gasolinera` visible; "La Shell" cargada desde DB |
+| C3 | Dropdown cliente aparece solo al seleccionar `cliente` | ✅ PASS | |
+| C4 | Turno page — admin ve selector de gasolinera | ✅ PASS | `<select name="gasolinera_id">` presente |
+| C5 | Backend API `/turno/api/:id/despachar` responde JSON | ✅ PASS | `{"error": "Habilitación no encontrada"}` |
+| C6 | Puertos — admin ve botón "Registrar llegada" | ✅ PASS | Guard actualizado a `puesto_de_mando` |
+| C6 | Admin sidebar: todas las secciones presentes | ✅ PASS | |
 
-### ✅ Bug C6 corregido — `toggleOtroVehiculo` fuera de scope (commit `566160e`)
-- **Síntoma original:** `ReferenceError: toggleOtroVehiculo is not defined` al cambiar el dropdown en `/tienda/reservar`
-- **Causa:** Función dentro del IIFE, no accesible desde `onchange` del `<select>`
-- **Fix aplicado:** Movida fuera del IIFE en `templates/tienda/reservar.html`
-- **Verificación:** `typeof toggleOtroVehiculo === "function"` en scope global; toggle bidireccional confirmado en producción
+### commit 0f7a8c9 — Fix fechas datetime PG
 
-### Errores HTTP (no críticos)
-- `503` en /login y / — cold start de Render al iniciar sesión (no recurrentes)
-- `404` en /favicon.ico — favicon presente como `<link>` pero sin ruta estática directa
+| # | Verificación | Resultado | Notas |
+|---|-------------|-----------|-------|
+| F1 | `/usuarios/` carga sin 500 | ✅ PASS | Antes: `TypeError: 'datetime.datetime' object is not subscriptable` en `u.created_at[:10]` |
+| F2 | Columna "Creado" muestra fechas con formato `YYYY-MM-DD` | ✅ PASS | Patrón `(valor \| string)[:10]` funciona con objetos datetime de PG |
+| F3 | `/unidades/` carga sin 500 | ✅ PASS | `choferes/listado.html` — `licencia_vencimiento` corregido |
+| F4 | `/clientes/1` carga sin 500 | ✅ PASS | `clientes/detalle.html` ×2 ocurrencias corregidas |
+
+## Errores encontrados
+
+### No críticos / esperados
+- `503` en cold start de Render al inicio de sesión — transitorios, no recurrentes
+- `404 /favicon.ico` — conocido desde sesiones anteriores
+- `400/404 /turno/api/9999/despachar` — llamadas de prueba de sesión anterior (esperado)
+
+### Stale (sesiones anteriores — ya corregidos)
+- `ReferenceError: toggleOtroVehiculo is not defined` — de sesión Playwright previa en `/tienda/reservar`. Fix ya aplicado en commit `566160e`.
 
 ## Screenshots tomados
-- `c1_10_admin_aprobada.png` — /tienda/admin tras click Aprobar (pendientes = 0)
-- `c1_11_admin_aprobadas.png` — /tienda/admin filtro Aprobadas (reserva #1 estado Aprobada)
-- `c1_12_modal_rechazo.png` — Modal Rechazar reserva con textarea motivo
-- `c1_13_qr_reserva.png` — Página QR /qr/{token} con código y datos completos
-- `c6_fix_toggle_vehiculo.png` — /tienda/reservar con dropdown vehiculo activo (vehículo registrado seleccionado)
 
-## Correcciones aplicadas en sesión
-- `566160e` — `toggleOtroVehiculo` expuesta globalmente (1 archivo, 5 líneas cambiadas)
+### Sprint 5 — Roles
+- `roles_v1_dashboard_admin.png` — Dashboard admin tras login
+- `roles_v2_crear_usuario_operador_gasolinera.png` — Formulario crear usuario con gasolinera dropdown
+- `roles_v3_usuarios_listado.png` — Listado usuarios con nuevos badges de rol
+- `roles_v4_turno_admin.png` — Turno del día admin con selector gasolinera
+- `roles_v5_puertos_listado.png` — Puertos listado con botón Registrar llegada visible
+
+### Fix fechas datetime PG
+- `fix_fechas_01_usuarios_listado.png` — /usuarios/ cargando correctamente sin 500
+- `fix_fechas_02_unidades_listado.png` — /unidades/ cargando sin error (licencia_vencimiento fix)
+- `fix_fechas_03_clientes_detalle.png` — /clientes/1 cargando sin error
+
+## Correcciones aplicadas
+
+### migraciones_pg.py (commits 6c219e9, 033427c)
+- Reorden completo: todos los CREATE TABLE en orden de dependencias → ALTER TABLE → commit → seeds → commit
+- `gasolinera_id` incluido directamente en `CREATE TABLE usuarios`
+- Bloque temporal `RESET_SCHEMA=true` aplicado en producción y luego eliminado del código
+
+### Fix fechas (commit 0f7a8c9)
+7 ocurrencias de `campo[:10]` sobre objetos `datetime`/`date` de PostgreSQL corregidas
+con patrón `(campo | string)[:10]` en 5 templates:
+
+| Template | Campo | Ocurrencias |
+|---|---|---|
+| `usuarios/listado.html` | `created_at` | 1 |
+| `tienda/qr_vista.html` | `created_at` | 1 |
+| `tienda/admin.html` | `created_at` | 1 |
+| `choferes/listado.html` | `licencia_vencimiento` | 1 |
+| `choferes/editar.html` | `licencia_vencimiento` | 1 |
+| `clientes/detalle.html` | `licencia_vencimiento` | 2 |
 
 ## Recomendaciones pendientes
-1. **Test modal tarjeta-sin-saldo:** Crear reserva con litros > saldo de todas las tarjetas disponibles para verificar el modal de selección manual de tarjeta
-2. **Verificar deducción saldo al completar QR:** Confirmar que `api_reserva_completar` en turno.py descuenta `saldo_usable_l` correctamente al escanear QR de una reserva tienda
+1. **Verificar `/tienda/admin`** (reservas_tienda) y **`/tienda/qr_vista`** (QR de reserva) en producción cuando haya datos reales de `reservas_tienda` — el fix se aplicó pero no se pudo navegar a una reserva real para confirmar visualmente.
+2. **Verificar `/choferes/editar/:id`** con un chofer que tenga `licencia_vencimiento` — confirmar que el campo `<input type="date">` recibe el valor `YYYY-MM-DD` correctamente.
+3. **Crear cuenta operador_gasolinera de prueba** y verificar que el sidebar muestra solo "Operador Gasolinera" y que turno fuerza su gasolinera asignada.
+4. **Crear cuenta puesto_de_mando de prueba** y verificar acceso a Puertos + Operativa pero no a Comercial/Sistema.
