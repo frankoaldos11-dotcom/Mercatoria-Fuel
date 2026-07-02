@@ -67,7 +67,7 @@
                         <span class="badge badge-danger">Inactivo</span>
                         {% endif %}
                     </td>
-                    <td style="font-size:12px;color:var(--muted);">{{ u.created_at[:10] if u.created_at else '—' }}</td>
+                    <td style="font-size:12px;color:var(--muted);">{{ (u.created_at | string)[:10] if u.created_at else '—' }}</td>
                     <td>
                         <div style="display:flex;gap:6px;">
                             <a href="/usuarios/{{ u.id }}/editar" class="btn btn-sm btn-secondary">

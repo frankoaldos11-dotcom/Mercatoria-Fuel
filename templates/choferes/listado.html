@@ -84,7 +84,7 @@
                     <td>{{ ch.licencia_numero or '—' }}</td>
                     <td>
                         {% if ch.licencia_vencimiento %}
-                            {% set venc = ch.licencia_vencimiento[:10] %}
+                            {% set venc = (ch.licencia_vencimiento | string)[:10] %}
                             {% if venc < hoy %}
                             <span class="badge badge-danger">
                                 <i class="bi bi-exclamation-triangle"></i> {{ venc }} — Vencida

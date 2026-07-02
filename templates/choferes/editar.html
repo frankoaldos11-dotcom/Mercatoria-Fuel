@@ -60,7 +60,7 @@
             <div class="mb-3">
                 <label class="form-label">Vencimiento de licencia</label>
                 <input type="date" name="licencia_vencimiento" class="form-control"
-                       value="{{ chofer.licencia_vencimiento[:10] if chofer.licencia_vencimiento else '' }}">
+                       value="{{ (chofer.licencia_vencimiento | string)[:10] if chofer.licencia_vencimiento else '' }}">
             </div>
 
             <div class="mb-3">

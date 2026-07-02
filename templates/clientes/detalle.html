@@ -108,7 +108,7 @@
             <tbody>
                 {% for u in unidades %}
                 {% if u.licencia_vencimiento %}
-                    {% set venc = u.licencia_vencimiento[:10] %}
+                    {% set venc = (u.licencia_vencimiento | string)[:10] %}
                     {% set lic_vencida = venc < hoy %}
                     {% set lic_proxima = venc <= limite_30 and not lic_vencida %}
                 {% else %}
@@ -138,7 +138,7 @@
                     </td>
                     <td>
                         {% if u.licencia_vencimiento %}
-                            {% set venc = u.licencia_vencimiento[:10] %}
+                            {% set venc = (u.licencia_vencimiento | string)[:10] %}
                             {% if lic_vencida %}
                             <span class="badge badge-danger"><i class="bi bi-exclamation-triangle"></i> {{ venc }}</span>
                             {% elif lic_proxima %}
