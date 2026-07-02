@@ -59,6 +59,8 @@
                     <td>
                         {% if u.activo %}
                         <span class="badge badge-ok">Activo</span>
+                        {% elif u.rol == 'cliente' %}
+                        <span class="badge badge-warn">Pendiente</span>
                         {% else %}
                         <span class="badge badge-danger">Inactivo</span>
                         {% endif %}
@@ -69,6 +71,14 @@
                             <a href="/usuarios/{{ u.id }}/editar" class="btn btn-sm btn-secondary">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            {% if not u.activo and u.rol == 'cliente' %}
+                            <form method="POST" action="/usuarios/{{ u.id }}/aprobar" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-primary" title="Aprobar cuenta">
+                                    <i class="bi bi-check-circle"></i> Aprobar
+                                </button>
+                            </form>
+                            {% else %}
                             <form method="POST" action="/usuarios/{{ u.id }}/toggle" style="display:inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm {{ 'btn-secondary' if u.activo else 'btn-success' }}"
@@ -76,6 +86,7 @@
                                     <i class="bi bi-{{ 'toggle-on' if u.activo else 'toggle-off' }}"></i>
                                 </button>
                             </form>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>

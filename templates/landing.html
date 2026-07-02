@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercatoria Fuel — Combustible cuando lo necesitas</title>
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --orange: #E86A2C;
+            --orange-dark: #C45520;
+            --amber: #F5A623;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0F1117;
+            color: #F3F4F6;
+        }
+
+        /* NAV */
+        .top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 5%;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            position: sticky;
+            top: 0;
+            background: rgba(15,17,23,0.92);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+        }
+        .nav-brand {
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-brand .dot { color: var(--orange); }
+        .nav-links { display: flex; gap: 12px; align-items: center; }
+        .btn-outline-nav {
+            border: 1.5px solid rgba(255,255,255,0.25);
+            color: #fff;
+            background: transparent;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .btn-outline-nav:hover { border-color: var(--orange); color: var(--orange); }
+        .btn-orange-nav {
+            background: var(--orange);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-orange-nav:hover { background: var(--orange-dark); color: #fff; }
+
+        /* HERO */
+        .hero {
+            padding: 100px 5% 80px;
+            text-align: center;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(232,106,44,0.15);
+            border: 1px solid rgba(232,106,44,0.35);
+            color: var(--amber);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            border-radius: 20px;
+            padding: 5px 16px;
+            margin-bottom: 28px;
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.4rem);
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .hero h1 span { color: var(--orange); }
+        .hero p {
+            font-size: 1.1rem;
+            color: #9CA3AF;
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.65;
+        }
+        .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+        .btn-hero-primary {
+            background: var(--orange);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-hero-primary:hover { background: var(--orange-dark); color: #fff; }
+        .btn-hero-secondary {
+            background: rgba(255,255,255,0.07);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 10px;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-hero-secondary:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+        /* PRODUCTS */
+        .section { padding: 72px 5%; }
+        .section-title {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .section-title h2 { font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+        .section-title p { color: #9CA3AF; font-size: 0.95rem; }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .product-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 16px;
+            padding: 28px 24px;
+            text-align: center;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .product-card:hover { border-color: var(--orange); transform: translateY(-4px); }
+        .product-icon { font-size: 2.4rem; margin-bottom: 14px; }
+        .product-card h3 { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+        .product-price { color: var(--amber); font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+        .product-unit { color: #6B7280; font-size: 0.8rem; }
+
+        /* HOW IT WORKS */
+        .steps-section { background: rgba(255,255,255,0.02); }
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 32px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .step { text-align: center; }
+        .step-num {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(232,106,44,0.15);
+            border: 1.5px solid var(--orange);
+            color: var(--orange);
+            font-weight: 800;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .step h4 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+        .step p { font-size: 0.85rem; color: #9CA3AF; line-height: 1.55; }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 36px 5%;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            color: #6B7280;
+            font-size: 0.82rem;
+        }
+        footer a { color: var(--orange); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="top-nav">
+    <a class="nav-brand" href="/">
+        <i class="bi bi-fuel-pump-fill" style="color:var(--orange);font-size:1.3rem;"></i>
+        Mercatoria<span class="dot">.</span>Fuel
+    </a>
+    <div class="nav-links">
+        <a href="/login" class="btn-outline-nav">Iniciar sesión</a>
+        <a href="/registro" class="btn-orange-nav">Crear cuenta</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-badge"><i class="bi bi-lightning-charge-fill"></i> Portal de clientes</div>
+    <h1>Combustible confiable,<br><span>reserva desde donde estés</span></h1>
+    <p>Reserva litros de diésel o gasolina directamente en nuestra plataforma. Recoge con tu código QR en la gasolinera asignada.</p>
+    <div class="hero-actions">
+        <a href="/registro" class="btn-hero-primary"><i class="bi bi-person-plus"></i> Crear cuenta gratuita</a>
+        <a href="/login" class="btn-hero-secondary"><i class="bi bi-box-arrow-in-right"></i> Ya tengo cuenta</a>
+    </div>
+</section>
+
+<!-- PRODUCTS -->
+<section class="section">
+    <div class="section-title">
+        <h2>Combustibles disponibles</h2>
+        <p>Precios por litro — actualizados por el equipo de Mercatoria.</p>
+    </div>
+    <div class="products-grid">
+        <div class="product-card">
+            <div class="product-icon">⛽</div>
+            <h3>Diésel</h3>
+            <div class="product-price">Consulta precio</div>
+            <div class="product-unit">por litro</div>
+        </div>
+        <div class="product-card">
+            <div class="product-icon">🔥</div>
+            <h3>Gasolina Regular</h3>
+            <div class="product-price">Consulta precio</div>
+            <div class="product-unit">por litro</div>
+        </div>
+        <div class="product-card">
+            <div class="product-icon">⚡</div>
+            <h3>Gasolina Especial</h3>
+            <div class="product-price">Consulta precio</div>
+            <div class="product-unit">por litro</div>
+        </div>
+    </div>
+    <p style="text-align:center;margin-top:28px;color:#6B7280;font-size:0.85rem;">
+        Los precios exactos se muestran al iniciar sesión. <a href="/registro" style="color:var(--orange);">Regístrate gratis →</a>
+    </p>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section steps-section">
+    <div class="section-title">
+        <h2>¿Cómo funciona?</h2>
+        <p>Cuatro pasos para obtener tu combustible.</p>
+    </div>
+    <div class="steps-grid">
+        <div class="step">
+            <div class="step-num">1</div>
+            <h4>Crea tu cuenta</h4>
+            <p>Regístrate gratis. Un administrador aprueba tu cuenta en 24 h.</p>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <h4>Haz tu reserva</h4>
+            <p>Selecciona gasolinera, tipo y cantidad de combustible y confirma.</p>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <h4>Recibe tu QR</h4>
+            <p>Un PM aprueba tu reserva y recibes un código QR en la plataforma.</p>
+        </div>
+        <div class="step">
+            <div class="step-num">4</div>
+            <h4>Recoge tu pedido</h4>
+            <p>El operario escanea tu QR en la gasolinera y despacha el combustible.</p>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <p>&copy; 2026 Mercatoria Fuel. Todos los derechos reservados.</p>
+    <p style="margin-top:8px;">
+        <a href="/login">Acceso operacional</a> ·
+        <a href="/registro">Registro de clientes</a>
+    </p>
+</footer>
+
+</body>
+</html>

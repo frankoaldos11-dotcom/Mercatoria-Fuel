@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block titulo %}Escanear QR — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Turno</span>
+        <h1>Escanear QR de reserva</h1>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:860px;" class="scan-grid">
+
+    <!-- Cámara -->
+    <div class="panel">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+            <strong><i class="bi bi-camera"></i> Cámara</strong>
+        </div>
+        <div style="padding:20px;text-align:center;">
+            <div id="camera-wrap" style="position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:1;max-width:280px;margin:0 auto;">
+                <video id="video" style="width:100%;height:100%;object-fit:cover;" playsinline></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+                <div id="scan-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+                    <div style="width:60%;height:60%;border:2px solid #E86A2C;border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,0.45);"></div>
+                </div>
+            </div>
+            <button id="btn-camera" onclick="startCamera()" class="btn btn-primary" style="margin-top:14px;">
+                <i class="bi bi-camera-fill"></i> Activar cámara
+            </button>
+            <div id="scan-status" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
+        </div>
+    </div>
+
+    <!-- Manual -->
+    <div class="panel">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+            <strong><i class="bi bi-keyboard"></i> Token manual</strong>
+        </div>
+        <div style="padding:20px 24px;">
+            <div class="mb-3">
+                <label class="form-label">Pega o escribe el token del QR</label>
+                <input type="text" id="inp-token" class="form-control"
+                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                       style="font-family:monospace;font-size:13px;">
+            </div>
+            <button onclick="buscarToken(document.getElementById('inp-token').value.trim())" class="btn btn-primary">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Resultado -->
+<div id="resultado" style="display:none;margin-top:24px;max-width:860px;">
+    <div class="panel">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);" id="res-header">
+            <strong>Reserva encontrada</strong>
+        </div>
+        <div style="padding:20px 24px;" id="res-body"></div>
+    </div>
+</div>
+
+<div id="error-msg" style="display:none;margin-top:16px;max-width:860px;" class=""></div>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+let videoStream = null;
+let scanning = false;
+
+function startCamera() {
+    const vid = document.getElementById('video');
+    const btn = document.getElementById('btn-camera');
+    const status = document.getElementById('scan-status');
+    btn.disabled = true;
+    status.textContent = 'Solicitando acceso a cámara...';
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+        videoStream = stream;
+        vid.srcObject = stream;
+        vid.play();
+        scanning = true;
+        btn.textContent = '📷 Escaneando...';
+        status.textContent = 'Apunta al código QR';
+        requestAnimationFrame(tick);
+    })
+    .catch(err => {
+        status.textContent = 'No se pudo acceder a la cámara: ' + err.message;
+        btn.disabled = false;
+    });
+}
+
+function tick() {
+    if (!scanning) return;
+    const vid = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    if (vid.readyState === vid.HAVE_ENOUGH_DATA) {
+        canvas.width = vid.videoWidth;
+        canvas.height = vid.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+        if (code) {
+            const raw = code.data;
+            // Extraer token de la URL si es que escanea la URL completa
+            const match = raw.match(/\/qr\/([a-f0-9-]{36})/i);
+            const token = match ? match[1] : raw;
+            scanning = false;
+            if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); }
+            document.getElementById('scan-status').textContent = '✅ QR detectado';
+            buscarToken(token);
+            return;
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+async function buscarToken(token) {
+    if (!token) return;
+    showError('');
+    document.getElementById('resultado').style.display = 'none';
+
+    const resp = await fetch(`/turno/api/reserva-info/${token}`);
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+        showError(data.error || 'Token no encontrado');
+        return;
+    }
+
+    mostrarResultado(token, data);
+}
+
+function mostrarResultado(token, d) {
+    const LABELS = { diesel:'Diésel', gasolina_regular:'Gasolina Regular', gasolina_especial:'Gasolina Especial' };
+    const ESTADO_COLOR = { pendiente:'#92400E', aprobada:'#1E40AF', completada:'#166534', cancelada:'#991B1B' };
+    const estadoColor = ESTADO_COLOR[d.estado] || '#374151';
+
+    document.getElementById('res-header').innerHTML =
+        `<strong>Reserva #${d.id}</strong> — <span style="color:${estadoColor};font-weight:700;">${d.estado.toUpperCase()}</span>`;
+
+    let btnHTML = '';
+    if (d.estado === 'aprobada') {
+        btnHTML = `<button onclick="completar('${token}', this)" class="btn btn-primary" style="margin-top:16px;">
+            <i class="bi bi-check2-circle"></i> Marcar como despachada
+        </button>`;
+    } else {
+        btnHTML = `<div style="margin-top:12px;color:#9CA3AF;font-size:13px;">
+            Esta reserva no está en estado <strong>aprobada</strong> — no se puede completar.
+        </div>`;
+    }
+
+    document.getElementById('res-body').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px;">
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Cliente</div><div style="font-weight:600;">${d.cliente}</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Gasolinera</div><div style="font-weight:600;">${d.gasolinera}</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Combustible</div><div style="font-weight:600;">${LABELS[d.tipo_combustible] || d.tipo_combustible}</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Litros</div><div style="font-weight:700;font-size:1.1rem;">${d.litros.toLocaleString('es')} L</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Total</div><div style="font-weight:700;color:#E86A2C;">$${d.precio_total.toFixed(2)}</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Vehículo</div><div>${d.vehiculo}</div></div>
+        </div>
+        ${btnHTML}
+    `;
+    document.getElementById('resultado').style.display = 'block';
+}
+
+async function completar(token, btn) {
+    if (!confirm('¿Confirmar despacho de combustible para esta reserva?')) return;
+    btn.disabled = true;
+    const fd = new FormData();
+    fd.append('csrf_token', '{{ csrf_token() }}');
+    const resp = await fetch(`/turno/api/reserva-completar/${token}`, { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (data.ok) {
+        btn.textContent = '✅ Despachado';
+        btn.className = 'btn btn-success';
+        btn.disabled = true;
+        document.getElementById('res-header').innerHTML += ' — <span style="color:#166534;font-weight:700;">COMPLETADA</span>';
+    } else {
+        alert(data.error || 'Error al completar');
+        btn.disabled = false;
+    }
+}
+
+function showError(msg) {
+    const el = document.getElementById('error-msg');
+    if (!msg) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.className = 'alert-error-custom';
+    el.innerHTML = '<i class="bi bi-exclamation-circle"></i> ' + msg;
+    el.style.cssText = 'display:block;background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:.75rem 1rem;font-size:14px;margin-top:16px;max-width:860px;';
+}
+</script>
+<style>
+@media(max-width:640px){.scan-grid{grid-template-columns:1fr!important;}}
+</style>
+{% endblock %}

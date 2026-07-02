@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block titulo %}Reservas Tienda — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Tienda</span>
+        <h1>Reservas de clientes</h1>
+    </div>
+</div>
+
+<!-- Filtro de estado -->
+<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+    {% for est, lbl in [('pendiente','Pendientes'),('aprobada','Aprobadas'),('completada','Completadas'),('cancelada','Canceladas'),('','Todas')] %}
+    <a href="/tienda/admin?estado={{ est }}"
+       style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
+              background:{{ '#E86A2C' if filtro == est else '#F3F4F6' }};
+              color:{{ '#fff' if filtro == est else '#374151' }};
+              border:1px solid {{ '#E86A2C' if filtro == est else '#E5E7EB' }};">
+        {{ lbl }}
+    </a>
+    {% endfor %}
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>Gasolinera</th>
+                    <th>Combustible</th>
+                    <th>Litros</th>
+                    <th>Total USD</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reservas %}
+                <tr>
+                    <td style="font-size:12px;color:var(--muted);">#{{ r.id }}</td>
+                    <td>
+                        <strong>{{ r.cliente_nombre }}</strong>
+                        <div style="font-size:12px;color:var(--muted);">{{ r.cliente_email }}</div>
+                    </td>
+                    <td>{{ r.gasolinera_nombre }}</td>
+                    <td>{{ combustible_labels.get(r.tipo_combustible, r.tipo_combustible) }}</td>
+                    <td>{{ "%.0f"|format(r.litros_solicitados) }} L</td>
+                    <td style="font-weight:700;color:#E86A2C;">${{ "%.2f"|format(r.precio_total_usd) }}</td>
+                    <td>
+                        <span class="badge {{ estado_badge.get(r.estado, 'badge-neutral') }}">
+                            {{ estado_labels.get(r.estado, r.estado) }}
+                        </span>
+                    </td>
+                    <td style="font-size:12px;color:var(--muted);">{{ r.created_at[:10] if r.created_at else '—' }}</td>
+                    <td>
+                        {% if r.estado == 'pendiente' %}
+                        <div style="display:flex;gap:6px;">
+                            <button onclick="aprobar({{ r.id }}, this)" class="btn btn-sm btn-primary">
+                                <i class="bi bi-check-lg"></i> Aprobar
+                            </button>
+                            <button onclick="cancelar({{ r.id }}, this)" class="btn btn-sm btn-secondary"
+                                    style="color:#DC2626;border-color:#DC2626;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        {% elif r.estado == 'aprobada' %}
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            {% if r.qr_imagen_b64 %}
+                            <a href="/qr/{{ r.qr_token }}" target="_blank" class="btn btn-sm btn-secondary">
+                                <i class="bi bi-qr-code"></i> QR
+                            </a>
+                            {% endif %}
+                            <button onclick="cancelar({{ r.id }}, this)" class="btn btn-sm btn-secondary"
+                                    style="color:#DC2626;border-color:#DC2626;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="empty-state">No hay reservas con este filtro.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+async function aprobar(id, btn) {
+    btn.disabled = true;
+    const fd = new FormData();
+    fd.append('csrf_token', '{{ csrf_token() }}');
+    const r = await fetch(`/tienda/api/${id}/aprobar`, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.ok) {
+        location.reload();
+    } else {
+        alert(data.error || 'Error al aprobar');
+        btn.disabled = false;
+    }
+}
+
+async function cancelar(id, btn) {
+    if (!confirm('¿Cancelar esta reserva?')) return;
+    btn.disabled = true;
+    const fd = new FormData();
+    fd.append('csrf_token', '{{ csrf_token() }}');
+    const r = await fetch(`/tienda/api/${id}/cancelar`, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.ok) {
+        location.reload();
+    } else {
+        alert(data.error || 'Error al cancelar');
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

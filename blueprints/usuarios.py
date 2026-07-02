@@ -234,6 +234,25 @@ def toggle(uid):
     return redirect("/usuarios/?ok=1")
 
 
+# ── Aprobar registro pendiente ────────────────────────────────────────────────
+
+@usuarios_bp.route("/<int:uid>/aprobar", methods=["POST"])
+def aprobar(uid):
+    redir = _solo_admin()
+    if redir:
+        return redir
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT activo, rol FROM usuarios WHERE id = ?", (uid,))
+    row = cur.fetchone()
+    if row and row["rol"] == "cliente" and row["activo"] == 0:
+        cur.execute("UPDATE usuarios SET activo=1, updated_at=CURRENT_TIMESTAMP WHERE id=?", (uid,))
+        conn.commit()
+    conn.close()
+    return redirect("/usuarios/?ok=1")
+
+
 # ── Cambiar contraseña propia ─────────────────────────────────────────────────
 
 @usuarios_bp.route("/cambiar-password", methods=["GET", "POST"])

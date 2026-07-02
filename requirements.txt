@@ -5,3 +5,4 @@ flask-limiter
 flask-wtf
 psycopg2-binary
 openpyxl
+qrcode[pil]

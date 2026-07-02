@@ -1,0 +1,133 @@
+{% extends "base_tienda.html" %}
+{% block titulo %}Nueva reserva — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-head">
+    <h1>Nueva reserva</h1>
+    <p>Selecciona gasolinera, tipo y cantidad de combustible.</p>
+</div>
+
+{% if error %}
+<div class="alert-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+{% endif %}
+
+<div class="panel">
+    <div class="panel-body">
+        <form method="POST" action="/tienda/reservar" id="frm-reserva">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label class="form-label">Gasolinera *</label>
+                <select name="gasolinera_id" id="sel-gas" class="form-control" required>
+                    <option value="">— Selecciona una gasolinera —</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}" {{ 'selected' if (form.get('gasolinera_id', gid_pre)|string) == (g.id|string) else '' }}>
+                        {{ g.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible *</label>
+                <select name="tipo_combustible" id="sel-tc" class="form-control" required>
+                    <option value="">— Selecciona tipo —</option>
+                    {% for p in productos %}
+                    <option value="{{ p.tipo_combustible }}"
+                            data-gas="{{ p.gasolinera_id }}"
+                            data-precio="{{ p.precio_usd_por_litro }}"
+                            {{ 'selected' if (form.get('tipo_combustible', tc_pre)) == p.tipo_combustible and (form.get('gasolinera_id', gid_pre)|string) == (p.gasolinera_id|string) else '' }}>
+                        {{ combustible_labels.get(p.tipo_combustible, p.tipo_combustible) }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros solicitados *</label>
+                <input type="text" name="litros" id="inp-litros" class="form-control" required
+                       inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
+                       value="{{ form.get('litros', '') }}" placeholder="0">
+                {% if compra_minima > 0 %}
+                <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Mínimo: {{ compra_minima|int }} litros</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Total estimado</label>
+                <div id="precio-total" style="font-size:1.5rem;font-weight:800;color:#E86A2C;">$0.00</div>
+                <div style="font-size:12px;color:#9CA3AF;margin-top:2px;" id="precio-detalle"></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Descripción del vehículo <span style="color:#9CA3AF;">(placa, modelo, color)</span></label>
+                <input type="text" name="descripcion_vehiculo" class="form-control"
+                       value="{{ form.get('descripcion_vehiculo', '') }}"
+                       placeholder="Toyota Hilux blanca, ABC-123">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Alguna indicación adicional...">{{ form.get('observaciones', '') }}</textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="submit" class="btn-orange"><i class="bi bi-check-lg"></i> Confirmar reserva</button>
+                <a href="/tienda/" class="btn-sec">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+    const COMPRA_MINIMA = {{ compra_minima }};
+    const selGas = document.getElementById('sel-gas');
+    const selTc = document.getElementById('sel-tc');
+    const inpLitros = document.getElementById('inp-litros');
+    const elTotal = document.getElementById('precio-total');
+    const elDetalle = document.getElementById('precio-detalle');
+
+    const todosOpts = Array.from(selTc.querySelectorAll('option[data-gas]'));
+
+    function filtrarOpts() {
+        const gid = selGas.value;
+        const tcActual = selTc.value;
+        todosOpts.forEach(o => {
+            o.hidden = gid && o.dataset.gas !== gid;
+        });
+        // reset si el seleccionado ya no aplica
+        const visible = todosOpts.filter(o => !o.hidden);
+        if (!visible.find(o => o.value === selTc.value)) {
+            selTc.value = '';
+        }
+        calcPrecio();
+    }
+
+    function calcPrecio() {
+        const tc = selTc.value;
+        const gid = selGas.value;
+        const opt = todosOpts.find(o => o.value === tc && o.dataset.gas === gid);
+        const litros = parseFloat(inpLitros.value.replace(',', '.')) || 0;
+        if (opt && litros > 0) {
+            const precio = parseFloat(opt.dataset.precio);
+            const total = litros * precio;
+            elTotal.textContent = '$' + total.toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            elDetalle.textContent = litros.toLocaleString('es') + ' L × $' + precio.toFixed(4) + '/L';
+        } else {
+            elTotal.textContent = '$0.00';
+            elDetalle.textContent = '';
+        }
+    }
+
+    selGas.addEventListener('change', filtrarOpts);
+    selTc.addEventListener('change', calcPrecio);
+    inpLitros.addEventListener('input', calcPrecio);
+
+    filtrarOpts();
+})();
+</script>
+{% endblock %}

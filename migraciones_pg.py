@@ -504,6 +504,40 @@ def ejecutar_migraciones_pg(bcrypt):
         if not cur.fetchone():
             cur.execute("INSERT INTO puertos (nombre, region) VALUES (%s, %s)", (nombre_p, region_p))
 
+    # ── precios_combustible ───────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS precios_combustible (
+        id                   SERIAL PRIMARY KEY,
+        gasolinera_id        INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible     TEXT NOT NULL,
+        precio_usd_por_litro NUMERIC(10,4) NOT NULL DEFAULT 0,
+        activo               INTEGER NOT NULL DEFAULT 1,
+        updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(gasolinera_id, tipo_combustible)
+    )
+    """)
+
+    # ── reservas_tienda ───────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS reservas_tienda (
+        id                   SERIAL PRIMARY KEY,
+        usuario_id           INTEGER NOT NULL REFERENCES usuarios(id),
+        gasolinera_id        INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible     TEXT NOT NULL,
+        litros_solicitados   NUMERIC(14,2) NOT NULL DEFAULT 0,
+        precio_usd_por_litro NUMERIC(10,4) NOT NULL DEFAULT 0,
+        precio_total_usd     NUMERIC(14,2) NOT NULL DEFAULT 0,
+        descripcion_vehiculo TEXT,
+        observaciones        TEXT,
+        estado               TEXT NOT NULL DEFAULT 'pendiente',
+        qr_token             TEXT UNIQUE,
+        qr_imagen_b64        TEXT,
+        aprobado_por         INTEGER REFERENCES usuarios(id),
+        created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     # ── seed: configuracion ───────────────────────────────────────────────────
     params_default = [
         ("compra_minima_litros", "500"),

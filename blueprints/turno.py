@@ -390,3 +390,85 @@ def cerrar_turno():
     conn.commit()
     conn.close()
     return redirect(f"/turno/?gasolinera_id={gasolinera_id}&fecha={fecha}&ok=1")
+
+
+# ── Escaneo QR (operario) ─────────────────────────────────────────────────────
+
+@turno_bp.route("/escanear")
+def escanear():
+    redir = _requiere_operario_gas()
+    if redir:
+        return redir
+    return render_template("turno/escanear.html")
+
+
+@turno_bp.route("/api/reserva-info/<token>")
+def api_reserva_info(token):
+    redir = requiere_login()
+    if redir:
+        return jsonify({"error": "No autorizado"}), 401
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT r.id, r.estado, r.tipo_combustible, r.litros_solicitados,
+               r.precio_usd_por_litro, r.precio_total_usd,
+               r.descripcion_vehiculo, r.observaciones,
+               g.nombre AS gasolinera_nombre,
+               u.nombre AS cliente_nombre, u.email AS cliente_email
+        FROM reservas_tienda r
+        JOIN gasolineras g ON g.id = r.gasolinera_id
+        JOIN usuarios u ON u.id = r.usuario_id
+        WHERE r.qr_token = ?
+    """, (token,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "Token no encontrado"}), 404
+
+    return jsonify({
+        "id": row["id"],
+        "estado": row["estado"],
+        "tipo_combustible": row["tipo_combustible"],
+        "litros": float(row["litros_solicitados"]),
+        "precio_unitario": float(row["precio_usd_por_litro"]),
+        "precio_total": float(row["precio_total_usd"]),
+        "vehiculo": row["descripcion_vehiculo"] or "—",
+        "observaciones": row["observaciones"] or "—",
+        "gasolinera": row["gasolinera_nombre"],
+        "cliente": row["cliente_nombre"],
+        "cliente_email": row["cliente_email"],
+    })
+
+
+@turno_bp.route("/api/reserva-completar/<token>", methods=["POST"])
+def api_reserva_completar(token):
+    redir = requiere_login()
+    if redir:
+        return jsonify({"error": "No autorizado"}), 401
+    if session.get("rol") not in ROLES_OPERARIO_GAS:
+        return jsonify({"error": "Sin permiso"}), 403
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, estado FROM reservas_tienda WHERE qr_token = ?
+    """, (token,))
+    row = cur.fetchone()
+
+    if not row:
+        conn.close()
+        return jsonify({"error": "Token no encontrado"}), 404
+    if row["estado"] != "aprobada":
+        conn.close()
+        return jsonify({"error": f"La reserva no está aprobada (estado: {row['estado']})"}), 400
+
+    cur.execute("""
+        UPDATE reservas_tienda
+        SET estado='completada', updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+    """, (row["id"],))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True})

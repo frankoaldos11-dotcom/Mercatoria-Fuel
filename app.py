@@ -30,6 +30,8 @@ from blueprints.usuarios import usuarios_bp
 from blueprints.configuracion import configuracion_bp
 from blueprints.turno import turno_bp
 from blueprints.puertos import puertos_bp
+from blueprints.registro import registro_bp
+from blueprints.tienda import tienda_bp
 
 
 app = Flask(__name__)
@@ -79,7 +81,13 @@ def login():
         """, (email,))
         fila = cur.fetchone()
 
-        if fila and fila["activo"] and bcrypt.check_password_hash(fila["password_hash"], password):
+        if fila and bcrypt.check_password_hash(fila["password_hash"], password):
+            if not fila["activo"]:
+                conn.close()
+                if fila["rol"] == "cliente":
+                    return render_template("login.html", error="Tu cuenta está pendiente de aprobación. Un administrador la revisará pronto.")
+                return render_template("login.html", error="Tu cuenta está desactivada. Contacta al administrador.")
+
             session.permanent = True
             session["usuario"] = email
             session["nombre"] = fila["nombre"]
@@ -97,7 +105,7 @@ def login():
             conn.close()
 
             if fila["rol"] == "cliente":
-                return redirect("/portal/")
+                return redirect("/tienda/")
             return redirect("/dashboard")
 
         conn.close()
@@ -110,9 +118,45 @@ def login():
 def root():
     if "usuario" in session:
         if session.get("rol") == "cliente":
-            return redirect("/portal/")
+            return redirect("/tienda/")
         return redirect("/dashboard")
-    return redirect("/login")
+    return render_template("landing.html")
+
+
+@app.route("/recuperar")
+def recuperar():
+    return render_template("recuperar.html")
+
+
+@app.route("/qr/<token>")
+def qr_vista(token):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT r.id, r.estado, r.tipo_combustible, r.litros_solicitados,
+               r.precio_total_usd, r.descripcion_vehiculo, r.qr_imagen_b64,
+               r.created_at,
+               g.nombre AS gasolinera_nombre,
+               u.nombre AS cliente_nombre
+        FROM reservas_tienda r
+        JOIN gasolineras g ON g.id = r.gasolinera_id
+        JOIN usuarios u ON u.id = r.usuario_id
+        WHERE r.qr_token = ?
+    """, (token,))
+    reserva = cur.fetchone()
+    conn.close()
+
+    if not reserva:
+        return render_template("tienda/qr_invalido.html"), 404
+
+    _COMBUSTIBLE_LABELS = {
+        "diesel": "Diésel",
+        "gasolina_regular": "Gasolina Regular",
+        "gasolina_especial": "Gasolina Especial",
+    }
+    return render_template("tienda/qr_vista.html",
+                           reserva=reserva,
+                           combustible_labels=_COMBUSTIBLE_LABELS)
 
 
 @app.route("/logout")
@@ -142,6 +186,8 @@ app.register_blueprint(usuarios_bp)
 app.register_blueprint(configuracion_bp)
 app.register_blueprint(turno_bp)
 app.register_blueprint(puertos_bp)
+app.register_blueprint(registro_bp)
+app.register_blueprint(tienda_bp)
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER

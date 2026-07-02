@@ -1,0 +1,56 @@
+{% extends "base_tienda.html" %}
+{% block titulo %}Reserva confirmada — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-head">
+    <h1>Reserva enviada</h1>
+    <p>Tu solicitud fue recibida. Un PM la revisará pronto.</p>
+</div>
+
+<div class="panel">
+    <div class="panel-body">
+        <div style="text-align:center;padding:20px 0 30px;">
+            <div style="font-size:3rem;color:#16A34A;margin-bottom:16px;"><i class="bi bi-check-circle-fill"></i></div>
+            <h2 style="font-size:1.3rem;font-weight:700;color:#111827;">Reserva #{{ reserva.id }} creada</h2>
+            <p style="color:#6B7280;font-size:0.9rem;">Recibirás tu código QR una vez que un administrador apruebe tu reserva.</p>
+        </div>
+
+        <div style="background:#F9FAFB;border-radius:10px;padding:20px;margin-bottom:24px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:14px;">
+                <div>
+                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Gasolinera</div>
+                    <div style="font-weight:600;">{{ reserva.gasolinera_nombre }}</div>
+                </div>
+                <div>
+                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Combustible</div>
+                    <div style="font-weight:600;">{{ combustible_labels.get(reserva.tipo_combustible, reserva.tipo_combustible) }}</div>
+                </div>
+                <div>
+                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Litros solicitados</div>
+                    <div style="font-weight:600;">{{ "%.2f"|format(reserva.litros_solicitados) }} L</div>
+                </div>
+                <div>
+                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Total estimado</div>
+                    <div style="font-weight:700;color:#E86A2C;font-size:1.1rem;">${{ "%.2f"|format(reserva.precio_total_usd) }}</div>
+                </div>
+                <div>
+                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Estado</div>
+                    <span class="badge-warn">Pendiente de aprobación</span>
+                </div>
+                {% if reserva.descripcion_vehiculo %}
+                <div>
+                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Vehículo</div>
+                    <div>{{ reserva.descripcion_vehiculo }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="/tienda/mis-reservas" class="btn-orange"><i class="bi bi-receipt"></i> Ver mis reservas</a>
+            <a href="/tienda/reservar" class="btn-sec"><i class="bi bi-plus"></i> Nueva reserva</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

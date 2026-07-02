@@ -90,7 +90,7 @@
             {% if _es_gas %}
             <div class="nav-section">Operativa</div>
 
-            <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') else '' }}">
+            <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') and not request.path.startswith('/turno/escanear') else '' }}">
                 <i class="bi bi-calendar-check"></i>
                 <span>Turno del día</span>
             </a>
@@ -109,6 +109,11 @@
                 <i class="bi bi-check2-square"></i>
                 <span>Conciliación</span>
             </a>
+
+            <a href="/turno/escanear" class="nav-item {{ 'nav-item-active' if request.path == '/turno/escanear' else '' }}">
+                <i class="bi bi-qr-code-scan"></i>
+                <span>Escanear QR</span>
+            </a>
             {% endif %}
 
             {% if _es_adm %}
@@ -126,6 +131,11 @@
             {% endif %}
 
             {% if _rol in ['admin', 'pm'] %}
+            <a href="/tienda/admin" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tienda') else '' }}">
+                <i class="bi bi-shop"></i>
+                <span>Tienda</span>
+            </a>
+
             <a href="/usuarios/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/usuarios') else '' }}">
                 <i class="bi bi-people"></i>
                 <span>Usuarios</span>
