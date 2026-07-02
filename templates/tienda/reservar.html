@@ -148,11 +148,11 @@
     inpLitros.addEventListener('input', calcPrecio);
 
     filtrarOpts();
-
-    function toggleOtroVehiculo(sel) {
-        const wrap = document.getElementById('otro-vehiculo-wrap');
-        if (wrap) wrap.style.display = sel.value === 'otro' ? '' : 'none';
-    }
 })();
+
+function toggleOtroVehiculo(sel) {
+    const wrap = document.getElementById('otro-vehiculo-wrap');
+    if (wrap) wrap.style.display = sel.value === 'otro' ? '' : 'none';
+}
 </script>
 {% endblock %}
