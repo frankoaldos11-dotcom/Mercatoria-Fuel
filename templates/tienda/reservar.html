@@ -60,10 +60,30 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Descripción del vehículo <span style="color:#9CA3AF;">(placa, modelo, color)</span></label>
-                <input type="text" name="descripcion_vehiculo" class="form-control"
-                       value="{{ form.get('descripcion_vehiculo', '') }}"
-                       placeholder="Toyota Hilux blanca, ABC-123">
+                <label class="form-label">Vehículo</label>
+                {% if mis_vehiculos %}
+                <select name="vehiculo_id" id="sel-vehiculo" class="form-control" onchange="toggleOtroVehiculo(this)">
+                    <option value="">— Selecciona un vehículo —</option>
+                    {% for v in mis_vehiculos %}
+                    <option value="{{ v.id }}" {{ 'selected' if form.get('vehiculo_id') == (v.id|string) else '' }}>
+                        {{ v.placa }}{% if v.marca %} — {{ v.marca }}{% endif %}{% if v.modelo %} {{ v.modelo }}{% endif %}
+                    </option>
+                    {% endfor %}
+                    <option value="otro" {{ 'selected' if form.get('vehiculo_id') == 'otro' else '' }}>Otro vehículo...</option>
+                </select>
+                {% else %}
+                <input type="hidden" name="vehiculo_id" value="otro">
+                {% endif %}
+                <div id="otro-vehiculo-wrap" style="{{ '' if (not mis_vehiculos or form.get('vehiculo_id') == 'otro') else 'display:none;' }}margin-top:8px;">
+                    <input type="text" name="descripcion_vehiculo" class="form-control"
+                           value="{{ form.get('descripcion_vehiculo', '') }}"
+                           placeholder="Toyota Hilux blanca, ABC-123">
+                </div>
+                {% if mis_vehiculos %}
+                <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">
+                    <a href="/tienda/mis-vehiculos/" style="color:#E86A2C;">Administrar mis vehículos</a>
+                </div>
+                {% endif %}
             </div>
 
             <div class="mb-3">
@@ -116,7 +136,7 @@
             const precio = parseFloat(opt.dataset.precio);
             const total = litros * precio;
             elTotal.textContent = '$' + total.toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            elDetalle.textContent = litros.toLocaleString('es') + ' L × $' + precio.toFixed(4) + '/L';
+            elDetalle.textContent = litros.toLocaleString('es') + ' L × $' + precio.toFixed(2) + '/L';
         } else {
             elTotal.textContent = '$0.00';
             elDetalle.textContent = '';
@@ -128,6 +148,11 @@
     inpLitros.addEventListener('input', calcPrecio);
 
     filtrarOpts();
+
+    function toggleOtroVehiculo(sel) {
+        const wrap = document.getElementById('otro-vehiculo-wrap');
+        if (wrap) wrap.style.display = sel.value === 'otro' ? '' : 'none';
+    }
 })();
 </script>
 {% endblock %}

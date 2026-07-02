@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session
+from flask import Blueprint, render_template, request, redirect, session, jsonify
 from database import conectar
 from utils.auth import requiere_rol
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS
@@ -134,3 +134,28 @@ def precios_eliminar(pid):
     conn.commit()
     conn.close()
     return redirect("/configuracion/?ok=1")
+
+
+@configuracion_bp.route("/precios/<int:pid>/editar", methods=["POST"])
+def precios_editar(pid):
+    redir = requiere_rol(*_ROLES_ADMIN)
+    if redir:
+        return jsonify({"error": "Sin permiso"}), 403
+
+    precio_str = request.form.get("precio_usd_por_litro", "0").strip()
+    try:
+        precio = float(precio_str.replace(",", "."))
+    except ValueError:
+        precio = 0.0
+
+    if precio <= 0:
+        return jsonify({"error": "Precio inválido"}), 400
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE precios_combustible SET precio_usd_por_litro=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+    """, (precio, pid))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "precio": f"{precio:.4f}"})

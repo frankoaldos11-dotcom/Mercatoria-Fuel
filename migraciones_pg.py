@@ -538,6 +538,28 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    # ── vehiculos_tienda ─────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS vehiculos_tienda (
+        id               SERIAL PRIMARY KEY,
+        usuario_id       INTEGER NOT NULL REFERENCES usuarios(id),
+        placa            TEXT NOT NULL,
+        marca            TEXT,
+        modelo           TEXT,
+        anio             INTEGER,
+        color            TEXT,
+        tipo_combustible TEXT,
+        activo           INTEGER NOT NULL DEFAULT 1,
+        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(usuario_id, placa)
+    )
+    """)
+
+    # ── ALTER TABLE reservas_tienda: tarjeta_id, motivo_cancelacion ───────────
+    cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS tarjeta_id INTEGER REFERENCES tarjetas(id)")
+    cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS motivo_cancelacion TEXT")
+
     # ── seed: configuracion ───────────────────────────────────────────────────
     params_default = [
         ("compra_minima_litros", "500"),

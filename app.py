@@ -57,6 +57,23 @@ limiter = Limiter(
 )
 
 
+@app.context_processor
+def inject_badges():
+    if "usuario" not in session:
+        return {}
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) AS n FROM reservas_tienda WHERE estado='pendiente'")
+        tienda_pendientes = (cur.fetchone()["n"] or 0)
+        cur.execute("SELECT COUNT(*) AS n FROM usuarios WHERE activo=0 AND rol='cliente'")
+        usuarios_pendientes = (cur.fetchone()["n"] or 0)
+        conn.close()
+        return {"tienda_pendientes": tienda_pendientes, "usuarios_pendientes": usuarios_pendientes}
+    except Exception:
+        return {"tienda_pendientes": 0, "usuarios_pendientes": 0}
+
+
 @app.after_request
 def set_security_headers(response):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"

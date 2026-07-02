@@ -28,8 +28,8 @@
             {{ combustible_labels.get(p.tipo_combustible, p.tipo_combustible) }}
         </div>
         <div>
-            <span style="font-size:1.6rem;font-weight:800;color:#E86A2C;">${{ "%.4f"|format(p.precio_usd_por_litro) }}</span>
-            <span style="font-size:0.8rem;color:#9CA3AF;"> / litro</span>
+            <span style="font-size:1.6rem;font-weight:800;color:#E86A2C;">${{ "%.2f"|format(p.precio_usd_por_litro) }}</span>
+            <span style="font-size:0.8rem;color:#9CA3AF;"> USD/litro</span>
         </div>
         <a href="/tienda/reservar?gasolinera_id={{ p.gasolinera_id }}&tipo={{ p.tipo_combustible }}"
            style="margin-top:4px;display:inline-flex;align-items:center;gap:6px;background:#E86A2C;color:#fff;border-radius:8px;padding:9px 16px;font-size:.85rem;font-weight:700;text-decoration:none;transition:background .15s;"

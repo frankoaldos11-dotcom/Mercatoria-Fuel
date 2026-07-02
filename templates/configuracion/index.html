@@ -113,7 +113,13 @@
                 <tr>
                     <td>{{ p.gasolinera_nombre }}</td>
                     <td>{{ tipos_combustible_labels.get(p.tipo_combustible, p.tipo_combustible) }}</td>
-                    <td style="font-weight:700;color:#E86A2C;">${{ "%.4f"|format(p.precio_usd_por_litro) }}</td>
+                    <td>
+                        <span id="val-{{ p.id }}" style="font-weight:700;color:#E86A2C;">${{ "%.4f"|format(p.precio_usd_por_litro) }}</span>
+                        <span id="edit-{{ p.id }}" style="display:none;">
+                            <input type="text" id="inp-{{ p.id }}" value="{{ p.precio_usd_por_litro }}"
+                                   style="width:100px;font-size:13px;padding:4px 8px;border:1.5px solid #D1D5DB;border-radius:6px;">
+                        </span>
+                    </td>
                     <td>
                         {% if p.activo %}
                         <span class="badge badge-ok">Activo</span>
@@ -122,7 +128,13 @@
                         {% endif %}
                     </td>
                     <td>
-                        <div style="display:flex;gap:6px;">
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <button type="button" id="btn-edit-{{ p.id }}" onclick="editarPrecio({{ p.id }})" class="btn btn-sm btn-secondary" title="Editar precio">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" id="btn-save-{{ p.id }}" onclick="guardarPrecio({{ p.id }})" style="display:none;" class="btn btn-sm btn-primary">
+                                <i class="bi bi-check-lg"></i> Guardar
+                            </button>
                             <form method="POST" action="/configuracion/precios/{{ p.id }}/toggle" style="display:inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-secondary"
@@ -148,4 +160,33 @@
     </div>
 </div>
 
+{% endblock %}
+{% block scripts %}
+<script>
+const _CSRF = '{{ csrf_token() }}';
+function editarPrecio(id) {
+    document.getElementById('val-' + id).style.display = 'none';
+    document.getElementById('edit-' + id).style.display = '';
+    document.getElementById('btn-edit-' + id).style.display = 'none';
+    document.getElementById('btn-save-' + id).style.display = '';
+    document.getElementById('inp-' + id).focus();
+}
+async function guardarPrecio(id) {
+    const precio = document.getElementById('inp-' + id).value.trim();
+    const fd = new FormData();
+    fd.append('csrf_token', _CSRF);
+    fd.append('precio_usd_por_litro', precio);
+    const r = await fetch('/configuracion/precios/' + id + '/editar', { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.ok) {
+        document.getElementById('val-' + id).textContent = '$' + parseFloat(data.precio).toFixed(4);
+        document.getElementById('val-' + id).style.display = '';
+        document.getElementById('edit-' + id).style.display = 'none';
+        document.getElementById('btn-edit-' + id).style.display = '';
+        document.getElementById('btn-save-' + id).style.display = 'none';
+    } else {
+        alert(data.error || 'Error al guardar');
+    }
+}
+</script>
 {% endblock %}

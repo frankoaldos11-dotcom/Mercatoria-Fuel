@@ -1,0 +1,144 @@
+{% extends "base_tienda.html" %}
+{% block titulo %}Mis vehículos — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-head">
+    <h1>Mis vehículos</h1>
+    <p>Gestiona los vehículos con los que realizas reservas de combustible.</p>
+</div>
+
+{% if request.args.get('ok') %}
+<div class="alert-success">
+    <i class="bi bi-check-circle"></i>
+    {% if request.args.get('ok') not in ('1',) %}
+    {{ request.args.get('ok') }} vehículo(s) importado(s) correctamente.
+    {% else %}
+    Vehículo guardado correctamente.
+    {% endif %}
+</div>
+{% endif %}
+{% if request.args.get('error') %}
+<div class="alert-error"><i class="bi bi-exclamation-circle"></i> {{ request.args.get('error') }}</div>
+{% endif %}
+
+<!-- Agregar vehículo -->
+<div class="panel" style="margin-bottom:20px;">
+    <div class="panel-body">
+        <h3 style="font-size:0.95rem;font-weight:700;margin:0 0 16px;color:#111827;">Agregar vehículo</h3>
+        <form method="POST" action="/tienda/mis-vehiculos/crear">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                <div style="flex:1;min-width:110px;">
+                    <label class="form-label">Placa *</label>
+                    <input type="text" name="placa" class="form-control" required placeholder="ABC-123"
+                           style="text-transform:uppercase;">
+                </div>
+                <div style="flex:1;min-width:110px;">
+                    <label class="form-label">Marca</label>
+                    <input type="text" name="marca" class="form-control" placeholder="Toyota">
+                </div>
+                <div style="flex:1;min-width:110px;">
+                    <label class="form-label">Modelo</label>
+                    <input type="text" name="modelo" class="form-control" placeholder="Hilux">
+                </div>
+                <div style="width:88px;">
+                    <label class="form-label">Año</label>
+                    <input type="number" name="anio" class="form-control" placeholder="2020" min="1990" max="2035">
+                </div>
+                <div style="flex:1;min-width:100px;">
+                    <label class="form-label">Color</label>
+                    <input type="text" name="color" class="form-control" placeholder="Blanco">
+                </div>
+                <div style="flex:1;min-width:160px;">
+                    <label class="form-label">Combustible</label>
+                    <select name="tipo_combustible" class="form-control">
+                        <option value="">— Cualquier —</option>
+                        {% for tc, lbl in combustible_labels.items() %}
+                        <option value="{{ tc }}">{{ lbl }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn-orange">
+                        <i class="bi bi-plus-lg"></i> Agregar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Importar Excel -->
+<div class="panel" style="margin-bottom:24px;">
+    <div class="panel-body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="flex:1;">
+            <div style="font-weight:700;font-size:0.9rem;">Importar desde Excel</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px;">
+                Columnas esperadas: <strong>Placa</strong>, Marca, Modelo, Año, Color, Combustible
+            </div>
+        </div>
+        <form method="POST" action="/tienda/mis-vehiculos/importar" enctype="multipart/form-data"
+              style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="file" name="archivo" accept=".xlsx,.xls" class="form-control" style="width:220px;" required>
+            <button type="submit" class="btn-sec"><i class="bi bi-upload"></i> Importar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Listado -->
+<div class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Placa</th>
+                    <th>Marca / Modelo</th>
+                    <th>Año</th>
+                    <th>Color</th>
+                    <th>Combustible</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vehiculos %}
+                <tr>
+                    <td><strong>{{ v.placa }}</strong></td>
+                    <td>
+                        {% set partes = [v.marca, v.modelo] | select('string') | list %}
+                        {{ partes | join(' ') or '—' }}
+                    </td>
+                    <td>{{ v.anio or '—' }}</td>
+                    <td>{{ v.color or '—' }}</td>
+                    <td>{{ combustible_labels.get(v.tipo_combustible, v.tipo_combustible) if v.tipo_combustible else '—' }}</td>
+                    <td>
+                        {% if v.activo %}
+                        <span class="badge-ok">Activo</span>
+                        {% else %}
+                        <span class="badge-danger">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="/tienda/mis-vehiculos/{{ v.id }}/toggle" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-sec" style="padding:5px 12px;font-size:12px;">
+                                <i class="bi bi-{{ 'toggle-on' if v.activo else 'toggle-off' }}"></i>
+                                {{ 'Desactivar' if v.activo else 'Activar' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:36px;color:var(--muted);">
+                        No tienes vehículos registrados aún.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

@@ -453,7 +453,7 @@ def api_reserva_completar(token):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, estado FROM reservas_tienda WHERE qr_token = ?
+        SELECT id, estado, tarjeta_id, litros_solicitados FROM reservas_tienda WHERE qr_token = ?
     """, (token,))
     row = cur.fetchone()
 
@@ -465,10 +465,19 @@ def api_reserva_completar(token):
         return jsonify({"error": f"La reserva no está aprobada (estado: {row['estado']})"}), 400
 
     cur.execute("""
-        UPDATE reservas_tienda
-        SET estado='completada', updated_at=CURRENT_TIMESTAMP
-        WHERE id=?
+        UPDATE reservas_tienda SET estado='completada', updated_at=CURRENT_TIMESTAMP WHERE id=?
     """, (row["id"],))
+
+    if row["tarjeta_id"]:
+        litros = float(row["litros_solicitados"])
+        cur.execute("SELECT saldo_usable_l FROM tarjetas WHERE id=?", (row["tarjeta_id"],))
+        t = cur.fetchone()
+        if t:
+            nuevo_saldo = max(0.0, float(t["saldo_usable_l"]) - litros)
+            cur.execute("""
+                UPDATE tarjetas SET saldo_usable_l=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+            """, (nuevo_saldo, row["tarjeta_id"]))
+
     conn.commit()
     conn.close()
     return jsonify({"ok": True})

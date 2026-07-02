@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from flask import Blueprint, render_template, session
+from flask import Blueprint, render_template, session, redirect
 from database import conectar
 from utils.auth import requiere_login
 
@@ -12,6 +12,9 @@ def dashboard():
     redir = requiere_login()
     if redir:
         return redir
+
+    if session.get("rol") == "cliente":
+        return redirect("/tienda/")
 
     conn = conectar()
     cur = conn.cursor()

@@ -9,17 +9,41 @@
     </div>
 </div>
 
-<!-- Filtro de estado -->
-<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-    {% for est, lbl in [('pendiente','Pendientes'),('aprobada','Aprobadas'),('completada','Completadas'),('cancelada','Canceladas'),('','Todas')] %}
-    <a href="/tienda/admin?estado={{ est }}"
-       style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;
-              background:{{ '#E86A2C' if filtro == est else '#F3F4F6' }};
-              color:{{ '#fff' if filtro == est else '#374151' }};
-              border:1px solid {{ '#E86A2C' if filtro == est else '#E5E7EB' }};">
-        {{ lbl }}
-    </a>
-    {% endfor %}
+<!-- Filtros -->
+<div class="panel" style="margin-bottom:20px;">
+    <div style="padding:16px 20px;">
+        <form method="GET" action="/tienda/admin" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:1;min-width:110px;">
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Estado</label>
+                <select name="estado" class="form-control" onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    {% for val, lbl in [('pendiente','Pendientes'),('aprobada','Aprobadas'),('completada','Completadas'),('cancelada','Canceladas')] %}
+                    <option value="{{ val }}" {{ 'selected' if filtro == val else '' }}>{{ lbl }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex:1;min-width:160px;">
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Gasolinera</label>
+                <select name="gasolinera_id" class="form-control" onchange="this.form.submit()">
+                    <option value="">Todas</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}" {{ 'selected' if filtro_gasolinera == (g.id|string) else '' }}>{{ g.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex:1;min-width:140px;">
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Fecha</label>
+                <input type="date" name="fecha" class="form-control" value="{{ filtro_fecha }}" onchange="this.form.submit()">
+            </div>
+            {% if filtro or filtro_gasolinera or filtro_fecha %}
+            <div style="padding-top:22px;">
+                <a href="/tienda/admin" class="btn btn-secondary">
+                    <i class="bi bi-x-lg"></i> Limpiar
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
 </div>
 
 <div class="panel">
@@ -29,6 +53,7 @@
                 <tr>
                     <th>#</th>
                     <th>Cliente</th>
+                    <th>Vehículo</th>
                     <th>Gasolinera</th>
                     <th>Combustible</th>
                     <th>Litros</th>
@@ -46,6 +71,7 @@
                         <strong>{{ r.cliente_nombre }}</strong>
                         <div style="font-size:12px;color:var(--muted);">{{ r.cliente_email }}</div>
                     </td>
+                    <td style="font-size:13px;color:var(--muted);">{{ r.descripcion_vehiculo or '—' }}</td>
                     <td>{{ r.gasolinera_nombre }}</td>
                     <td>{{ combustible_labels.get(r.tipo_combustible, r.tipo_combustible) }}</td>
                     <td>{{ "%.0f"|format(r.litros_solicitados) }} L</td>
@@ -59,12 +85,12 @@
                     <td>
                         {% if r.estado == 'pendiente' %}
                         <div style="display:flex;gap:6px;">
-                            <button onclick="aprobar({{ r.id }}, this)" class="btn btn-sm btn-primary">
+                            <button onclick="aprobar({{ r.id }}, {{ r.litros_solicitados }}, this)" class="btn btn-sm btn-primary">
                                 <i class="bi bi-check-lg"></i> Aprobar
                             </button>
-                            <button onclick="cancelar({{ r.id }}, this)" class="btn btn-sm btn-secondary"
+                            <button onclick="abrirRechazo({{ r.id }})" class="btn btn-sm btn-secondary"
                                     style="color:#DC2626;border-color:#DC2626;">
-                                <i class="bi bi-x-lg"></i>
+                                <i class="bi bi-x-lg"></i> Rechazar
                             </button>
                         </div>
                         {% elif r.estado == 'aprobada' %}
@@ -74,7 +100,7 @@
                                 <i class="bi bi-qr-code"></i> QR
                             </a>
                             {% endif %}
-                            <button onclick="cancelar({{ r.id }}, this)" class="btn btn-sm btn-secondary"
+                            <button onclick="abrirRechazo({{ r.id }})" class="btn btn-sm btn-secondary"
                                     style="color:#DC2626;border-color:#DC2626;">
                                 <i class="bi bi-x-lg"></i>
                             </button>
@@ -83,45 +109,158 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="9" class="empty-state">No hay reservas con este filtro.</td></tr>
+                <tr><td colspan="10" class="empty-state">No hay reservas con este filtro.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
+<!-- Modal rechazar -->
+<div id="modal-rechazo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+        <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:700;">Rechazar reserva</h3>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Indica el motivo del rechazo (obligatorio):</p>
+        <textarea id="motivo-rechazo" class="form-control" rows="3"
+                  placeholder="Ej: Sin stock disponible para esa fecha..."></textarea>
+        <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+            <button onclick="cerrarModalRechazo()" class="btn btn-secondary">Cancelar</button>
+            <button onclick="confirmarRechazo()" class="btn btn-primary" style="background:#DC2626;border-color:#DC2626;">
+                <i class="bi bi-x-lg"></i> Confirmar rechazo
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal selección de tarjeta -->
+<div id="modal-tarjeta" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:520px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+        <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:700;">Seleccionar tarjeta manualmente</h3>
+        <p id="modal-tarjeta-msg" style="color:var(--muted);font-size:14px;margin-bottom:14px;"></p>
+        <div id="lista-tarjetas" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+            <button onclick="cerrarModalTarjeta()" class="btn btn-secondary">Cancelar</button>
+            <button onclick="confirmarTarjeta()" id="btn-confirmar-tarjeta" class="btn btn-primary" disabled>
+                <i class="bi bi-check-lg"></i> Aprobar con esta tarjeta
+            </button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 {% block scripts %}
 <script>
-const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const CSRF_T = '{{ csrf_token() }}';
+let _rechazarId = null;
+let _aprobarId = null;
+let _tarjetaSeleccionada = null;
 
-async function aprobar(id, btn) {
+async function aprobar(id, litros, btn) {
     btn.disabled = true;
     const fd = new FormData();
-    fd.append('csrf_token', '{{ csrf_token() }}');
+    fd.append('csrf_token', CSRF_T);
     const r = await fetch(`/tienda/api/${id}/aprobar`, { method: 'POST', body: fd });
     const data = await r.json();
     if (data.ok) {
         location.reload();
+    } else if (data.necesita_tarjeta) {
+        btn.disabled = false;
+        _aprobarId = id;
+        mostrarModalTarjeta(data.tarjetas, data.litros);
     } else {
         alert(data.error || 'Error al aprobar');
         btn.disabled = false;
     }
 }
 
-async function cancelar(id, btn) {
-    if (!confirm('¿Cancelar esta reserva?')) return;
-    btn.disabled = true;
+function mostrarModalTarjeta(tarjetas, litros) {
+    document.getElementById('modal-tarjeta-msg').textContent =
+        `No hay tarjeta con saldo suficiente (${parseFloat(litros).toLocaleString('es')} L). Selecciona una manualmente:`;
+    const lista = document.getElementById('lista-tarjetas');
+    lista.innerHTML = '';
+    _tarjetaSeleccionada = null;
+    document.getElementById('btn-confirmar-tarjeta').disabled = true;
+
+    if (!tarjetas || tarjetas.length === 0) {
+        lista.innerHTML = '<p style="color:#DC2626;font-size:14px;">No hay tarjetas disponibles para esta gasolinera y combustible.</p>';
+    } else {
+        tarjetas.forEach(t => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s;';
+            div.innerHTML = `<strong>**** ${t.numero}</strong><span style="float:right;color:#E86A2C;font-weight:700;">${parseFloat(t.saldo).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2})} L</span>`;
+            div.dataset.tid = t.id;
+            div.onclick = () => {
+                lista.querySelectorAll('[data-tid]').forEach(el => {
+                    el.style.borderColor = '#E5E7EB';
+                    el.style.background = '';
+                });
+                div.style.borderColor = '#E86A2C';
+                div.style.background = '#FFF7ED';
+                _tarjetaSeleccionada = t.id;
+                document.getElementById('btn-confirmar-tarjeta').disabled = false;
+            };
+            lista.appendChild(div);
+        });
+    }
+    document.getElementById('modal-tarjeta').style.display = 'flex';
+}
+
+async function confirmarTarjeta() {
+    if (!_tarjetaSeleccionada || !_aprobarId) return;
+    document.getElementById('btn-confirmar-tarjeta').disabled = true;
     const fd = new FormData();
-    fd.append('csrf_token', '{{ csrf_token() }}');
-    const r = await fetch(`/tienda/api/${id}/cancelar`, { method: 'POST', body: fd });
+    fd.append('csrf_token', CSRF_T);
+    fd.append('tarjeta_id', _tarjetaSeleccionada);
+    const r = await fetch(`/tienda/api/${_aprobarId}/aprobar`, { method: 'POST', body: fd });
     const data = await r.json();
     if (data.ok) {
         location.reload();
     } else {
-        alert(data.error || 'Error al cancelar');
-        btn.disabled = false;
+        alert(data.error || 'Error al aprobar');
+        document.getElementById('btn-confirmar-tarjeta').disabled = false;
     }
 }
+
+function cerrarModalTarjeta() {
+    document.getElementById('modal-tarjeta').style.display = 'none';
+    _aprobarId = null;
+    _tarjetaSeleccionada = null;
+}
+
+function abrirRechazo(id) {
+    _rechazarId = id;
+    document.getElementById('motivo-rechazo').value = '';
+    document.getElementById('modal-rechazo').style.display = 'flex';
+}
+
+async function confirmarRechazo() {
+    const motivo = document.getElementById('motivo-rechazo').value.trim();
+    if (!motivo) {
+        alert('El motivo de rechazo es obligatorio.');
+        return;
+    }
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF_T);
+    fd.append('motivo', motivo);
+    const r = await fetch(`/tienda/api/${_rechazarId}/cancelar`, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.ok) {
+        location.reload();
+    } else {
+        alert(data.error || 'Error al rechazar');
+    }
+}
+
+function cerrarModalRechazo() {
+    document.getElementById('modal-rechazo').style.display = 'none';
+    _rechazarId = null;
+}
+
+document.getElementById('modal-rechazo').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModalRechazo();
+});
+document.getElementById('modal-tarjeta').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModalTarjeta();
+});
 </script>
 {% endblock %}

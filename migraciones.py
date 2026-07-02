@@ -557,6 +557,34 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── vehiculos_tienda ─────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS vehiculos_tienda (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id       INTEGER NOT NULL REFERENCES usuarios(id),
+        placa            TEXT NOT NULL,
+        marca            TEXT,
+        modelo           TEXT,
+        anio             INTEGER,
+        color            TEXT,
+        tipo_combustible TEXT,
+        activo           INTEGER NOT NULL DEFAULT 1,
+        created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        UNIQUE(usuario_id, placa)
+    )
+    """)
+
+    # ── ALTER TABLE reservas_tienda: tarjeta_id, motivo_cancelacion ───────────
+    for _sql in [
+        "ALTER TABLE reservas_tienda ADD COLUMN tarjeta_id INTEGER REFERENCES tarjetas(id)",
+        "ALTER TABLE reservas_tienda ADD COLUMN motivo_cancelacion TEXT",
+    ]:
+        try:
+            cur.execute(_sql)
+        except Exception:
+            pass
+
     # ── seed: configuracion ───────────────────────────────────────────────────
     params_default = [
         ("compra_minima_litros", "500"),
