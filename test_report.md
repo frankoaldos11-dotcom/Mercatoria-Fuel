@@ -87,8 +87,18 @@ con patrón `(campo | string)[:10]` en 5 templates:
 | `choferes/editar.html` | `licencia_vencimiento` | 1 |
 | `clientes/detalle.html` | `licencia_vencimiento` | 2 |
 
+### Verificación adicional tienda/admin y choferes/editar
+
+| # | Verificación | Resultado | Notas |
+|---|-------------|-----------|-------|
+| V1 | `/tienda/admin` carga sin 500 | ✅ PASS | Panel de reservas renderiza sin error; tabla vacía (sin reservas aún) |
+| V2 | `/choferes/1/editar` carga sin 500 | ✅ PASS | Formulario editar chofer renderiza correctamente |
+| V2 | `licencia_vencimiento` muestra `2027-06-30` en el `<input type="date">` | ✅ PASS | Objeto `date` de PostgreSQL formateado sin error por `(valor \| string)[:10]` |
+| V2 | Consola sin errores JS | ✅ PASS | 0 errores en consola en ambas páginas |
+
+Chofer de prueba creado durante la verificación: "Chofer Prueba PG", CI 99999999999, cliente PMA-001, licencia LIC-TEST-001, vence 2027-06-30.
+
 ## Recomendaciones pendientes
-1. **Verificar `/tienda/admin`** (reservas_tienda) y **`/tienda/qr_vista`** (QR de reserva) en producción cuando haya datos reales de `reservas_tienda` — el fix se aplicó pero no se pudo navegar a una reserva real para confirmar visualmente.
-2. **Verificar `/choferes/editar/:id`** con un chofer que tenga `licencia_vencimiento` — confirmar que el campo `<input type="date">` recibe el valor `YYYY-MM-DD` correctamente.
-3. **Crear cuenta operador_gasolinera de prueba** y verificar que el sidebar muestra solo "Operador Gasolinera" y que turno fuerza su gasolinera asignada.
-4. **Crear cuenta puesto_de_mando de prueba** y verificar acceso a Puertos + Operativa pero no a Comercial/Sistema.
+1. **Crear cuenta operador_gasolinera de prueba** y verificar que el sidebar muestra solo "Operador Gasolinera" y que turno fuerza su gasolinera asignada.
+2. **Crear cuenta puesto_de_mando de prueba** y verificar acceso a Puertos + Operativa pero no a Comercial/Sistema.
+3. **Verificar `/tienda/qr_vista`** (QR de reserva) con una reserva real aprobada cuando haya datos de `reservas_tienda`.
