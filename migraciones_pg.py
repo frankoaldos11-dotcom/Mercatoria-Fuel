@@ -19,32 +19,6 @@ def ejecutar_migraciones_pg(bcrypt):
 
     print("[migraciones_pg] Ejecutando migraciones (IF NOT EXISTS — idempotente).")
 
-    # ===== BLOQUE DE LIMPIEZA TEMPORAL — ELIMINAR DESPUÉS DEL PRIMER DEPLOY EXITOSO =====
-    # Activa con RESET_SCHEMA=true en Render → dropa el esquema completo.
-    # Úsalo UNA SOLA VEZ cuando la DB tiene tablas con esquema deforme de deploys viejos.
-    # La base de datos es de prueba; los datos son descartables.
-    # Flujo: (a) pon RESET_SCHEMA=true en Render, (b) despliega, (c) verifica que levanta OK,
-    # (d) quita RESET_SCHEMA, (e) pide commit que elimine este bloque del código.
-    if os.environ.get("RESET_SCHEMA", "").lower() == "true":
-        cur.execute("""
-            DROP TABLE IF EXISTS
-                despachos, habilitaciones,
-                movimientos, movimientos_tl38,
-                llegadas_puerto, transferencias, recepciones,
-                recargas_tarjetas, devoluciones_tarjetas,
-                conciliaciones, cliente_usuarios,
-                reservas_tienda, vehiculos_tienda, precios_combustible,
-                tarjetas, choferes, vehiculos,
-                subinventarios, auditoria,
-                depositos, puertos,
-                configuracion, clientes,
-                usuarios, gasolineras
-            CASCADE
-        """)
-        conn.commit()
-        print("[migraciones_pg] RESET_SCHEMA=true → 25 tablas eliminadas. Reconstruyendo desde cero.")
-    # ===== FIN BLOQUE TEMPORAL =====
-
     # ── FASE 1: SCHEMA ────────────────────────────────────────────────────────
     # Todos los CREATE TABLE en orden de dependencias, luego todos los ALTER TABLE.
     # conn.commit() al final garantiza que el esquema está commitado antes de cualquier seed.
