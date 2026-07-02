@@ -8,9 +8,8 @@ usuarios_bp = Blueprint("usuarios", __name__, url_prefix="/usuarios")
 _ROLES_LISTA = [
     ("admin",               "Admin"),
     ("pm",                  "PM"),
-    ("operario",            "Operario"),
-    ("operario_deposito",   "Operario Depósito"),
-    ("operario_gasolinera", "Operario Gasolinera"),
+    ("puesto_de_mando",     "Puesto de Mando"),
+    ("operador_gasolinera", "Operador Gasolinera"),
     ("supervisor",          "Supervisor"),
     ("cliente",             "Cliente"),
 ]
@@ -58,6 +57,8 @@ def crear():
     cur = conn.cursor()
     cur.execute("SELECT id, nombre, codigo FROM clientes WHERE activo = 1 ORDER BY nombre ASC")
     clientes = cur.fetchall()
+    cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
+    gasolineras = cur.fetchall()
     conn.close()
 
     error = None
@@ -67,9 +68,10 @@ def crear():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
-        rol = request.form.get("rol", "operario").strip()
+        rol = request.form.get("rol", "").strip()
         activo = 1 if request.form.get("activo") else 0
         cliente_id = request.form.get("cliente_id", "").strip() or None
+        gasolinera_id = request.form.get("gasolinera_id", "").strip() or None
 
         if not nombre:
             error = "El nombre es obligatorio."
@@ -85,6 +87,8 @@ def crear():
             error = "Rol inválido."
         elif rol == "cliente" and not cliente_id:
             error = "Debe seleccionar el cliente asociado para usuarios con rol cliente."
+        elif rol == "operador_gasolinera" and not gasolinera_id:
+            error = "Debe seleccionar la gasolinera asignada para el operador."
         else:
             conn = conectar()
             cur = conn.cursor()
@@ -94,10 +98,11 @@ def crear():
                 conn.close()
             else:
                 hash_pw = bcrypt.generate_password_hash(password).decode("utf-8")
+                gid = int(gasolinera_id) if gasolinera_id else None
                 cur.execute("""
-                    INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (nombre, email, hash_pw, rol, activo))
+                    INSERT INTO usuarios (nombre, email, password_hash, rol, activo, gasolinera_id)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (nombre, email, hash_pw, rol, activo, gid))
                 nuevo_id = cur.lastrowid
                 if rol == "cliente" and cliente_id:
                     cur.execute("""
@@ -112,6 +117,7 @@ def crear():
         "usuarios/crear.html",
         error=error,
         clientes=clientes,
+        gasolineras=gasolineras,
         roles=_ROLES_LISTA,
     )
 
@@ -140,6 +146,8 @@ def editar(uid):
 
     cur.execute("SELECT id, nombre, codigo FROM clientes WHERE activo = 1 ORDER BY nombre ASC")
     clientes = cur.fetchall()
+    cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
+    gasolineras = cur.fetchall()
     conn.close()
 
     error = None
@@ -149,9 +157,10 @@ def editar(uid):
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
-        rol = request.form.get("rol", "operario").strip()
+        rol = request.form.get("rol", "").strip()
         activo = 1 if request.form.get("activo") else 0
         cliente_id = request.form.get("cliente_id", "").strip() or None
+        gasolinera_id = request.form.get("gasolinera_id", "").strip() or None
 
         propio = (uid == session.get("user_id"))
 
@@ -169,6 +178,8 @@ def editar(uid):
             error = "No puedes cambiar tu propio rol."
         elif rol == "cliente" and not cliente_id:
             error = "Debe seleccionar el cliente asociado para usuarios con rol cliente."
+        elif rol == "operador_gasolinera" and not gasolinera_id:
+            error = "Debe seleccionar la gasolinera asignada para el operador."
         else:
             conn = conectar()
             cur = conn.cursor()
@@ -177,17 +188,18 @@ def editar(uid):
                 error = "Ya existe otro usuario con ese email."
                 conn.close()
             else:
+                gid = int(gasolinera_id) if gasolinera_id else None
                 if password:
                     hash_pw = bcrypt.generate_password_hash(password).decode("utf-8")
                     cur.execute("""
                         UPDATE usuarios SET nombre=?, email=?, password_hash=?, rol=?,
-                        activo=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-                    """, (nombre, email, hash_pw, rol, activo, uid))
+                        activo=?, gasolinera_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+                    """, (nombre, email, hash_pw, rol, activo, gid, uid))
                 else:
                     cur.execute("""
                         UPDATE usuarios SET nombre=?, email=?, rol=?,
-                        activo=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-                    """, (nombre, email, rol, activo, uid))
+                        activo=?, gasolinera_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+                    """, (nombre, email, rol, activo, gid, uid))
 
                 # Gestionar cliente_usuarios
                 cur.execute("DELETE FROM cliente_usuarios WHERE usuario_id = ?", (uid,))
@@ -206,6 +218,7 @@ def editar(uid):
         usuario=usuario,
         error=error,
         clientes=clientes,
+        gasolineras=gasolineras,
         roles=_ROLES_LISTA,
     )
 

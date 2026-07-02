@@ -39,13 +39,21 @@
         </div>
 
         {% set _rol = session.get('rol', '') %}
-        {% set _es_dep = _rol in ['admin', 'pm', 'supervisor', 'operario_deposito'] %}
-        {% set _es_gas = _rol in ['admin', 'pm', 'supervisor', 'operario', 'operario_gasolinera'] %}
+        {% set _es_dep = _rol in ['admin', 'pm', 'supervisor', 'puesto_de_mando'] %}
+        {% set _es_gas = _rol in ['admin', 'pm', 'supervisor', 'puesto_de_mando', 'operador_gasolinera'] %}
         {% set _es_adm = _rol in ['admin', 'pm', 'supervisor'] %}
+        {% set _es_pm = _rol == 'puesto_de_mando' %}
+        {% set _es_opgas = _rol == 'operador_gasolinera' %}
 
         <nav class="sidebar-nav">
 
+            {% if _es_adm %}
             <div class="nav-section">Operaciones</div>
+            {% elif _es_pm %}
+            <div class="nav-section">Puesto de Mando</div>
+            {% elif _es_opgas %}
+            <div class="nav-section">Operador Gasolinera</div>
+            {% endif %}
 
             <a href="/dashboard" class="nav-item {{ 'nav-item-active' if request.path in ('/', '/dashboard') else '' }}">
                 <i class="bi bi-grid-1x2"></i>
@@ -96,7 +104,9 @@
             {% endif %}
 
             {% if _es_gas %}
+            {% if _es_adm or _es_pm %}
             <div class="nav-section">Operativa</div>
+            {% endif %}
 
             <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') and not request.path.startswith('/turno/escanear') else '' }}">
                 <i class="bi bi-calendar-check"></i>
@@ -184,11 +194,9 @@
             <span class="role-badge role-admin">ADMIN</span>
             {% elif _rol == 'pm' %}
             <span class="role-badge role-pm">PM</span>
-            {% elif _rol == 'operario' %}
-            <span class="role-badge role-operario">OP</span>
-            {% elif _rol == 'operario_deposito' %}
-            <span class="role-badge role-operario-deposito">OP-DEP</span>
-            {% elif _rol == 'operario_gasolinera' %}
+            {% elif _rol == 'puesto_de_mando' %}
+            <span class="role-badge role-operario-deposito">P.MANDO</span>
+            {% elif _rol == 'operador_gasolinera' %}
             <span class="role-badge role-operario-gasolinera">OP-GAS</span>
             {% elif _rol == 'supervisor' %}
             <span class="role-badge role-supervisor">SUP</span>

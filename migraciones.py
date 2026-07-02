@@ -21,7 +21,7 @@ def ejecutar_migraciones(bcrypt):
         nombre        TEXT NOT NULL,
         email         TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        rol           TEXT NOT NULL DEFAULT 'operario',
+        rol           TEXT NOT NULL DEFAULT 'puesto_de_mando',
         activo        INTEGER NOT NULL DEFAULT 1,
         created_at    TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
         updated_at    TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
@@ -575,10 +575,11 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
-    # ── ALTER TABLE reservas_tienda: tarjeta_id, motivo_cancelacion ───────────
+    # ── ALTER TABLE ───────────────────────────────────────────────────────────
     for _sql in [
         "ALTER TABLE reservas_tienda ADD COLUMN tarjeta_id INTEGER REFERENCES tarjetas(id)",
         "ALTER TABLE reservas_tienda ADD COLUMN motivo_cancelacion TEXT",
+        "ALTER TABLE usuarios ADD COLUMN gasolinera_id INTEGER REFERENCES gasolineras(id)",
     ]:
         try:
             cur.execute(_sql)

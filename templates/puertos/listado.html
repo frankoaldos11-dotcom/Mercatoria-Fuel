@@ -8,7 +8,7 @@
         <h1>Puertos</h1>
         <p>Registro de llegadas de isotanques al país.</p>
     </div>
-    {% if session.get('rol') in ['admin', 'pm', 'operario_deposito'] %}
+    {% if session.get('rol') in ['admin', 'pm', 'puesto_de_mando'] %}
     <a href="/puertos/crear" class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> Registrar llegada
     </a>

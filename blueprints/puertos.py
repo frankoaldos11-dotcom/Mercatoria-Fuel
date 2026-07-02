@@ -17,7 +17,7 @@ def _requiere_dep():
     redir = requiere_login()
     if redir:
         return redir
-    if session.get("rol") not in ROLES_OPERARIO_DEP + ["supervisor"]:
+    if session.get("rol") not in ROLES_OPERARIO_DEP:
         return redirect("/dashboard")
     return None
 
@@ -91,7 +91,7 @@ def crear():
     redir = _requiere_dep()
     if redir:
         return redir
-    if session.get("rol") not in ROLES_ADMIN_PM + ["operario_deposito"]:
+    if session.get("rol") not in ROLES_ADMIN_PM + ["puesto_de_mando"]:
         return redirect("/puertos/?access_error=Sin+permisos")
 
     conn = conectar()
@@ -203,7 +203,7 @@ def transferir(llegada_id):
     redir = requiere_login()
     if redir:
         return redirect("/login")
-    if session.get("rol") not in ROLES_ADMIN_PM + ["operario_deposito"]:
+    if session.get("rol") not in ROLES_ADMIN_PM + ["puesto_de_mando"]:
         return redirect("/puertos/?access_error=Sin+permisos")
 
     deposito_id = request.form.get("deposito_destino_id", "").strip()

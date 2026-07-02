@@ -32,12 +32,17 @@ def listado():
     condiciones = []
     params = []
 
+    # Para operador_gasolinera: restringir siempre a su gasolinera asignada
+    if session.get("rol") == "operador_gasolinera":
+        condiciones.append("h.gasolinera_id = ?")
+        params.append(session.get("gasolinera_id"))
+    elif filtro_gasolinera:
+        condiciones.append("h.gasolinera_id = ?")
+        params.append(filtro_gasolinera)
+
     if filtro_cliente:
         condiciones.append("h.cliente_id = ?")
         params.append(filtro_cliente)
-    if filtro_gasolinera:
-        condiciones.append("h.gasolinera_id = ?")
-        params.append(filtro_gasolinera)
     if filtro_estado:
         condiciones.append("h.estado = ?")
         params.append(filtro_estado)

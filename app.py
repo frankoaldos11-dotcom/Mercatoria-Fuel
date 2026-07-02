@@ -92,7 +92,7 @@ def login():
         conn = conectar()
         cur = conn.cursor()
         cur.execute("""
-            SELECT id, nombre, password_hash, rol, activo
+            SELECT id, nombre, password_hash, rol, activo, gasolinera_id
             FROM usuarios
             WHERE email = ?
         """, (email,))
@@ -118,6 +118,10 @@ def login():
                 """, (fila["id"],))
                 cu = cur.fetchone()
                 session["cliente_id"] = cu["cliente_id"] if cu else None
+
+            # Para operador_gasolinera: cargar gasolinera_id
+            if fila["rol"] == "operador_gasolinera":
+                session["gasolinera_id"] = fila.get("gasolinera_id")
 
             conn.close()
 

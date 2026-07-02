@@ -14,12 +14,19 @@
 <!-- Selector de contexto del turno -->
 <div class="panel mb-4">
     <form method="GET" action="/turno/" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        {% if rol == 'operador_gasolinera' %}
+        <input type="hidden" name="gasolinera_id" value="{{ gasolinera_id }}">
+        <div class="form-control" style="max-width:200px;background:#F9FAFB;font-weight:600;">
+            {% for g in gasolineras %}{% if g.id|string == gasolinera_id %}{{ g.nombre }}{% endif %}{% endfor %}
+        </div>
+        {% else %}
         <select name="gasolinera_id" class="form-select" style="max-width:200px;" required>
             <option value="">Gasolinera...</option>
             {% for g in gasolineras %}
             <option value="{{ g.id }}" {{ 'selected' if gasolinera_id == g.id|string }}>{{ g.nombre }}</option>
             {% endfor %}
         </select>
+        {% endif %}
         <input type="date" name="fecha" class="form-control" style="max-width:160px;"
                value="{{ fecha }}" required>
         <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Cargar</button>
@@ -99,7 +106,7 @@
                     <th style="text-align:right;">Aut. (L)</th>
                     <th style="text-align:right;">Desp. (L)</th>
                     <th>Estado</th>
-                    {% if rol in ('admin', 'pm', 'operario', 'operario_gasolinera') %}<th>Acciones</th>{% endif %}
+                    {% if rol in ('admin', 'pm', 'puesto_de_mando', 'operador_gasolinera') %}<th>Acciones</th>{% endif %}
                 </tr>
             </thead>
             <tbody id="tbody-habs">
@@ -113,7 +120,7 @@
                     <td style="text-align:right;font-weight:700;">{{ "{:,.2f}".format(h.litros_autorizados) }}</td>
                     <td style="text-align:right;color:var(--primary);font-weight:700;" id="desp-{{ h.id }}">{{ "{:,.2f}".format(h.litros_despachados) }}</td>
                     <td><span class="badge-estado badge" id="estado-{{ h.id }}">{{ h.estado }}</span></td>
-                    {% if rol in ('admin', 'pm', 'operario', 'operario_gasolinera') %}
+                    {% if rol in ('admin', 'pm', 'puesto_de_mando', 'operador_gasolinera') %}
                     <td>
                         <div style="display:flex;gap:4px;" id="acciones-{{ h.id }}">
                             {% if h.estado == 'pendiente' and rol in ('admin', 'pm') %}

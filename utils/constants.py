@@ -1,16 +1,15 @@
 ROLES = {
-    "ADMIN":              "admin",
-    "PM":                 "pm",
-    "OPERARIO":           "operario",
-    "OPERARIO_DEPOSITO":  "operario_deposito",
-    "OPERARIO_GASOLINERA":"operario_gasolinera",
-    "SUPERVISOR":         "supervisor",
-    "CLIENTE":            "cliente",
+    "ADMIN":               "admin",
+    "PM":                  "pm",
+    "PUESTO_DE_MANDO":     "puesto_de_mando",
+    "OPERADOR_GASOLINERA": "operador_gasolinera",
+    "SUPERVISOR":          "supervisor",
+    "CLIENTE":             "cliente",
 }
 
 ROLES_ADMIN_PM = ["admin", "pm"]
-ROLES_OPERARIO_GAS = ["admin", "pm", "operario", "operario_gasolinera"]
-ROLES_OPERARIO_DEP = ["admin", "pm", "operario_deposito"]
+ROLES_OPERARIO_GAS = ["admin", "pm", "puesto_de_mando", "operador_gasolinera"]
+ROLES_OPERARIO_DEP = ["admin", "pm", "supervisor", "puesto_de_mando"]
 
 REGIONES = ["Occidente", "Centro", "Oriente"]
 

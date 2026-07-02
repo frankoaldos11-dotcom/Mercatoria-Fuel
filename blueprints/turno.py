@@ -35,9 +35,15 @@ def index():
         return redir
 
     hoy = date.today().isoformat()
-    gasolinera_id = request.args.get("gasolinera_id", "").strip()
+    rol_actual = session.get("rol")
     fecha = request.args.get("fecha", hoy).strip()
     turno = ""  # eliminado del flujo
+
+    # Para operador_gasolinera: forzar su gasolinera; ignorar parámetro URL
+    if rol_actual == "operador_gasolinera":
+        gasolinera_id = str(session.get("gasolinera_id") or "")
+    else:
+        gasolinera_id = request.args.get("gasolinera_id", "").strip()
 
     conn = conectar()
     cur = conn.cursor()
@@ -292,6 +298,13 @@ def api_despachar(hab_id):
         conn.close()
         return jsonify({"error": f"La habilitación no está aprobada (estado: {hab['estado']})"}), 400
 
+    # Verificar que operador_gasolinera solo despacha en su gasolinera asignada
+    if session.get("rol") == "operador_gasolinera":
+        gid_sesion = session.get("gasolinera_id")
+        if not gid_sesion or int(hab["gasolinera_id"]) != int(gid_sesion):
+            conn.close()
+            return jsonify({"error": "No autorizado: esta habilitación no corresponde a tu gasolinera"}), 403
+
     # Guardar foto si viene
     foto_url = None
     if foto and foto.filename and _allowed(foto.filename):
@@ -453,7 +466,7 @@ def api_reserva_completar(token):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, estado, tarjeta_id, litros_solicitados FROM reservas_tienda WHERE qr_token = ?
+        SELECT id, estado, tarjeta_id, litros_solicitados, gasolinera_id FROM reservas_tienda WHERE qr_token = ?
     """, (token,))
     row = cur.fetchone()
 
@@ -463,6 +476,13 @@ def api_reserva_completar(token):
     if row["estado"] != "aprobada":
         conn.close()
         return jsonify({"error": f"La reserva no está aprobada (estado: {row['estado']})"}), 400
+
+    # Verificar que operador_gasolinera solo completa reservas de su gasolinera
+    if session.get("rol") == "operador_gasolinera":
+        gid_sesion = session.get("gasolinera_id")
+        if not gid_sesion or int(row["gasolinera_id"]) != int(gid_sesion):
+            conn.close()
+            return jsonify({"error": "No autorizado: esta reserva no corresponde a tu gasolinera"}), 403
 
     cur.execute("""
         UPDATE reservas_tienda SET estado='completada', updated_at=CURRENT_TIMESTAMP WHERE id=?

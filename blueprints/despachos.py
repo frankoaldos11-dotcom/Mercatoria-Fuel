@@ -47,7 +47,11 @@ def listado():
     condiciones = []
     params = []
 
-    if filtro_gasolinera:
+    # Para operador_gasolinera: restringir siempre a su gasolinera asignada
+    if session.get("rol") == "operador_gasolinera":
+        condiciones.append("d.gasolinera_id = ?")
+        params.append(session.get("gasolinera_id"))
+    elif filtro_gasolinera:
         condiciones.append("d.gasolinera_id = ?")
         params.append(filtro_gasolinera)
     if filtro_cliente:
@@ -163,7 +167,13 @@ def crear():
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("""
+    _habs_cond = ""
+    _habs_params = []
+    if session.get("rol") == "operador_gasolinera":
+        _habs_cond = "AND h.gasolinera_id = ?"
+        _habs_params.append(session.get("gasolinera_id"))
+
+    cur.execute(f"""
         SELECT h.id, h.litros_autorizados, h.tarjeta_id, h.subinventario_id,
                h.cliente_id, h.unidad_id, h.gasolinera_id,
                cli.nombre AS cliente_nombre,
@@ -182,8 +192,9 @@ def crear():
             SELECT 1 FROM despachos d
             WHERE d.habilitacion_id = h.id AND d.estado = 'completado'
         )
+        {_habs_cond}
         ORDER BY h.id DESC
-    """)
+    """, _habs_params)
     habilitaciones = cur.fetchall()
     conn.close()
 

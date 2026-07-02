@@ -41,8 +41,10 @@
                         <span class="badge" style="background:#fee2e2;color:#991b1b;">Admin</span>
                         {% elif u.rol == 'pm' %}
                         <span class="badge" style="background:#dbeafe;color:#1e40af;">PM</span>
-                        {% elif u.rol == 'operario' %}
-                        <span class="badge" style="background:#dcfce7;color:#166534;">Operario</span>
+                        {% elif u.rol == 'puesto_de_mando' %}
+                        <span class="badge" style="background:#dcfce7;color:#166534;">Puesto de Mando</span>
+                        {% elif u.rol == 'operador_gasolinera' %}
+                        <span class="badge" style="background:#e0f2fe;color:#0c4a6e;">Operador Gasolinera</span>
                         {% elif u.rol == 'supervisor' %}
                         <span class="badge badge-neutral">Supervisor</span>
                         {% elif u.rol == 'cliente' %}

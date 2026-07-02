@@ -140,7 +140,7 @@ def dashboard():
     # ── Vista por rol ─────────────────────────────────────────────────────────
     rol = session.get("rol", "")
 
-    if rol in ("operario", "operario_gasolinera"):
+    if rol == "operador_gasolinera":
         cur.execute("""
             SELECT h.id, h.litros_autorizados, h.fecha_habilitacion,
                    cli.nombre AS cliente, v.chapa, g.nombre AS gasolinera,
@@ -165,7 +165,7 @@ def dashboard():
             habs_pendientes=habs_pendientes,
         )
 
-    if rol == "operario_deposito":
+    if rol == "puesto_de_mando":
         cur.execute("""
             SELECT lp.id, lp.numero_isotanque, lp.tipo_combustible,
                    lp.litros, lp.fecha_llegada,
@@ -178,7 +178,7 @@ def dashboard():
         llegadas_pendientes = cur.fetchall()
         conn.close()
         return render_template(
-            "dashboard_operario_deposito.html",
+            "dashboard_puesto_de_mando.html",
             llegadas_pendientes=llegadas_pendientes,
         )
 

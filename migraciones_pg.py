@@ -25,7 +25,7 @@ def ejecutar_migraciones_pg(bcrypt):
         nombre        TEXT NOT NULL,
         email         TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        rol           TEXT NOT NULL DEFAULT 'operario',
+        rol           TEXT NOT NULL DEFAULT 'puesto_de_mando',
         activo        INTEGER NOT NULL DEFAULT 1,
         created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -559,6 +559,7 @@ def ejecutar_migraciones_pg(bcrypt):
     # ── ALTER TABLE reservas_tienda: tarjeta_id, motivo_cancelacion ───────────
     cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS tarjeta_id INTEGER REFERENCES tarjetas(id)")
     cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS motivo_cancelacion TEXT")
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gasolinera_id INTEGER REFERENCES gasolineras(id)")
 
     # ── seed: configuracion ───────────────────────────────────────────────────
     params_default = [

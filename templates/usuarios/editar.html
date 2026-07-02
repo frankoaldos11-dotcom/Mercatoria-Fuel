@@ -49,6 +49,7 @@
             <div class="mb-3">
                 <label class="form-label">Rol <span style="color:var(--danger)">*</span></label>
                 <select name="rol" id="sel-rol" class="form-select" required
+                        onchange="toggleRol(this)"
                         {{ 'disabled' if usuario.id == session.get('user_id') }}>
                     {% for r_val, r_label in roles %}
                     <option value="{{ r_val }}" {{ 'selected' if request.form.get('rol', usuario.rol) == r_val }}>
@@ -73,6 +74,27 @@
                     </option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div class="mb-3" id="bloque-gasolinera">
+                <label class="form-label">Gasolinera asignada</label>
+                {% set gid_actual = request.form.get('gasolinera_id', usuario.gasolinera_id|string if usuario.gasolinera_id else '') %}
+                {% if usuario.id == session.get('user_id') %}
+                <input type="hidden" name="gasolinera_id" value="{{ usuario.gasolinera_id or '' }}">
+                <div class="form-control" style="background:#F9FAFB;color:var(--muted);">
+                    {% for g in gasolineras %}{% if g.id|string == gid_actual %}{{ g.nombre }}{% endif %}{% endfor %}
+                    {% if not gid_actual %}Sin gasolinera asignada{% endif %}
+                </div>
+                {% else %}
+                <select name="gasolinera_id" class="form-select">
+                    <option value="">Sin gasolinera</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}" {{ 'selected' if gid_actual == g.id|string }}>
+                        {{ g.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% endif %}
             </div>
 
             <div class="mb-3" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
@@ -100,13 +122,11 @@
 {% endblock %}
 {% block scripts %}
 <script>
-const selRol = document.getElementById('sel-rol');
-const bloqueCliente = document.getElementById('bloque-cliente');
-function toggleCliente() {
-    if (!selRol) return;
-    bloqueCliente.style.display = selRol.value === 'cliente' ? '' : 'none';
+function toggleRol(sel) {
+    var v = sel ? sel.value : (document.getElementById('sel-rol') ? document.getElementById('sel-rol').value : '');
+    document.getElementById('bloque-cliente').style.display = (v === 'cliente') ? '' : 'none';
+    document.getElementById('bloque-gasolinera').style.display = (v === 'operador_gasolinera') ? '' : 'none';
 }
-if (selRol) selRol.addEventListener('change', toggleCliente);
-toggleCliente();
+toggleRol(null);
 </script>
 {% endblock %}
