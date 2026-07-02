@@ -19,19 +19,37 @@ def ejecutar_migraciones_pg(bcrypt):
 
     print("[migraciones_pg] Ejecutando migraciones (IF NOT EXISTS — idempotente).")
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id            SERIAL PRIMARY KEY,
-        nombre        TEXT NOT NULL,
-        email         TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        rol           TEXT NOT NULL DEFAULT 'puesto_de_mando',
-        activo        INTEGER NOT NULL DEFAULT 1,
-        created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+    # ===== BLOQUE DE LIMPIEZA TEMPORAL — ELIMINAR DESPUÉS DEL PRIMER DEPLOY EXITOSO =====
+    # Activa con RESET_SCHEMA=true en Render → dropa el esquema completo.
+    # Úsalo UNA SOLA VEZ cuando la DB tiene tablas con esquema deforme de deploys viejos.
+    # La base de datos es de prueba; los datos son descartables.
+    # Flujo: (a) pon RESET_SCHEMA=true en Render, (b) despliega, (c) verifica que levanta OK,
+    # (d) quita RESET_SCHEMA, (e) pide commit que elimine este bloque del código.
+    if os.environ.get("RESET_SCHEMA", "").lower() == "true":
+        cur.execute("""
+            DROP TABLE IF EXISTS
+                despachos, habilitaciones,
+                movimientos, movimientos_tl38,
+                llegadas_puerto, transferencias, recepciones,
+                recargas_tarjetas, devoluciones_tarjetas,
+                conciliaciones, cliente_usuarios,
+                reservas_tienda, vehiculos_tienda, precios_combustible,
+                tarjetas, choferes, vehiculos,
+                subinventarios, auditoria,
+                depositos, puertos,
+                configuracion, clientes,
+                usuarios, gasolineras
+            CASCADE
+        """)
+        conn.commit()
+        print("[migraciones_pg] RESET_SCHEMA=true → 25 tablas eliminadas. Reconstruyendo desde cero.")
+    # ===== FIN BLOQUE TEMPORAL =====
 
+    # ── FASE 1: SCHEMA ────────────────────────────────────────────────────────
+    # Todos los CREATE TABLE en orden de dependencias, luego todos los ALTER TABLE.
+    # conn.commit() al final garantiza que el esquema está commitado antes de cualquier seed.
+
+    # Tablas raíz (sin FK entre sí)
     cur.execute("""
     CREATE TABLE IF NOT EXISTS gasolineras (
         id                 SERIAL PRIMARY KEY,
@@ -44,62 +62,6 @@ def ejecutar_migraciones_pg(bcrypt):
         estado             TEXT NOT NULL DEFAULT 'activo',
         created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    # ── columnas añadidas a gasolineras post-v1 ───────────────────────────────
-    cur.execute("ALTER TABLE gasolineras ADD COLUMN IF NOT EXISTS provincia TEXT")
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS subinventarios (
-        id                SERIAL PRIMARY KEY,
-        gasolinera_id     INTEGER NOT NULL REFERENCES gasolineras(id),
-        nombre            TEXT NOT NULL,
-        tipo              TEXT NOT NULL DEFAULT 'mercatoria_interna',
-        orden_prioridad   INTEGER NOT NULL DEFAULT 0,
-        litros_reservados NUMERIC(14,2) NOT NULL DEFAULT 0,
-        cliente_id        INTEGER,
-        activo            INTEGER NOT NULL DEFAULT 1,
-        created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS movimientos (
-        id                       SERIAL PRIMARY KEY,
-        tipo                     TEXT NOT NULL,
-        fecha                    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        gasolinera_id            INTEGER REFERENCES gasolineras(id),
-        deposito_id              INTEGER,
-        tarjeta_id               INTEGER,
-        cliente_id               INTEGER,
-        vehiculo_id              INTEGER,
-        chofer_id                INTEGER,
-        subinventario_origen_id  INTEGER REFERENCES subinventarios(id),
-        subinventario_destino_id INTEGER REFERENCES subinventarios(id),
-        litros                   NUMERIC(14,2) NOT NULL DEFAULT 0,
-        responsable_id           INTEGER NOT NULL REFERENCES usuarios(id),
-        observaciones            TEXT,
-        created_at               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    # ── columnas añadidas a movimientos post-v3 ───────────────────────────────
-    cur.execute("ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS tipo_combustible TEXT")
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS auditoria (
-        id             SERIAL PRIMARY KEY,
-        usuario_id     INTEGER REFERENCES usuarios(id),
-        accion         TEXT NOT NULL,
-        tabla_afectada TEXT,
-        registro_id    INTEGER,
-        valor_anterior TEXT,
-        valor_nuevo    TEXT,
-        ip             TEXT,
-        user_agent     TEXT,
-        fecha          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
@@ -117,6 +79,101 @@ def ejecutar_migraciones_pg(bcrypt):
         activo                    INTEGER NOT NULL DEFAULT 1,
         created_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS depositos (
+        id               SERIAL PRIMARY KEY,
+        nombre           TEXT NOT NULL,
+        region           TEXT NOT NULL,
+        direccion        TEXT,
+        tipo_combustible TEXT NOT NULL,
+        capacidad_l      NUMERIC(14,2) NOT NULL DEFAULT 0,
+        responsable      TEXT,
+        notas            TEXT,
+        estado           TEXT NOT NULL DEFAULT 'activo',
+        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS puertos (
+        id         SERIAL PRIMARY KEY,
+        nombre     TEXT NOT NULL,
+        region     TEXT NOT NULL,
+        activo     INTEGER NOT NULL DEFAULT 1,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS configuracion (
+        clave      TEXT PRIMARY KEY,
+        valor      TEXT NOT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # usuarios: gasolinera_id incluida en CREATE TABLE para que DBs frescas la tengan desde el inicio
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS usuarios (
+        id            SERIAL PRIMARY KEY,
+        nombre        TEXT NOT NULL,
+        email         TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        rol           TEXT NOT NULL DEFAULT 'puesto_de_mando',
+        activo        INTEGER NOT NULL DEFAULT 1,
+        gasolinera_id INTEGER REFERENCES gasolineras(id),
+        created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # Nivel 1: dependen solo de tablas raíz
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS subinventarios (
+        id                SERIAL PRIMARY KEY,
+        gasolinera_id     INTEGER NOT NULL REFERENCES gasolineras(id),
+        nombre            TEXT NOT NULL,
+        tipo              TEXT NOT NULL DEFAULT 'mercatoria_interna',
+        orden_prioridad   INTEGER NOT NULL DEFAULT 0,
+        litros_reservados NUMERIC(14,2) NOT NULL DEFAULT 0,
+        cliente_id        INTEGER,
+        activo            INTEGER NOT NULL DEFAULT 1,
+        created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS tarjetas (
+        id               SERIAL PRIMARY KEY,
+        numero_completo  TEXT UNIQUE NOT NULL,
+        numero_parcial   TEXT NOT NULL,
+        pin_hash         TEXT NOT NULL,
+        gasolinera_id    INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible TEXT NOT NULL,
+        saldo_usable_l   NUMERIC(14,2) NOT NULL DEFAULT 0,
+        saldo_retenido_l NUMERIC(14,2) NOT NULL DEFAULT 0,
+        estado           TEXT NOT NULL DEFAULT 'activa',
+        notas            TEXT,
+        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS precios_combustible (
+        id                   SERIAL PRIMARY KEY,
+        gasolinera_id        INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible     TEXT NOT NULL,
+        precio_usd_por_litro NUMERIC(10,4) NOT NULL DEFAULT 0,
+        activo               INTEGER NOT NULL DEFAULT 1,
+        updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(gasolinera_id, tipo_combustible)
     )
     """)
 
@@ -154,22 +211,102 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
-    # ── columnas añadidas a vehiculos post-v2 ─────────────────────────────────
-    cur.execute("ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS chofer_id INTEGER REFERENCES choferes(id)")
+    # Nivel 2: dependen de usuarios + otras
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS auditoria (
+        id             SERIAL PRIMARY KEY,
+        usuario_id     INTEGER REFERENCES usuarios(id),
+        accion         TEXT NOT NULL,
+        tabla_afectada TEXT,
+        registro_id    INTEGER,
+        valor_anterior TEXT,
+        valor_nuevo    TEXT,
+        ip             TEXT,
+        user_agent     TEXT,
+        fecha          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS depositos (
+    CREATE TABLE IF NOT EXISTS movimientos_tl38 (
+        id             SERIAL PRIMARY KEY,
+        fecha          DATE NOT NULL,
+        gasolinera_id  INTEGER REFERENCES gasolineras(id),
+        tipo           TEXT NOT NULL DEFAULT 'despacho',
+        chapa          TEXT NOT NULL,
+        chofer         TEXT NOT NULL,
+        litros         NUMERIC(14,2) NOT NULL DEFAULT 0,
+        tarjeta_tl38   TEXT,
+        flota          TEXT NOT NULL DEFAULT '599',
+        observaciones  TEXT,
+        responsable_id INTEGER NOT NULL REFERENCES usuarios(id),
+        created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS conciliaciones (
+        id                    SERIAL PRIMARY KEY,
+        gasolinera_id         INTEGER NOT NULL REFERENCES gasolineras(id),
+        fecha                 DATE NOT NULL,
+        turno                 TEXT,
+        saldo_fisico_inicio_l NUMERIC(14,2) NOT NULL DEFAULT 0,
+        saldo_fisico_fin_l    NUMERIC(14,2) NOT NULL DEFAULT 0,
+        total_entrada_l       NUMERIC(14,2) NOT NULL DEFAULT 0,
+        total_despachado_l    NUMERIC(14,2) NOT NULL DEFAULT 0,
+        diferencia_l          NUMERIC(14,2) NOT NULL DEFAULT 0,
+        diferencia_porcentaje NUMERIC(8,4) NOT NULL DEFAULT 0,
+        estado                TEXT NOT NULL DEFAULT 'borrador',
+        observaciones         TEXT,
+        responsable_id        INTEGER NOT NULL REFERENCES usuarios(id),
+        created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS cliente_usuarios (
+        id         SERIAL PRIMARY KEY,
+        cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+        usuario_id INTEGER NOT NULL UNIQUE REFERENCES usuarios(id),
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS reservas_tienda (
+        id                   SERIAL PRIMARY KEY,
+        usuario_id           INTEGER NOT NULL REFERENCES usuarios(id),
+        gasolinera_id        INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible     TEXT NOT NULL,
+        litros_solicitados   NUMERIC(14,2) NOT NULL DEFAULT 0,
+        precio_usd_por_litro NUMERIC(10,4) NOT NULL DEFAULT 0,
+        precio_total_usd     NUMERIC(14,2) NOT NULL DEFAULT 0,
+        descripcion_vehiculo TEXT,
+        observaciones        TEXT,
+        estado               TEXT NOT NULL DEFAULT 'pendiente',
+        qr_token             TEXT UNIQUE,
+        qr_imagen_b64        TEXT,
+        aprobado_por         INTEGER REFERENCES usuarios(id),
+        created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS vehiculos_tienda (
         id               SERIAL PRIMARY KEY,
-        nombre           TEXT NOT NULL,
-        region           TEXT NOT NULL,
-        direccion        TEXT,
-        tipo_combustible TEXT NOT NULL,
-        capacidad_l      NUMERIC(14,2) NOT NULL DEFAULT 0,
-        responsable      TEXT,
-        notas            TEXT,
-        estado           TEXT NOT NULL DEFAULT 'activo',
+        usuario_id       INTEGER NOT NULL REFERENCES usuarios(id),
+        placa            TEXT NOT NULL,
+        marca            TEXT,
+        modelo           TEXT,
+        anio             INTEGER,
+        color            TEXT,
+        tipo_combustible TEXT,
+        activo           INTEGER NOT NULL DEFAULT 1,
         created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(usuario_id, placa)
     )
     """)
 
@@ -214,25 +351,6 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
-    # ── tarjetas ──────────────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS tarjetas (
-        id               SERIAL PRIMARY KEY,
-        numero_completo  TEXT UNIQUE NOT NULL,
-        numero_parcial   TEXT NOT NULL,
-        pin_hash         TEXT NOT NULL,
-        gasolinera_id    INTEGER NOT NULL REFERENCES gasolineras(id),
-        tipo_combustible TEXT NOT NULL,
-        saldo_usable_l   NUMERIC(14,2) NOT NULL DEFAULT 0,
-        saldo_retenido_l NUMERIC(14,2) NOT NULL DEFAULT 0,
-        estado           TEXT NOT NULL DEFAULT 'activa',
-        notas            TEXT,
-        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    # ── recargas_tarjetas ─────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS recargas_tarjetas (
         id                SERIAL PRIMARY KEY,
@@ -247,7 +365,6 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
-    # ── devoluciones_tarjetas ─────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS devoluciones_tarjetas (
         id                        SERIAL PRIMARY KEY,
@@ -267,7 +384,45 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
-    # ── habilitaciones ────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS llegadas_puerto (
+        id                  SERIAL PRIMARY KEY,
+        puerto_id           INTEGER NOT NULL REFERENCES puertos(id),
+        numero_isotanque    TEXT NOT NULL,
+        tipo_combustible    TEXT NOT NULL,
+        litros              NUMERIC(14,2) NOT NULL DEFAULT 0,
+        fecha_llegada       DATE NOT NULL,
+        deposito_destino_id INTEGER REFERENCES depositos(id),
+        fecha_transferencia DATE,
+        estado              TEXT NOT NULL DEFAULT 'en_puerto',
+        observaciones       TEXT,
+        responsable_id      INTEGER NOT NULL REFERENCES usuarios(id),
+        created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS movimientos (
+        id                       SERIAL PRIMARY KEY,
+        tipo                     TEXT NOT NULL,
+        fecha                    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        gasolinera_id            INTEGER REFERENCES gasolineras(id),
+        deposito_id              INTEGER,
+        tarjeta_id               INTEGER,
+        cliente_id               INTEGER,
+        vehiculo_id              INTEGER,
+        chofer_id                INTEGER,
+        subinventario_origen_id  INTEGER REFERENCES subinventarios(id),
+        subinventario_destino_id INTEGER REFERENCES subinventarios(id),
+        litros                   NUMERIC(14,2) NOT NULL DEFAULT 0,
+        responsable_id           INTEGER NOT NULL REFERENCES usuarios(id),
+        observaciones            TEXT,
+        created_at               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # Nivel 3: dependen de habilitaciones y vehiculos
     cur.execute("""
     CREATE TABLE IF NOT EXISTS habilitaciones (
         id                 SERIAL PRIMARY KEY,
@@ -289,7 +444,6 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
-    # ── despachos ─────────────────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS despachos (
         id                 SERIAL PRIMARY KEY,
@@ -312,56 +466,22 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
-    # ── conciliaciones ────────────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS conciliaciones (
-        id                    SERIAL PRIMARY KEY,
-        gasolinera_id         INTEGER NOT NULL REFERENCES gasolineras(id),
-        fecha                 DATE NOT NULL,
-        turno                 TEXT,
-        saldo_fisico_inicio_l NUMERIC(14,2) NOT NULL DEFAULT 0,
-        saldo_fisico_fin_l    NUMERIC(14,2) NOT NULL DEFAULT 0,
-        total_entrada_l       NUMERIC(14,2) NOT NULL DEFAULT 0,
-        total_despachado_l    NUMERIC(14,2) NOT NULL DEFAULT 0,
-        diferencia_l          NUMERIC(14,2) NOT NULL DEFAULT 0,
-        diferencia_porcentaje NUMERIC(8,4) NOT NULL DEFAULT 0,
-        estado                TEXT NOT NULL DEFAULT 'borrador',
-        observaciones         TEXT,
-        responsable_id        INTEGER NOT NULL REFERENCES usuarios(id),
-        created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+    # ── ALTER TABLE: safety net para DBs existentes con esquema parcial ───────
+    cur.execute("ALTER TABLE gasolineras ADD COLUMN IF NOT EXISTS provincia TEXT")
+    cur.execute("ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS tipo_combustible TEXT")
+    cur.execute("ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS chofer_id INTEGER REFERENCES choferes(id)")
+    cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS tarjeta_id INTEGER REFERENCES tarjetas(id)")
+    cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS motivo_cancelacion TEXT")
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gasolinera_id INTEGER REFERENCES gasolineras(id)")
 
-    # ── cliente_usuarios ─────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS cliente_usuarios (
-        id         SERIAL PRIMARY KEY,
-        cliente_id INTEGER NOT NULL REFERENCES clientes(id),
-        usuario_id INTEGER NOT NULL UNIQUE REFERENCES usuarios(id),
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+    # Esquema completo garantizado antes de cualquier seed
+    conn.commit()
+    print("[migraciones_pg] Fase 1 (schema) completada y commitada.")
 
-    # ── movimientos_tl38 ─────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS movimientos_tl38 (
-        id             SERIAL PRIMARY KEY,
-        fecha          DATE NOT NULL,
-        gasolinera_id  INTEGER REFERENCES gasolineras(id),
-        tipo           TEXT NOT NULL DEFAULT 'despacho',
-        chapa          TEXT NOT NULL,
-        chofer         TEXT NOT NULL,
-        litros         NUMERIC(14,2) NOT NULL DEFAULT 0,
-        tarjeta_tl38   TEXT,
-        flota          TEXT NOT NULL DEFAULT '599',
-        observaciones  TEXT,
-        responsable_id INTEGER NOT NULL REFERENCES usuarios(id),
-        created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+    # ── FASE 2: SEEDS ─────────────────────────────────────────────────────────
+    # Todos idempotentes: SELECT-skip o ON CONFLICT DO NOTHING.
 
-    # ── seed: admin ───────────────────────────────────────────────────────────
+    # seed: admin
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
     if not cur.fetchone():
         hash_pw = bcrypt.generate_password_hash("Mercatoria2026!").decode("utf-8")
@@ -370,7 +490,7 @@ def ejecutar_migraciones_pg(bcrypt):
             ("Administrador", "admin@mercatoria.com", hash_pw, "admin")
         )
 
-    # ── seed: clientes ────────────────────────────────────────────────────────
+    # seed: clientes
     clientes_seed = [
         ("Programa Mundial de Alimentos", "PMA-001",  "internacional"),
         ("UNFPA",                          "UNFPA-001", "internacional"),
@@ -386,7 +506,7 @@ def ejecutar_migraciones_pg(bcrypt):
                 (nombre, codigo, tipo)
             )
 
-    # ── seed: gasolinera La Shell ─────────────────────────────────────────────
+    # seed: gasolinera La Shell
     cur.execute("SELECT id FROM gasolineras WHERE nombre = %s", ("La Shell",))
     row_shell = cur.fetchone()
     if not row_shell:
@@ -398,7 +518,7 @@ def ejecutar_migraciones_pg(bcrypt):
     else:
         shell_id = row_shell[0]
 
-    # ── seed: usuario cliente PMA ────────────────────────────────────────────
+    # seed: usuario cliente PMA
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("cliente_pma@mercatoria.com",))
     if not cur.fetchone():
         hash_cli = bcrypt.generate_password_hash("Cliente2026!").decode("utf-8")
@@ -417,7 +537,7 @@ def ejecutar_migraciones_pg(bcrypt):
                 ON CONFLICT DO NOTHING
             """, (pma_row[0], cli_user_id))
 
-    # ── seed: tarjetas Fincimex ───────────────────────────────────────────────
+    # seed: tarjetas Fincimex + devoluciones
     cur.execute("SELECT id FROM usuarios WHERE email = %s", ("admin@mercatoria.com",))
     row_admin = cur.fetchone()
     admin_id = row_admin[0] if row_admin else 1
@@ -454,47 +574,7 @@ def ejecutar_migraciones_pg(bcrypt):
                 """, (nueva_id, saldo_retenido, fecha_estimada_seed, admin_id,
                       f"Devolución inicial — tarjeta ****{num_parcial}"))
 
-    # ── puertos ───────────────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS puertos (
-        id         SERIAL PRIMARY KEY,
-        nombre     TEXT NOT NULL,
-        region     TEXT NOT NULL,
-        activo     INTEGER NOT NULL DEFAULT 1,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    # ── llegadas_puerto ───────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS llegadas_puerto (
-        id                  SERIAL PRIMARY KEY,
-        puerto_id           INTEGER NOT NULL REFERENCES puertos(id),
-        numero_isotanque    TEXT NOT NULL,
-        tipo_combustible    TEXT NOT NULL,
-        litros              NUMERIC(14,2) NOT NULL DEFAULT 0,
-        fecha_llegada       DATE NOT NULL,
-        deposito_destino_id INTEGER REFERENCES depositos(id),
-        fecha_transferencia DATE,
-        estado              TEXT NOT NULL DEFAULT 'en_puerto',
-        observaciones       TEXT,
-        responsable_id      INTEGER NOT NULL REFERENCES usuarios(id),
-        created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    # ── configuracion ─────────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS configuracion (
-        clave      TEXT PRIMARY KEY,
-        valor      TEXT NOT NULL,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    # ── seed: puertos ─────────────────────────────────────────────────────────
+    # seed: puertos
     puertos_seed = [
         ("Puerto Mariel",   "Occidente"),
         ("Puerto Santiago", "Oriente"),
@@ -504,64 +584,7 @@ def ejecutar_migraciones_pg(bcrypt):
         if not cur.fetchone():
             cur.execute("INSERT INTO puertos (nombre, region) VALUES (%s, %s)", (nombre_p, region_p))
 
-    # ── precios_combustible ───────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS precios_combustible (
-        id                   SERIAL PRIMARY KEY,
-        gasolinera_id        INTEGER NOT NULL REFERENCES gasolineras(id),
-        tipo_combustible     TEXT NOT NULL,
-        precio_usd_por_litro NUMERIC(10,4) NOT NULL DEFAULT 0,
-        activo               INTEGER NOT NULL DEFAULT 1,
-        updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(gasolinera_id, tipo_combustible)
-    )
-    """)
-
-    # ── reservas_tienda ───────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS reservas_tienda (
-        id                   SERIAL PRIMARY KEY,
-        usuario_id           INTEGER NOT NULL REFERENCES usuarios(id),
-        gasolinera_id        INTEGER NOT NULL REFERENCES gasolineras(id),
-        tipo_combustible     TEXT NOT NULL,
-        litros_solicitados   NUMERIC(14,2) NOT NULL DEFAULT 0,
-        precio_usd_por_litro NUMERIC(10,4) NOT NULL DEFAULT 0,
-        precio_total_usd     NUMERIC(14,2) NOT NULL DEFAULT 0,
-        descripcion_vehiculo TEXT,
-        observaciones        TEXT,
-        estado               TEXT NOT NULL DEFAULT 'pendiente',
-        qr_token             TEXT UNIQUE,
-        qr_imagen_b64        TEXT,
-        aprobado_por         INTEGER REFERENCES usuarios(id),
-        created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    # ── vehiculos_tienda ─────────────────────────────────────────────────────
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS vehiculos_tienda (
-        id               SERIAL PRIMARY KEY,
-        usuario_id       INTEGER NOT NULL REFERENCES usuarios(id),
-        placa            TEXT NOT NULL,
-        marca            TEXT,
-        modelo           TEXT,
-        anio             INTEGER,
-        color            TEXT,
-        tipo_combustible TEXT,
-        activo           INTEGER NOT NULL DEFAULT 1,
-        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(usuario_id, placa)
-    )
-    """)
-
-    # ── ALTER TABLE reservas_tienda: tarjeta_id, motivo_cancelacion ───────────
-    cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS tarjeta_id INTEGER REFERENCES tarjetas(id)")
-    cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS motivo_cancelacion TEXT")
-    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gasolinera_id INTEGER REFERENCES gasolineras(id)")
-
-    # ── seed: configuracion ───────────────────────────────────────────────────
+    # seed: configuracion
     params_default = [
         ("compra_minima_litros", "500"),
     ]
@@ -572,6 +595,4 @@ def ejecutar_migraciones_pg(bcrypt):
         )
 
     conn.commit()
-    cur.close()
-    conn.close()
-    print("[migraciones_pg] Migraciones PostgreSQL completadas.")
+    print("[migraciones_pg] Fase 2 (seeds) completada. Base de datos lista.")
