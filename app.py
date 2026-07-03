@@ -232,6 +232,8 @@ def not_found(e):
 
 @app.errorhandler(500)
 def server_error(e):
+    import traceback
+    app.logger.error("500 Internal Server Error:\n%s", traceback.format_exc())
     return render_template("500.html"), 500
 
 

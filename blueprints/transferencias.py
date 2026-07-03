@@ -267,6 +267,15 @@ def distribuir(id):
         conn.close()
         return redirect(f"/transferencias/{id}/gestionar?access_error=Ingresa+litros+para+al+menos+una+tarjeta")
 
+    suma_asignada = sum(litros_val for _, litros_val in assignments)
+    litros_requeridos = float(transferencia["litros_recibidos"])
+    if abs(suma_asignada - litros_requeridos) > 0.005:
+        conn.close()
+        return redirect(
+            f"/transferencias/{id}/gestionar?access_error="
+            f"La+suma+({suma_asignada:.2f}+L)+debe+igualar+exactamente+{litros_requeridos:.2f}+L+recibidos"
+        )
+
     from datetime import date as _date
     fecha_hoy = _date.today().isoformat()
     for tarjeta_id, litros_val in assignments:

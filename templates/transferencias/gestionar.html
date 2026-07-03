@@ -161,9 +161,9 @@
 <div class="panel">
     {% if tarjetas %}
     <div style="padding:16px 24px 8px;font-size:13px;color:var(--muted);">
-        Asigna los <strong>{{ "{:,.2f}".format(transferencia.litros_recibidos) }} L recibidos</strong>
+        Distribuye exactamente los <strong>{{ "{:,.2f}".format(transferencia.litros_recibidos) }} L recibidos</strong>
         a las tarjetas activas de <strong>{{ transferencia.gasolinera_nombre }}</strong>.
-        Puedes distribuir parcialmente — solo ingresa los litros que quieras asignar a cada tarjeta.
+        La suma de todos los campos debe igualar <strong>exactamente</strong> ese total.
     </div>
     <form method="POST" action="/transferencias/{{ transferencia.id }}/distribuir">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -184,19 +184,31 @@
                         <td>
                             <input type="number" name="litros_tarjeta_{{ t.id }}"
                                    class="form-control form-control-sm"
-                                   min="0" step="0.01" placeholder="0.00">
+                                   min="0" step="0.01" placeholder="0.00"
+                                   oninput="calcSumaDistribucion()">
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        <div style="padding:0 24px 16px;display:flex;gap:12px;">
+            <div style="flex:1;background:var(--surface-alt);border-radius:8px;padding:10px 16px;">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;">Suma asignada</div>
+                <div style="font-size:20px;font-weight:700;" id="suma-display">0.00 L</div>
+                <div style="font-size:12px;margin-top:2px;" id="suma-msg">Ingresa los litros a distribuir</div>
+            </div>
+            <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:10px 16px;">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;">Total requerido</div>
+                <div style="font-size:20px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(transferencia.litros_recibidos) }} L</div>
+            </div>
+        </div>
         <div style="background:#FEF9C3;border-left:4px solid #CA8A04;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#713F12;">
             <i class="bi bi-info-circle"></i>
             Los litros asignados se <strong>sumarán al saldo usable</strong> de cada tarjeta.
         </div>
         <div style="padding:0 24px 24px;">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary" id="btn-distribuir" disabled>
                 <i class="bi bi-credit-card-2-front"></i> Asignar a tarjetas
             </button>
         </div>
@@ -242,6 +254,33 @@ function calcDiferencia() {
                          ' L  (' + (diff >= 0 ? '+' : '') + (diff / litrosSol * 100).toFixed(2) + '%)';
         el.style.color = diff < 0 ? '#DC2626' : (diff > 0 ? '#16A34A' : 'var(--muted)');
         obsLabel.style.display = pct > 0.5 ? 'inline' : 'none';
+    }
+}
+</script>
+{% endif %}
+{% if transferencia.estado == 'recibida' %}
+<script>
+const litrosTotal = {{ transferencia.litros_recibidos }};
+function calcSumaDistribucion() {
+    var inputs = document.querySelectorAll('input[name^="litros_tarjeta_"]');
+    var suma = 0;
+    inputs.forEach(function(inp) { suma += parseFloat(inp.value) || 0; });
+    var exacto = Math.abs(suma - litrosTotal) < 0.005;
+    var sumEl = document.getElementById('suma-display');
+    var msgEl = document.getElementById('suma-msg');
+    var btn   = document.getElementById('btn-distribuir');
+    sumEl.textContent = suma.toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L';
+    sumEl.style.color = exacto ? 'var(--success)' : (suma > litrosTotal ? 'var(--danger)' : 'var(--text)');
+    btn.disabled = !exacto;
+    if (exacto) {
+        msgEl.textContent = '✓ Suma exacta — listo para asignar.';
+        msgEl.style.color = 'var(--success)';
+    } else if (suma > litrosTotal) {
+        msgEl.textContent = 'Excede en ' + (suma - litrosTotal).toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L';
+        msgEl.style.color = 'var(--danger)';
+    } else {
+        msgEl.textContent = 'Faltan ' + (litrosTotal - suma).toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L por asignar';
+        msgEl.style.color = 'var(--muted)';
     }
 }
 </script>
