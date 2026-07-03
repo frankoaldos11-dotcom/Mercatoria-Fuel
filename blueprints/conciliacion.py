@@ -14,18 +14,17 @@ _DIFF_TOLERANCIA = 0.005  # 0.5%
 
 
 def _detalle_habilitaciones(cur, gasolinera_id, fecha):
-    """Devuelve habilitaciones del día con su despacho (o None) para la vista de cierre."""
+    """Devuelve habilitaciones del día para la vista de cierre de turno."""
     manana = (date.fromisoformat(fecha) + timedelta(days=1)).isoformat()
     cur.execute("""
         SELECT h.id, h.estado,
-               h.litros_autorizados, h.tipo_combustible,
+               h.litros_autorizados, h.litros_despachados,
+               v.tipo_combustible,
                c.nombre AS cliente_nombre,
-               u.chapa  AS unidad_chapa,
-               d.litros_despachados
+               v.chapa  AS unidad_chapa
         FROM habilitaciones h
         JOIN clientes c  ON c.id = h.cliente_id
-        JOIN unidades u  ON u.id = h.unidad_id
-        LEFT JOIN despachos d ON d.habilitacion_id = h.id
+        JOIN vehiculos v ON v.id = h.unidad_id
         WHERE h.gasolinera_id = ?
           AND h.fecha_habilitacion >= ?
           AND h.fecha_habilitacion <  ?
