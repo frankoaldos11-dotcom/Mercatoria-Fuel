@@ -112,7 +112,18 @@ def crear():
     depositos = cur.fetchall()
     cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
     gasolineras = cur.fetchall()
+    cur.execute("""
+        SELECT gasolinera_id, tipo_combustible
+        FROM tarjetas
+        WHERE estado = 'activa'
+        GROUP BY gasolinera_id, tipo_combustible
+    """)
+    _tar_rows = cur.fetchall()
     conn.close()
+    tarjetas_por_gasolinera = {}
+    for row in _tar_rows:
+        gid = str(row["gasolinera_id"])
+        tarjetas_por_gasolinera.setdefault(gid, []).append(row["tipo_combustible"])
 
     if request.method == "POST":
         deposito_id = request.form.get("deposito_origen_id", "").strip()
@@ -153,7 +164,24 @@ def crear():
                     f"y se solicitan {litros:,.2f} L."
                 )
                 conn.close()
-            else:
+
+            if not error:
+                cur.execute("""
+                    SELECT COUNT(*) AS n FROM tarjetas
+                    WHERE gasolinera_id = ? AND tipo_combustible = ? AND estado = 'activa'
+                """, (gasolinera_id, tipo_combustible))
+                if cur.fetchone()["n"] == 0:
+                    nombre_gas = next(
+                        (g["nombre"] for g in gasolineras if str(g["id"]) == gasolinera_id), gasolinera_id
+                    )
+                    tc_label = TIPOS_COMBUSTIBLE_LABELS.get(tipo_combustible, tipo_combustible)
+                    error = (
+                        f"{nombre_gas} no tiene tarjetas Fincimex activas de {tc_label}. "
+                        f"Asigne una tarjeta antes de transferir este combustible."
+                    )
+                    conn.close()
+
+            if not error:
                 cur.execute("""
                     INSERT INTO transferencias
                         (deposito_origen_id, gasolinera_destino_id, tipo_combustible,
@@ -177,6 +205,7 @@ def crear():
                 conn.close()
                 return redirect("/transferencias?ok=1")
 
+    import json
     from datetime import date
     return render_template(
         "transferencias/crear.html",
@@ -187,6 +216,8 @@ def crear():
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=date.today().isoformat(),
         deposito_pre=request.args.get("deposito_id", "") or request.form.get("deposito_origen_id", ""),
+        tarjetas_por_gasolinera_json=json.dumps(tarjetas_por_gasolinera),
+        gasolineras_nombres_json=json.dumps({str(g["id"]): g["nombre"] for g in gasolineras}),
     )
 
 
@@ -362,29 +393,43 @@ def confirmar_llegada(id):
         if not error:
             conn = conectar()
             cur = conn.cursor()
+            # BLOQUEO DURO — línea crítica irrenunciable
             cur.execute("""
-                UPDATE transferencias
-                SET estado = 'recibida', litros_recibidos = ?,
-                    fecha_llegada = ?, observaciones = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            """, (litros_recibidos, fecha_llegada, observaciones or None, id))
-            # Insertar movimiento de entrada — suma a la gasolinera
-            cur.execute("""
-                INSERT INTO movimientos
-                    (tipo, fecha, gasolinera_id, tipo_combustible, litros, responsable_id, observaciones)
-                VALUES ('transferencia_entrada', ?, ?, ?, ?, ?, ?)
-            """, (
-                fecha_llegada,
-                transferencia["gasolinera_destino_id"],
-                transferencia["tipo_combustible"],
-                litros_recibidos,
-                session.get("user_id"),
-                f"Llegada transferencia #{id} desde depósito {transferencia['deposito_nombre']}",
-            ))
-            conn.commit()
-            conn.close()
-            return redirect(f"/transferencias/{id}/gestionar?ok=1")
+                SELECT COUNT(*) AS n FROM tarjetas
+                WHERE gasolinera_id = ? AND tipo_combustible = ? AND estado = 'activa'
+            """, (transferencia["gasolinera_destino_id"], transferencia["tipo_combustible"]))
+            if cur.fetchone()["n"] == 0:
+                conn.close()
+                tc_label = TIPOS_COMBUSTIBLE_LABELS.get(transferencia["tipo_combustible"], transferencia["tipo_combustible"])
+                error = (
+                    f"{transferencia['gasolinera_nombre']} no tiene tarjetas Fincimex activas de {tc_label}. "
+                    f"No se puede confirmar la llegada sin respaldo de tarjeta. "
+                    f"Asigne una tarjeta activa del mismo combustible a esa gasolinera y vuelva a intentarlo."
+                )
+            else:
+                cur.execute("""
+                    UPDATE transferencias
+                    SET estado = 'recibida', litros_recibidos = ?,
+                        fecha_llegada = ?, observaciones = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (litros_recibidos, fecha_llegada, observaciones or None, id))
+                # Insertar movimiento de entrada — suma a la gasolinera
+                cur.execute("""
+                    INSERT INTO movimientos
+                        (tipo, fecha, gasolinera_id, tipo_combustible, litros, responsable_id, observaciones)
+                    VALUES ('transferencia_entrada', ?, ?, ?, ?, ?, ?)
+                """, (
+                    fecha_llegada,
+                    transferencia["gasolinera_destino_id"],
+                    transferencia["tipo_combustible"],
+                    litros_recibidos,
+                    session.get("user_id"),
+                    f"Llegada transferencia #{id} desde depósito {transferencia['deposito_nombre']}",
+                ))
+                conn.commit()
+                conn.close()
+                return redirect(f"/transferencias/{id}/gestionar?ok=1")
 
     from datetime import date
     return render_template(

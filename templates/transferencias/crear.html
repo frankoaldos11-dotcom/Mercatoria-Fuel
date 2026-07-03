@@ -42,7 +42,7 @@
 
             <div class="mb-3">
                 <label class="form-label">Gasolinera destino <span style="color:var(--danger)">*</span></label>
-                <select name="gasolinera_destino_id" class="form-select" required>
+                <select name="gasolinera_destino_id" id="sel-gasolinera" class="form-select" required onchange="validarTarjeta()">
                     <option value="">Seleccionar gasolinera...</option>
                     {% for g in gasolineras %}
                     <option value="{{ g.id }}">{{ g.nombre }}</option>
@@ -52,12 +52,16 @@
 
             <div class="mb-3">
                 <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
-                <select name="tipo_combustible" class="form-select" required>
+                <select name="tipo_combustible" id="sel-combustible" class="form-select" required onchange="validarTarjeta()">
                     <option value="">Seleccionar...</option>
                     {% for tc in tipos_combustible %}
                     <option value="{{ tc }}">{{ combustible_labels.get(tc, tc) }}</option>
                     {% endfor %}
                 </select>
+                <div id="aviso-tarjeta" style="display:none;margin-top:8px;background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:6px;padding:8px 12px;font-size:13px;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span id="aviso-tarjeta-msg"></span>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -99,7 +103,7 @@
         </div>
 
         <div style="padding:0 24px 24px;display:flex;gap:10px;">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" id="btn-submit" class="btn btn-primary">
                 <i class="bi bi-arrow-right-circle"></i> Registrar salida
             </button>
             <a href="/transferencias" class="btn btn-secondary">Cancelar</a>
@@ -108,4 +112,42 @@
     </form>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TARJETAS = {{ tarjetas_por_gasolinera_json | safe }};
+const GAS_NOMBRES = {{ gasolineras_nombres_json | safe }};
+const TC_LABELS = {
+    {% for tc in tipos_combustible %}
+    "{{ tc }}": "{{ combustible_labels.get(tc, tc) }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+
+function validarTarjeta() {
+    const gasId = document.getElementById('sel-gasolinera').value;
+    const tc    = document.getElementById('sel-combustible').value;
+    const aviso = document.getElementById('aviso-tarjeta');
+    const msg   = document.getElementById('aviso-tarjeta-msg');
+    const btn   = document.getElementById('btn-submit');
+
+    if (!gasId || !tc) {
+        aviso.style.display = 'none';
+        btn.disabled = false;
+        return;
+    }
+
+    const tiposDisponibles = TARJETAS[gasId] || [];
+    if (!tiposDisponibles.includes(tc)) {
+        const nombre = GAS_NOMBRES[gasId] || gasId;
+        const label  = TC_LABELS[tc] || tc;
+        msg.textContent = nombre + ' no tiene tarjetas Fincimex activas de ' + label + '. No puede recibir este combustible hasta que se le asigne una.';
+        aviso.style.display = 'block';
+        btn.disabled = true;
+    } else {
+        aviso.style.display = 'none';
+        btn.disabled = false;
+    }
+}
+</script>
 {% endblock %}
