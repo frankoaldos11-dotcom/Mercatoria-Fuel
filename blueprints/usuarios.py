@@ -108,9 +108,9 @@ def crear():
                 nuevo_id = cur.lastrowid
                 if rol == "cliente" and cliente_id:
                     cur.execute("""
-                        INSERT OR IGNORE INTO cliente_usuarios (cliente_id, usuario_id)
+                        INSERT INTO cliente_usuarios (cliente_id, usuario_id)
                         VALUES (?, ?)
-                    """, (cliente_id, nuevo_id))
+                    """, (int(cliente_id), nuevo_id))
                 conn.commit()
                 conn.close()
                 return redirect("/usuarios/?ok=1")
@@ -209,7 +209,7 @@ def editar(uid):
                     cur.execute("""
                         INSERT INTO cliente_usuarios (cliente_id, usuario_id)
                         VALUES (?, ?)
-                    """, (cliente_id, uid))
+                    """, (int(cliente_id), uid))
 
                 conn.commit()
                 conn.close()
