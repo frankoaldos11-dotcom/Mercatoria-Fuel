@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE_LABELS, ESTADOS_HABILITACION_LABELS
-from utils.auth import requiere_login
+from utils.auth import requiere_login, requiere_staff
 
 despachos_bp = Blueprint("despachos", __name__, url_prefix="/despachos")
 
@@ -34,7 +34,7 @@ def _save_photo(file, subfolder):
 
 @despachos_bp.route("/")
 def listado():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -118,7 +118,7 @@ def listado():
 
 @despachos_bp.route("/<int:id>")
 def detalle(id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -160,7 +160,7 @@ def detalle(id):
 
 @despachos_bp.route("/crear", methods=["GET", "POST"])
 def crear():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 

@@ -191,7 +191,7 @@
                 </tr>
                 <tr style="border-bottom:1px solid var(--border);">
                     <td style="padding:8px 0;color:var(--muted);">Fecha</td>
-                    <td style="padding:8px 0;">{{ despacho.fecha_despacho[:16] if despacho.fecha_despacho else '—' }}</td>
+                    <td style="padding:8px 0;">{{ (despacho.fecha_despacho | string)[:16] if despacho.fecha_despacho else '—' }}</td>
                 </tr>
                 <tr style="border-bottom:1px solid var(--border);">
                     <td style="padding:8px 0;color:var(--muted);">Operario</td>

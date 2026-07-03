@@ -70,7 +70,7 @@ def dashboard():
         year -= 1
     desde_6m = date(year, month, 1).isoformat()
     cur.execute("""
-        SELECT strftime('%Y-%m', fecha) AS mes,
+        SELECT SUBSTR(fecha, 1, 7) AS mes,
                COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN litros ELSE 0 END), 0) AS entradas,
                COALESCE(SUM(CASE WHEN tipo = 'despacho' THEN litros ELSE 0 END), 0) AS despachos
         FROM movimientos_tl38

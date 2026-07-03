@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import TIPOS_CLIENTE, TIPOS_CLIENTE_LABELS, ROLES_ADMIN_PM
-from utils.auth import requiere_login
+from utils.auth import requiere_login, requiere_staff
 
 clientes_bp = Blueprint("clientes", __name__, url_prefix="/clientes")
 
@@ -34,7 +34,7 @@ def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=
 
 @clientes_bp.route("/")
 def listado():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -148,7 +148,7 @@ def crear():
 
 @clientes_bp.route("/<int:id>")
 def detalle(id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 

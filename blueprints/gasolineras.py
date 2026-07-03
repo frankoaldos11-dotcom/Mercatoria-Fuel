@@ -4,7 +4,7 @@ from utils.constants import (
     REGIONES, TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM,
     TIPOS_SUBINVENTARIO, TIPOS_SUBINVENTARIO_LABELS,
 )
-from utils.auth import requiere_login
+from utils.auth import requiere_login, requiere_staff
 
 gasolineras_bp = Blueprint("gasolineras", __name__, url_prefix="/gasolineras")
 
@@ -53,7 +53,7 @@ def _combustibles_list(raw):
 
 @gasolineras_bp.route("/")
 def listado():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -103,7 +103,7 @@ def listado():
 
 @gasolineras_bp.route("/<int:id>")
 def detalle(id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 

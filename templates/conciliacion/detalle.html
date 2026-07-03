@@ -124,7 +124,7 @@
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
                 <td style="padding:8px 0;color:var(--muted);">Registrado</td>
-                <td style="padding:8px 0;">{{ conciliacion.created_at[:16] if conciliacion.created_at else '—' }}</td>
+                <td style="padding:8px 0;">{{ (conciliacion.created_at | string)[:16] if conciliacion.created_at else '—' }}</td>
             </tr>
             {% if conciliacion.observaciones %}
             <tr>

@@ -6,7 +6,7 @@ from utils.constants import (
     TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM,
     ESTADOS_HABILITACION, ESTADOS_HABILITACION_LABELS,
 )
-from utils.auth import requiere_login
+from utils.auth import requiere_login, requiere_staff
 
 habilitaciones_bp = Blueprint("habilitaciones", __name__, url_prefix="/habilitaciones")
 
@@ -19,7 +19,7 @@ def _requiere_admin_pm():
 
 @habilitaciones_bp.route("/")
 def listado():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 

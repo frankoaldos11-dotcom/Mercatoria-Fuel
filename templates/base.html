@@ -84,6 +84,14 @@
             </a>
             {% endif %}
 
+            {% if _rol in ['admin', 'pm'] %}
+            <a href="/tienda/admin" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tienda') else '' }}">
+                <i class="bi bi-shop"></i>
+                <span>Tienda</span>
+                {% if tienda_pendientes > 0 %}<span class="sidebar-badge">{{ tienda_pendientes }}</span>{% endif %}
+            </a>
+            {% endif %}
+
             {% if _es_adm %}
             <div class="nav-section">Comercial</div>
 
@@ -149,12 +157,6 @@
             {% endif %}
 
             {% if _rol in ['admin', 'pm'] %}
-            <a href="/tienda/admin" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tienda') else '' }}">
-                <i class="bi bi-shop"></i>
-                <span>Tienda</span>
-                {% if tienda_pendientes > 0 %}<span class="sidebar-badge">{{ tienda_pendientes }}</span>{% endif %}
-            </a>
-
             <a href="/usuarios/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/usuarios') else '' }}">
                 <i class="bi bi-people"></i>
                 <span>Usuarios</span>

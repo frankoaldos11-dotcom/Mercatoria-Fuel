@@ -75,7 +75,7 @@
                     </td>
                     <td>{{ "{:,.2f}".format(d.litros_autorizados) }} L</td>
                     <td><strong style="color:var(--success);">{{ "{:,.2f}".format(d.litros_despachados) }} L</strong></td>
-                    <td style="font-size:13px;">{{ d.fecha_despacho[:16] if d.fecha_despacho else '—' }}</td>
+                    <td style="font-size:13px;">{{ (d.fecha_despacho | string)[:16] if d.fecha_despacho else '—' }}</td>
                     <td>
                         {% if d.foto_ticket_url %}
                         <a href="{{ d.foto_ticket_url }}" target="_blank">

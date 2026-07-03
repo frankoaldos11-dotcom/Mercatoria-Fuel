@@ -105,6 +105,7 @@ def login():
                     return render_template("login.html", error="Tu cuenta está pendiente de aprobación. Un administrador la revisará pronto.")
                 return render_template("login.html", error="Tu cuenta está desactivada. Contacta al administrador.")
 
+            session.clear()
             session.permanent = True
             session["usuario"] = email
             session["nombre"] = fila["nombre"]

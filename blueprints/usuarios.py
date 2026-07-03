@@ -7,12 +7,14 @@ usuarios_bp = Blueprint("usuarios", __name__, url_prefix="/usuarios")
 
 _ROLES_LISTA = [
     ("admin",               "Admin"),
-    ("pm",                  "PM"),
     ("puesto_de_mando",     "Puesto de Mando"),
     ("operador_gasolinera", "Operador Gasolinera"),
-    ("supervisor",          "Supervisor"),
     ("cliente",             "Cliente"),
 ]
+
+# pm y supervisor: roles legacy — no aparecen en el dropdown pero siguen siendo válidos
+# para no romper cuentas existentes con esos roles.
+_ROLES_VALIDOS = [r[0] for r in _ROLES_LISTA] + ["pm", "supervisor"]
 
 
 def _solo_admin():
@@ -83,7 +85,7 @@ def crear():
             error = "La contraseña debe tener al menos 8 caracteres."
         elif password != confirm:
             error = "Las contraseñas no coinciden."
-        elif rol not in [r[0] for r in _ROLES_LISTA]:
+        elif rol not in _ROLES_VALIDOS:
             error = "Rol inválido."
         elif rol == "cliente" and not cliente_id:
             error = "Debe seleccionar el cliente asociado para usuarios con rol cliente."
@@ -172,7 +174,7 @@ def editar(uid):
             error = "La contraseña debe tener al menos 8 caracteres."
         elif password and password != confirm:
             error = "Las contraseñas no coinciden."
-        elif rol not in [r[0] for r in _ROLES_LISTA]:
+        elif rol not in _ROLES_VALIDOS:
             error = "Rol inválido."
         elif propio and rol != usuario["rol"]:
             error = "No puedes cambiar tu propio rol."
