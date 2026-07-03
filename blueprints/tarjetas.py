@@ -16,9 +16,12 @@ def _requiere_admin_pm():
 
 def _stock_gasolinera(cur, gasolinera_id):
     cur.execute("""
-        SELECT COALESCE(SUM(litros), 0) AS stock
+        SELECT COALESCE(SUM(CASE WHEN tipo = 'transferencia_entrada' THEN litros
+                                  WHEN tipo = 'despacho' THEN -litros
+                                  ELSE 0 END), 0) AS stock
         FROM movimientos
-        WHERE gasolinera_id = ? AND tipo = 'transferencia_entrada'
+        WHERE gasolinera_id = ?
+          AND tipo IN ('transferencia_entrada', 'despacho')
     """, (gasolinera_id,))
     return float(cur.fetchone()["stock"] or 0)
 

@@ -55,6 +55,7 @@
         <table class="data-table">
             <thead>
                 <tr>
+                    <th>Acciones</th>
                     <th>ID</th>
                     <th>Nombre</th>
                     <th>Ubicación</th>
@@ -62,44 +63,12 @@
                     <th>Cap. máx. (L)</th>
                     <th>Responsable supervisor</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for g in lista %}
                 {% set tipos = combustibles_list(g.combustible) %}
                 <tr>
-                    <td><span style="color:var(--muted);font-size:12px;">#{{ g.id }}</span></td>
-                    <td>
-                        <strong>{{ g.nombre }}</strong>
-                        {% if g.direccion %}
-                        <br><span style="font-size:12px;color:var(--muted);">{{ g.direccion }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span>{{ g.region }}</span>
-                        {% if g.provincia %}
-                        <br><span style="font-size:12px;color:var(--muted);">{{ g.provincia }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% for tc in tipos %}
-                        <span class="badge badge-info" style="margin-bottom:2px;display:inline-block;">
-                            {{ combustible_labels.get(tc, tc) }}
-                        </span>
-                        {% else %}
-                        <span style="color:var(--muted);font-size:12px;">—</span>
-                        {% endfor %}
-                    </td>
-                    <td>{{ "{:,.0f}".format(g.capacidad_l or 0) }}</td>
-                    <td>{{ g.gestor_responsable or '—' }}</td>
-                    <td>
-                        {% if g.estado == 'activo' %}
-                        <span class="badge badge-ok">Activo</span>
-                        {% else %}
-                        <span class="badge badge-neutral">Inactivo</span>
-                        {% endif %}
-                    </td>
                     <td>
                         <div class="d-flex gap-2">
                             <a href="/gasolineras/{{ g.id }}" class="btn btn-soft btn-sm">
@@ -122,6 +91,38 @@
                             </form>
                             {% endif %}
                         </div>
+                    </td>
+                    <td><span style="color:var(--muted);font-size:12px;">#{{ g.id }}</span></td>
+                    <td>
+                        <strong>{{ g.nombre }}</strong>
+                        {% if g.direccion %}
+                        <br><span style="font-size:12px;color:var(--muted);">{{ g.direccion }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span>{{ g.region }}</span>
+                        {% if g.provincia %}
+                        <br><span style="font-size:12px;color:var(--muted);">{{ g.provincia }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set gas_stock = stock_gasolineras.get(g.id, {}) %}
+                        {% for tc in tipos %}
+                        <span class="badge badge-info" style="margin-bottom:2px;display:inline-block;">
+                            {{ combustible_labels.get(tc, tc) }}: {{ "{:,.0f}".format(gas_stock.get(tc, 0)) }} L
+                        </span>
+                        {% else %}
+                        <span style="color:var(--muted);font-size:12px;">—</span>
+                        {% endfor %}
+                    </td>
+                    <td>{{ "{:,.0f}".format(g.capacidad_l or 0) }}</td>
+                    <td>{{ g.gestor_responsable or '—' }}</td>
+                    <td>
+                        {% if g.estado == 'activo' %}
+                        <span class="badge badge-ok">Activo</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Inactivo</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}

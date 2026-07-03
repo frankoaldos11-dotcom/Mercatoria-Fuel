@@ -37,9 +37,12 @@ def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=
 
 def _stock_gasolinera(cur, gasolinera_id):
     cur.execute("""
-        SELECT COALESCE(SUM(litros), 0) AS stock
+        SELECT COALESCE(SUM(CASE WHEN tipo = 'transferencia_entrada' THEN litros
+                                  WHEN tipo = 'despacho' THEN -litros
+                                  ELSE 0 END), 0) AS stock
         FROM movimientos
-        WHERE gasolinera_id = ? AND tipo = 'transferencia_entrada'
+        WHERE gasolinera_id = ?
+          AND tipo IN ('transferencia_entrada', 'despacho')
     """, (gasolinera_id,))
     return float(cur.fetchone()["stock"] or 0)
 
@@ -87,6 +90,26 @@ def listado():
         ORDER BY nombre ASC
     """, params)
     lista = cur.fetchall()
+
+    # Stock por gasolinera/combustible: entradas - salidas (misma lógica que detalle)
+    cur.execute("""
+        SELECT gasolinera_id, tipo_combustible,
+               COALESCE(SUM(CASE WHEN tipo = 'transferencia_entrada' THEN litros
+                                  WHEN tipo = 'despacho' THEN -litros
+                                  ELSE 0 END), 0) AS stock
+        FROM movimientos
+        WHERE tipo IN ('transferencia_entrada', 'despacho')
+          AND tipo_combustible IS NOT NULL
+        GROUP BY gasolinera_id, tipo_combustible
+    """)
+    _stock_rows = cur.fetchall()
+    stock_gasolineras = {}
+    for _r in _stock_rows:
+        _gid = _r["gasolinera_id"]
+        if _gid not in stock_gasolineras:
+            stock_gasolineras[_gid] = {}
+        stock_gasolineras[_gid][_r["tipo_combustible"]] = float(_r["stock"] or 0)
+
     conn.close()
 
     return render_template(
@@ -98,6 +121,7 @@ def listado():
         regiones=REGIONES,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         combustibles_list=_combustibles_list,
+        stock_gasolineras=stock_gasolineras,
     )
 
 
@@ -116,11 +140,16 @@ def detalle(id):
         conn.close()
         return redirect("/gasolineras")
 
-    # Stock por tipo de combustible
+    # Stock por tipo de combustible (entradas - salidas)
     cur.execute("""
-        SELECT tipo_combustible, COALESCE(SUM(litros), 0) AS stock
+        SELECT tipo_combustible,
+               COALESCE(SUM(CASE WHEN tipo = 'transferencia_entrada' THEN litros
+                                  WHEN tipo = 'despacho' THEN -litros
+                                  ELSE 0 END), 0) AS stock
         FROM movimientos
-        WHERE gasolinera_id = ? AND tipo = 'transferencia_entrada'
+        WHERE gasolinera_id = ?
+          AND tipo IN ('transferencia_entrada', 'despacho')
+          AND tipo_combustible IS NOT NULL
         GROUP BY tipo_combustible
         ORDER BY tipo_combustible
     """, (id,))

@@ -62,6 +62,7 @@
         <table class="data-table">
             <thead>
                 <tr>
+                    <th>Acciones</th>
                     <th>ID</th>
                     <th>Fecha salida</th>
                     <th>Origen</th>
@@ -70,12 +71,31 @@
                     <th>L. solicitados</th>
                     <th>L. recibidos</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for t in lista %}
                 <tr {% if t.estado == 'en_transito' %}style="background:rgba(245,158,11,0.05);"{% endif %}>
+                    <td>
+                        <div class="d-flex gap-2">
+                            {% if t.estado == 'en_transito' %}
+                                {% if session.get('rol') in ('admin', 'pm') %}
+                                <a href="/transferencias/{{ t.id }}/gestionar" class="btn btn-success btn-sm">
+                                    <i class="bi bi-box-arrow-in-down"></i> Gestionar
+                                </a>
+                                {% endif %}
+                                {% if session.get('rol') == 'admin' %}
+                                <form method="POST" action="/transferencias/{{ t.id }}/anular" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm"
+                                            onclick="return confirm('¿Anular transferencia? Se revertirá el stock del depósito.')">
+                                        <i class="bi bi-x-lg"></i> Anular
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
                     <td><span style="color:var(--muted);font-size:12px;">#{{ t.id }}</span></td>
                     <td>{{ t.fecha_salida }}</td>
                     <td>
@@ -107,26 +127,6 @@
                         {% else %}
                         <span class="badge badge-neutral">Anulada</span>
                         {% endif %}
-                    </td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            {% if t.estado == 'en_transito' %}
-                                {% if session.get('rol') in ('admin', 'pm') %}
-                                <a href="/transferencias/{{ t.id }}/gestionar" class="btn btn-success btn-sm">
-                                    <i class="bi bi-box-arrow-in-down"></i> Gestionar
-                                </a>
-                                {% endif %}
-                                {% if session.get('rol') == 'admin' %}
-                                <form method="POST" action="/transferencias/{{ t.id }}/anular" style="display:inline;">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-danger btn-sm"
-                                            onclick="return confirm('¿Anular transferencia? Se revertirá el stock del depósito.')">
-                                        <i class="bi bi-x-lg"></i> Anular
-                                    </button>
-                                </form>
-                                {% endif %}
-                            {% endif %}
-                        </div>
                     </td>
                 </tr>
                 {% else %}

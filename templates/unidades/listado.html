@@ -70,6 +70,7 @@
         <table class="data-table">
             <thead>
                 <tr>
+                    <th>Acciones</th>
                     <th>Cliente</th>
                     <th>Vehículo</th>
                     <th>Combustible</th>
@@ -77,12 +78,31 @@
                     <th>C.I.</th>
                     <th>Teléfono</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for u in lista %}
                 <tr>
+                    <td>
+                        <div class="d-flex gap-2">
+                            {% if session.get('rol') in ('admin', 'pm') %}
+                            <a href="/unidades/{{ u.id }}/editar" class="btn btn-soft btn-sm">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <form method="POST" action="/unidades/{{ u.id }}/toggle" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm {{ 'btn-danger' if u.estado == 'activo' else 'btn-success' }}"
+                                        onclick="return confirm('¿Confirmar cambio de estado?')">
+                                    {% if u.estado == 'activo' %}
+                                    <i class="bi bi-toggle-off"></i>
+                                    {% else %}
+                                    <i class="bi bi-toggle-on"></i>
+                                    {% endif %}
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
                     <td>
                         <a href="/clientes/{{ u.cliente_id }}" style="font-weight:600;color:var(--primary);text-decoration:none;">
                             {{ u.cliente_nombre }}
@@ -117,26 +137,6 @@
                         {% else %}
                         <span class="badge badge-neutral">Inactivo</span>
                         {% endif %}
-                    </td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            {% if session.get('rol') in ('admin', 'pm') %}
-                            <a href="/unidades/{{ u.id }}/editar" class="btn btn-soft btn-sm">
-                                <i class="bi bi-pencil"></i> Editar
-                            </a>
-                            <form method="POST" action="/unidades/{{ u.id }}/toggle" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm {{ 'btn-danger' if u.estado == 'activo' else 'btn-success' }}"
-                                        onclick="return confirm('¿Confirmar cambio de estado?')">
-                                    {% if u.estado == 'activo' %}
-                                    <i class="bi bi-toggle-off"></i>
-                                    {% else %}
-                                    <i class="bi bi-toggle-on"></i>
-                                    {% endif %}
-                                </button>
-                            </form>
-                            {% endif %}
-                        </div>
                     </td>
                 </tr>
                 {% else %}

@@ -48,20 +48,15 @@
 
         <nav class="sidebar-nav">
 
-            {% if _es_adm %}
-            <div class="nav-section">Operaciones</div>
-            {% elif _es_pm %}
-            <div class="nav-section">Puesto de Mando</div>
-            {% elif _es_opgas %}
-            <div class="nav-section">Operador Gasolinera</div>
-            {% endif %}
+            {% if _es_dep %}
+            <div class="nav-section">Puesto de Mando General</div>
+            <div class="nav-section" style="font-size:10px;opacity:0.6;padding-left:14px;margin-top:-2px;letter-spacing:0.04em;">Operaciones</div>
 
             <a href="/dashboard" class="nav-item {{ 'nav-item-active' if request.path in ('/', '/dashboard') else '' }}">
                 <i class="bi bi-grid-1x2"></i>
                 <span>Dashboard</span>
             </a>
 
-            {% if _es_dep %}
             <a href="/puertos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/puertos') else '' }}">
                 <i class="bi bi-water"></i>
                 <span>Puertos</span>
@@ -76,14 +71,11 @@
                 <i class="bi bi-arrow-left-right"></i>
                 <span>Transferencias</span>
             </a>
-            {% endif %}
 
-            {% if _es_gas %}
             <a href="/gasolineras/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/gasolineras') else '' }}">
                 <i class="bi bi-fuel-pump"></i>
                 <span>Gasolineras</span>
             </a>
-            {% endif %}
 
             {% if _rol in ['admin', 'pm'] %}
             <a href="/tienda/admin" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tienda') else '' }}">
@@ -93,22 +85,7 @@
             </a>
             {% endif %}
 
-            {% if _es_adm %}
-            <div class="nav-section">Comercial</div>
-
-            <a href="/clientes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/clientes') else '' }}">
-                <i class="bi bi-buildings"></i>
-                <span>Clientes</span>
-            </a>
-
-            <a href="/unidades/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/unidades') else '' }}">
-                <i class="bi bi-truck"></i>
-                <span>Unidades autorizadas</span>
-            </a>
-            {% endif %}
-
-            {% if _es_dep %}
-            <div class="nav-section">Puesto de Mando General</div>
+            <div class="nav-section" style="font-size:10px;opacity:0.6;padding-left:14px;margin-top:4px;letter-spacing:0.04em;">Acciones</div>
 
             <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') and not request.path.startswith('/turno/escanear') else '' }}">
                 <i class="bi bi-calendar-check"></i>
@@ -130,18 +107,13 @@
                 <span>Conciliación</span>
             </a>
 
-            <a href="/turno/escanear" class="nav-item {{ 'nav-item-active' if request.path == '/turno/escanear' else '' }}">
-                <i class="bi bi-qr-code-scan"></i>
-                <span>Escanear QR</span>
-            </a>
-
             <a href="/tarjetas/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tarjetas') else '' }}">
                 <i class="bi bi-credit-card-2-front"></i>
                 <span>Tarjetas</span>
             </a>
             {% endif %}
 
-            {% if _es_og %}
+            {% if _es_gas %}
             <div class="nav-section">Operadores Gasolinera</div>
 
             <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') and not request.path.startswith('/turno/escanear') else '' }}">
@@ -161,6 +133,18 @@
             {% endif %}
 
             {% if _es_adm %}
+            <div class="nav-section">Comercial</div>
+
+            <a href="/clientes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/clientes') else '' }}">
+                <i class="bi bi-buildings"></i>
+                <span>Clientes</span>
+            </a>
+
+            <a href="/unidades/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/unidades') else '' }}">
+                <i class="bi bi-truck"></i>
+                <span>Unidades autorizadas</span>
+            </a>
+
             <div class="nav-section">Sistema</div>
 
             <a href="/reportes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/reportes') else '' }}">

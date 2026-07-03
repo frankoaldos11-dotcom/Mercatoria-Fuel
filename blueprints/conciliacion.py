@@ -4,12 +4,34 @@ from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import (
     ESTADOS_CONCILIACION, TURNOS_CONCILIACION, TURNOS_CONCILIACION_LABELS,
+    TIPOS_COMBUSTIBLE_LABELS,
 )
 from utils.auth import requiere_login
 
 conciliacion_bp = Blueprint("conciliacion", __name__, url_prefix="/conciliacion")
 
 _DIFF_TOLERANCIA = 0.005  # 0.5%
+
+
+def _detalle_habilitaciones(cur, gasolinera_id, fecha):
+    """Devuelve habilitaciones del día con su despacho (o None) para la vista de cierre."""
+    manana = (date.fromisoformat(fecha) + timedelta(days=1)).isoformat()
+    cur.execute("""
+        SELECT h.id, h.estado,
+               h.litros_autorizados, h.tipo_combustible,
+               c.nombre AS cliente_nombre,
+               u.chapa  AS unidad_chapa,
+               d.litros_despachados
+        FROM habilitaciones h
+        JOIN clientes c  ON c.id = h.cliente_id
+        JOIN unidades u  ON u.id = h.unidad_id
+        LEFT JOIN despachos d ON d.habilitacion_id = h.id
+        WHERE h.gasolinera_id = ?
+          AND h.fecha_habilitacion >= ?
+          AND h.fecha_habilitacion <  ?
+        ORDER BY h.id ASC
+    """, (gasolinera_id, fecha, manana))
+    return cur.fetchall()
 
 
 def _calcular_totales(cur, gasolinera_id, fecha):
@@ -150,6 +172,8 @@ def crear():
 
     datos_calculados = None
     gasolinera_pre_row = None
+    habs_detalle = []
+    n_sin_despacho = 0
 
     if gasolinera_id_pre and fecha_pre:
         try:
@@ -160,6 +184,11 @@ def crear():
             }
             cur.execute("SELECT nombre FROM gasolineras WHERE id = ?", (gasolinera_id_pre,))
             gasolinera_pre_row = cur.fetchone()
+            habs_detalle = _detalle_habilitaciones(cur, gasolinera_id_pre, fecha_pre)
+            n_sin_despacho = sum(
+                1 for h in habs_detalle
+                if h["estado"] in ("pendiente", "aprobada")
+            )
         except Exception:
             pass
 
@@ -233,7 +262,10 @@ def crear():
         gasolinera_pre_row=gasolinera_pre_row,
         fecha_pre=fecha_pre,
         datos_calculados=datos_calculados,
+        habs_detalle=habs_detalle,
+        n_sin_despacho=n_sin_despacho,
         hoy=date.today().isoformat(),
         turnos=TURNOS_CONCILIACION,
         turno_labels=TURNOS_CONCILIACION_LABELS,
+        combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
     )

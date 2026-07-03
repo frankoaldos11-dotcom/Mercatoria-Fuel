@@ -63,6 +63,74 @@
         </div>
     </div>
 </div>
+
+<!-- Panel comparativo habilitaciones vs despachos (CAMBIO 7) -->
+{% if habs_detalle %}
+<div class="panel mb-4">
+    <div style="padding:16px 24px 0;">
+        <h3 style="margin:0 0 4px;font-size:15px;">
+            <i class="bi bi-list-check"></i> Habilitaciones del día
+        </h3>
+        {% if n_sin_despacho == 0 %}
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:8px 14px;margin-bottom:12px;color:#166534;font-weight:600;font-size:13px;">
+            <i class="bi bi-check-circle-fill"></i> Turno listo para cerrar — todas las habilitaciones despachadas
+        </div>
+        {% else %}
+        <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:8px 14px;margin-bottom:12px;color:#991b1b;font-weight:600;font-size:13px;">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ n_sin_despacho }} habilitacion{{ 'es' if n_sin_despacho != 1 else '' }} sin despachar
+        </div>
+        {% endif %}
+    </div>
+    <div class="table-wrapper" style="padding:0 24px 16px;">
+        <table class="data-table" style="font-size:13px;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Cliente / Unidad</th>
+                    <th>Combustible</th>
+                    <th>Aut. (L)</th>
+                    <th>Desp. (L)</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in habs_detalle %}
+                {% set sin_despacho = h.estado in ('pendiente', 'aprobada') %}
+                {% set diferencia = (h.litros_despachados or 0) - h.litros_autorizados if not sin_despacho else none %}
+                {% set tiene_diferencia = diferencia is not none and diferencia|abs > 0.01 %}
+                <tr style="{% if sin_despacho %}background:#fef2f2;{% elif tiene_diferencia %}background:#fffbeb;{% else %}background:#f0fdf4;{% endif %}">
+                    <td style="color:var(--muted);">#{{ h.id }}</td>
+                    <td>
+                        <div style="font-weight:600;">{{ h.cliente_nombre }}</div>
+                        <div style="font-size:11px;color:var(--muted);">{{ h.unidad_chapa }}</div>
+                    </td>
+                    <td><span class="badge badge-info">{{ combustible_labels.get(h.tipo_combustible, h.tipo_combustible) }}</span></td>
+                    <td>{{ "{:,.2f}".format(h.litros_autorizados) }}</td>
+                    <td>
+                        {% if h.litros_despachados is not none %}
+                        <strong {% if tiene_diferencia %}style="color:#D97706;"{% endif %}>
+                            {{ "{:,.2f}".format(h.litros_despachados) }}
+                        </strong>
+                        {% else %}
+                        <span style="color:var(--muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if sin_despacho %}
+                        <span class="badge badge-danger">Sin despacho</span>
+                        {% elif tiene_diferencia %}
+                        <span class="badge badge-warn">Dif. {{ "{:+,.2f}".format(diferencia) }} L</span>
+                        {% else %}
+                        <span class="badge badge-ok">OK</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 {% endif %}
 
 <div class="panel">
@@ -76,18 +144,6 @@
         <input type="hidden" name="fecha" value="{{ fecha_pre }}">
 
         <div class="form-grid">
-
-            <div class="mb-3">
-                <label class="form-label">Turno (opcional)</label>
-                <select name="turno" class="form-select">
-                    <option value="">Sin turno específico</option>
-                    {% for t in turnos %}
-                    <option value="{{ t }}" {{ 'selected' if request.form.get('turno') == t }}>{{ turno_labels.get(t, t) }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="mb-3"></div>
 
             <div class="mb-3">
                 <label class="form-label">Saldo físico al inicio del turno (L) <span style="color:var(--danger)">*</span></label>
