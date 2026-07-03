@@ -207,7 +207,7 @@ def editar(uid):
                 cur.execute("DELETE FROM cliente_usuarios WHERE usuario_id = ?", (uid,))
                 if rol == "cliente" and cliente_id:
                     cur.execute("""
-                        INSERT OR IGNORE INTO cliente_usuarios (cliente_id, usuario_id)
+                        INSERT INTO cliente_usuarios (cliente_id, usuario_id)
                         VALUES (?, ?)
                     """, (cliente_id, uid))
 
