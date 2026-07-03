@@ -272,3 +272,50 @@ Root cause: `stock_total` era `float` cuando había movimientos (convertido via 
 1. **Verificar `/habilitaciones/<id>` y `/conciliacion/<id>`** — fixes D1 latentes aplicados pero no verificados con datos reales (requieren registros existentes).
 2. **Crear cuenta operador_gasolinera** y verificar que turno fuerza su gasolinera asignada.
 3. **Verificar `/tienda/qr_vista`** con reserva aprobada.
+
+---
+
+# Reporte de Pruebas — 2026-07-03 (sesión 2)
+
+## Commit verificado
+- `f900822` — Fix cruce de roles entre sesiones + Cache-Control + Revisión operativa + subcategorías sidebar
+
+## Páginas probadas
+- https://mercatoria-fuel.onrender.com/login
+- https://mercatoria-fuel.onrender.com/tienda/ (como cliente juan@gmail.com)
+- https://mercatoria-fuel.onrender.com/dashboard (como admin)
+- https://mercatoria-fuel.onrender.com/turno/ (rename verificado)
+
+## Resultados
+
+| # | Escenario | Resultado | Detalle |
+|---|-----------|-----------|---------|
+| 1A-fix | `session.clear()` al inicio del POST (vector A) | ✅ PASS | Login fallido con sesión cliente activa → `/dashboard` redirige a `/login`, sesión cliente eliminada |
+| 1B-fix | `Cache-Control: no-cache, no-store` en after_request (vector B) | ✅ PASS | Header presente en todas las respuestas |
+| Esc-1 | Cliente logueado → /login directo sin logout → login como admin | ✅ PASS | Admin recibe badge ADMIN, /dashboard correcto, cero arrastre de rol cliente |
+| Esc-2 | Admin logueado → /login directo sin logout → login como cliente | ✅ PASS | Redirige a /tienda/, badge CLI, /dashboard → redirige a /tienda/ sin datos admin |
+| Esc-3 | Sesión activa + login FALLIDO → navegar a ruta protegida | ✅ PASS | Sesión anterior limpiada por session.clear() en POST; /dashboard → /login |
+| ISSUE-2 | "Turno del día" → "Revisión operativa" | ✅ PASS | `<title>`: "Revisión operativa — Mercatoria Fuel"; h1 en /turno/; link sidebar; dashboard_operario.html |
+| ISSUE-3a | Sidebar: sección "Puesto de Mando General" con Rev.op + Habilitaciones + Despachos + Conciliación + QR + Tarjetas | ✅ PASS | Confirmado en snapshot de /dashboard y /turno/ |
+| ISSUE-3b | Sidebar: sección "Operadores Gasolinera" con Rev.op + Despachos + QR | ✅ PASS | Visible en sidebar admin (ve ambos bloques) |
+| ISSUE-3c | Tarjetas movida de COMERCIAL a PUESTO DE MANDO GENERAL | ✅ PASS | Tarjetas ya no aparece bajo Comercial |
+| ISSUE-3d | Comercial solo muestra Clientes + Unidades autorizadas | ✅ PASS | Sin Tarjetas |
+
+## Screenshots tomados
+- `session_01_cliente_logueado.png` — juan logueado, portal tienda
+- `session_02_admin_sin_logout_previo.png` — admin logueado directamente desde sesión cliente (badge ADMIN, sin arrastre)
+- `session_03_cliente_post_admin.png` — juan logueado directamente desde sesión admin (redirige a /tienda/)
+- `session_04_login_fallido_sesion_limpia.png` — login fallido: /dashboard → /login (sesión anterior eliminada)
+- `session_05_sidebar_revision_operativa.png` — sidebar completo en /turno/ con estructura nueva
+
+## Correcciones aplicadas (commit f900822)
+- `app.py`: `session.clear()` movido al inicio del bloque POST de /login (cubre login fallido, cuenta inactiva, cualquier escenario)
+- `app.py`: `Cache-Control: no-cache, no-store, must-revalidate` + `Pragma: no-cache` en `after_request`
+- `templates/base.html`: nueva variable `_es_og`; COMERCIAL sin Tarjetas; OPERATIVA reemplazada por PUESTO DE MANDO GENERAL (_es_dep) + OPERADORES GASOLINERA (_es_og); "Turno del día" → "Revisión operativa"
+- `templates/turno/index.html`: título y h1 → "Revisión operativa"
+- `templates/dashboard_operario.html`: link → "Ir a Revisión operativa"
+
+## Recomendaciones pendientes
+1. Crear cuenta operador_gasolinera real y verificar que sidebar muestra solo bloque "Operadores Gasolinera" (sin Puesto de Mando General).
+2. Verificar `/turno/` como operador_gasolinera para confirmar que fuerza la gasolinera asignada.
+3. Verificar `/tienda/qr_vista` con reserva aprobada.
