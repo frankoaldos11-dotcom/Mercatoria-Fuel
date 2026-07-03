@@ -79,6 +79,8 @@ def set_security_headers(response):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
     return response
 
 
@@ -88,6 +90,8 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+
+        session.clear()
 
         conn = conectar()
         cur = conn.cursor()
@@ -105,7 +109,6 @@ def login():
                     return render_template("login.html", error="Tu cuenta está pendiente de aprobación. Un administrador la revisará pronto.")
                 return render_template("login.html", error="Tu cuenta está desactivada. Contacta al administrador.")
 
-            session.clear()
             session.permanent = True
             session["usuario"] = email
             session["nombre"] = fila["nombre"]
