@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block titulo %}Editar Tarjeta ****{{ tarjeta.numero_parcial }} — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial / Tarjetas</span>
+        <h1 style="font-family:monospace;letter-spacing:2px;">**** **** **** {{ tarjeta.numero_parcial }}</h1>
+        <p>Editar gasolinera asignada, estado y notas.</p>
+    </div>
+    <a href="/tarjetas/{{ tarjeta.id }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/tarjetas/{{ tarjeta.id }}/editar"
+          data-saldo-usable="{{ tarjeta.saldo_usable_l }}"
+          data-saldo-retenido="{{ tarjeta.saldo_retenido_l }}"
+          data-gasolinera-original="{{ tarjeta.gasolinera_id }}"
+          id="form-editar-tarjeta">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <!-- Campos readonly (identidad de la tarjeta) -->
+            <div class="mb-3">
+                <label class="form-label">Número de tarjeta</label>
+                <input type="text" class="form-control" value="**** **** **** {{ tarjeta.numero_parcial }}"
+                       readonly style="font-family:monospace;background:var(--panel-soft);color:var(--muted);">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de combustible</label>
+                <input type="text" class="form-control"
+                       value="{{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}"
+                       readonly style="background:var(--panel-soft);color:var(--muted);">
+            </div>
+
+            <!-- Gasolinera — editable -->
+            <div class="mb-3">
+                <label class="form-label">Gasolinera asignada <span style="color:var(--danger)">*</span></label>
+                <select name="gasolinera_id" class="form-select" required
+                        onchange="avisarCambioGasolinera(this)">
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}" {{ 'selected' if g.id == tarjeta.gasolinera_id }}>
+                        {{ g.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Estado — editable -->
+            <div class="mb-3">
+                <label class="form-label">Estado <span style="color:var(--danger)">*</span></label>
+                <select name="estado" class="form-select" required>
+                    {% for e in estados_tarjeta %}
+                    <option value="{{ e }}" {{ 'selected' if e == tarjeta.estado }}>{{ e|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Notas — editable -->
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Notas</label>
+                <textarea name="notas" class="form-control" rows="2"
+                          placeholder="Observaciones sobre esta tarjeta...">{{ tarjeta.notas or '' }}</textarea>
+            </div>
+
+        </div>
+
+        <!-- Aviso de saldo (oculto hasta que JS lo muestre) -->
+        <div id="aviso-saldo" style="display:none;background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:14px;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Atención:</strong> esta tarjeta tiene
+            <span id="aviso-saldo-usable"></span>
+            <span id="aviso-saldo-retenido"></span>
+            Al moverla a otra gasolinera, el saldo se mantiene intacto en la tarjeta. Confirma el cambio antes de guardar.
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar cambios
+            </button>
+            <a href="/tarjetas/{{ tarjeta.id }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+<!-- Saldos actuales (solo lectura, informativo) -->
+<div class="panel mt-4" style="padding:20px;">
+    <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Saldos actuales (no se modifican)</div>
+    <div style="display:flex;gap:32px;">
+        <div>
+            <div style="font-size:12px;color:var(--muted);">Usable</div>
+            <div style="font-size:20px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(tarjeta.saldo_usable_l) }} L</div>
+        </div>
+        {% if tarjeta.saldo_retenido_l > 0 %}
+        <div>
+            <div style="font-size:12px;color:var(--muted);">Retenido</div>
+            <div style="font-size:20px;font-weight:700;color:#D97706;">{{ "{:,.2f}".format(tarjeta.saldo_retenido_l) }} L</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function avisarCambioGasolinera(select) {
+    var form = document.getElementById('form-editar-tarjeta');
+    var gasolineraOriginal = form.getAttribute('data-gasolinera-original');
+    var saldoUsable   = parseFloat(form.getAttribute('data-saldo-usable'))   || 0;
+    var saldoRetenido = parseFloat(form.getAttribute('data-saldo-retenido')) || 0;
+    var aviso = document.getElementById('aviso-saldo');
+
+    if (select.value !== gasolineraOriginal && (saldoUsable > 0 || saldoRetenido > 0)) {
+        var partes = [];
+        if (saldoUsable > 0) {
+            partes.push('<strong>' + saldoUsable.toLocaleString('es-ES', {minimumFractionDigits:2}) + ' L usables</strong>');
+        }
+        if (saldoRetenido > 0) {
+            partes.push('<strong>' + saldoRetenido.toLocaleString('es-ES', {minimumFractionDigits:2}) + ' L retenidos</strong>');
+        }
+        document.getElementById('aviso-saldo-usable').innerHTML   = partes[0] || '';
+        document.getElementById('aviso-saldo-retenido').innerHTML = (partes[1] ? ' y ' + partes[1] + '.' : '.');
+        aviso.style.display = 'block';
+    } else {
+        aviso.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

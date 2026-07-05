@@ -9,9 +9,37 @@ from utils.auth import requiere_login
 
 tarjetas_bp = Blueprint("tarjetas", __name__, url_prefix="/tarjetas")
 
+_ROLES_EDITAR_TARJETA = ["admin", "pm", "puesto_de_mando"]
+
 
 def _requiere_admin_pm():
     return session.get("rol") not in ROLES_ADMIN_PM
+
+
+def _requiere_editar_tarjeta():
+    return session.get("rol") not in _ROLES_EDITAR_TARJETA
+
+
+def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=None, valor_nuevo=None):
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO auditoria
+                (usuario_id, accion, tabla_afectada, registro_id, valor_anterior, valor_nuevo, ip, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            usuario_id, accion, tabla, registro_id,
+            str(valor_anterior) if valor_anterior else None,
+            str(valor_nuevo) if valor_nuevo else None,
+            request.remote_addr,
+            request.headers.get("User-Agent", "")[:512],
+        ))
+        conn.commit()
+        conn.close()
+    except Exception:
+        from flask import current_app
+        current_app.logger.exception("Error registrando auditoría")
 
 
 def _stock_gasolinera(cur, gasolinera_id):
@@ -219,6 +247,81 @@ def crear():
         tipos_combustible=TIPOS_COMBUSTIBLE,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         estados_tarjeta=ESTADOS_TARJETA,
+    )
+
+
+# ── Editar (gasolinera, estado, notas) ────────────────────────────────────────
+
+@tarjetas_bp.route("/<int:id>/editar", methods=["GET", "POST"])
+def editar(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_editar_tarjeta():
+        return redirect(f"/tarjetas/{id}?access_error=Sin+permisos+para+editar+tarjetas")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT t.*, g.nombre AS gasolinera_nombre
+        FROM tarjetas t JOIN gasolineras g ON g.id = t.gasolinera_id
+        WHERE t.id = ?
+    """, (id,))
+    tarjeta = cur.fetchone()
+    if not tarjeta:
+        conn.close()
+        return redirect("/tarjetas")
+
+    cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
+    gasolineras = cur.fetchall()
+    conn.close()
+
+    error = None
+
+    if request.method == "POST":
+        nueva_gasolinera_id = request.form.get("gasolinera_id", "").strip()
+        nuevo_estado = request.form.get("estado", "").strip()
+        nuevas_notas = request.form.get("notas", "").strip()
+
+        if not nueva_gasolinera_id:
+            error = "Debe seleccionar una gasolinera."
+        elif nuevo_estado not in ESTADOS_TARJETA:
+            error = "Estado no válido."
+
+        if not error:
+            gasolinera_anterior = int(tarjeta["gasolinera_id"])
+            gasolinera_nueva = int(nueva_gasolinera_id)
+
+            conn = conectar()
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE tarjetas
+                SET gasolinera_id = ?, estado = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (gasolinera_nueva, nuevo_estado, nuevas_notas or None, id))
+            conn.commit()
+            conn.close()
+
+            if gasolinera_anterior != gasolinera_nueva:
+                nombre_anterior = tarjeta["gasolinera_nombre"]
+                nombre_nueva = next((g["nombre"] for g in gasolineras if g["id"] == gasolinera_nueva), str(gasolinera_nueva))
+                _registrar_auditoria(
+                    session.get("user_id"),
+                    "Reasignó gasolinera de tarjeta",
+                    "tarjetas", id,
+                    valor_anterior={"gasolinera_id": gasolinera_anterior, "gasolinera_nombre": nombre_anterior},
+                    valor_nuevo={"gasolinera_id": gasolinera_nueva, "gasolinera_nombre": nombre_nueva},
+                )
+
+            return redirect(f"/tarjetas/{id}?ok=1")
+
+    return render_template(
+        "tarjetas/editar.html",
+        tarjeta=tarjeta,
+        gasolineras=gasolineras,
+        error=error,
+        estados_tarjeta=ESTADOS_TARJETA,
+        combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
     )
 
 
