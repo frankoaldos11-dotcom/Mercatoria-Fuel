@@ -1,4 +1,4 @@
-# Reporte de Pruebas — 2026-07-03
+# Reporte de Pruebas — 2026-07-05
 
 ## Páginas probadas
 
@@ -6,96 +6,72 @@
 |-----|--------|-----------|
 | `/login` | Iniciar Sesión | ✅ |
 | `/dashboard` | Dashboard | ✅ |
+| `/transferencias/` | Transferencias — listado | ✅ |
 | `/gasolineras/` | Gasolineras — listado | ✅ |
 | `/gasolineras/1` | La Shell — detalle | ✅ |
-| `/habilitaciones/?gasolinera_id=1` | Habilitaciones — listado | ✅ |
-| `/conciliacion/crear?gasolinera_id=1&fecha=2026-07-03` | Nueva Conciliación | ✅ |
-
-## Cambios verificados
-
-| Cambio | Descripción | Resultado |
-|--------|-------------|-----------|
-| CAMBIO 1 | Sidebar reestructurado: PUESTO DE MANDO GENERAL (Operaciones/Acciones), OPERADORES GASOLINERA, COMERCIAL, SISTEMA | ✅ |
-| CAMBIO 2 | Escanear QR solo en bloque OPERADORES GASOLINERA, no en Acciones | ✅ |
-| CAMBIO 3 | Stock por combustible en listado gasolineras: `Diésel: 23,847 L` | ✅ |
-| CAMBIO 3 | Stock listado ≡ stock detalle: ambos muestran `23,847.00 L` exacto | ✅ |
-| CAMBIO 4 | Columna Acciones primera en habilitaciones listado | ✅ |
-| CAMBIO 5 | Dropdown de turno eliminado del Paso 2 de conciliación | ✅ |
-| CAMBIO 7 | Panel "Habilitaciones del día" visible en conciliación crear (gasolinera+fecha seleccionadas) | ✅ |
-| CAMBIO 7 | Banner "Turno listo para cerrar — todas las habilitaciones despachadas" | ✅ |
-| CAMBIO 7 | Filas en verde para habilitaciones despachadas correctamente | ✅ |
+| `/gasolineras/2` | Berroa — detalle | ✅ |
 
 ## Errores encontrados
 
-Ninguno en producción.
-
-### Bug corregido durante la sesión
-
-- **`blueprints/conciliacion.py` — `_detalle_habilitaciones`**: query original usaba `JOIN unidades` (tabla incorrecta, es `vehiculos`) y `JOIN despachos` para `litros_despachados` (columna ya existe en `habilitaciones`). Corregido en commit `2fa759b`.
+| Tipo | Descripción | Estado |
+|------|-------------|--------|
+| 500 Server Error | `/gasolineras/1` fallaba con TypeError por `fecha_despacho[:16]` en datetime de PostgreSQL | ✅ Corregido en commit `8e8293a` (filtro `\|string` en Jinja2) |
+| 0 errores de consola JS | Sin errores en ninguna página verificada | ✅ |
 
 ## Screenshots tomados
 
-- `sprint7_01_dashboard_sidebar.png` — Dashboard con nuevo sidebar
-- `sprint7_02_gasolineras_listado.png` — Listado gasolineras con stock por combustible y acciones en primera columna
-- `sprint7_03_conciliacion_crear.png` — Conciliación Paso 2 sin dropdown turno
-- `sprint7_04_conciliacion_habs_panel.png` — Panel comparativo habilitaciones del día funcionando
+- `sprint8_i1i2ci5_transferencias_listado.png` — Listado de transferencias con botón "Ver" (I5) y badge "Sin distribuir" (I2c)
+- `sprint8_i3i4_gasolinera_detalle.png` — La Shell detalle: subinventarios consolidados (I3), tabla despachos (I4), columna L. distribuidos (I2d)
+- `sprint8_i4_gasolinera_berroa_detalle.png` — Berroa detalle: mismas secciones
 
 ## Correcciones aplicadas
 
-1. **`blueprints/conciliacion.py`** — `_detalle_habilitaciones`: reemplazado `JOIN unidades` por `JOIN vehiculos` y `d.litros_despachados` (vía JOIN despachos) por `h.litros_despachados` (columna directa de habilitaciones). Commit `2fa759b`.
+### ISSUE 1 — puesto_de_mando puede crear/gestionar transferencias
+- `_requiere_admin_pm()` en `transferencias.py` ahora usa `_ROLES_TRANSFERENCIAS = ["admin", "pm", "puesto_de_mando"]`
+- Botones "Nueva transferencia" y "Gestionar" en `listado.html` actualizados
 
-## Validación de tarjeta Fincimex (Sprint 7 — commit 73f666b)
+### ISSUE 2a — Columna `litros_distribuidos` en DB
+- `migraciones_pg.py`: `ALTER TABLE transferencias ADD COLUMN IF NOT EXISTS litros_distribuidos NUMERIC(14,2) DEFAULT 0`
+- `migraciones.py`: mismo ADD COLUMN para SQLite local (REAL DEFAULT 0)
 
-### Regla de negocio implementada
-Para transferir combustible a una gasolinera, debe existir al menos una tarjeta Fincimex activa del mismo tipo de combustible en esa gasolinera.
+### ISSUE 2b — `distribuir()` actualiza `litros_distribuidos`
+- `blueprints/transferencias.py`: `UPDATE transferencias SET litros_distribuidos = COALESCE(litros_distribuidos, 0) + ?` tras cada distribución
 
-### Páginas verificadas
+### ISSUE 2c — Badge "Sin distribuir" en listado de transferencias
+- `listado()` SELECT incluye `t.litros_distribuidos`
+- Template muestra badge ámbar "Sin distribuir: X L" si `litros_recibidos - litros_distribuidos > 0.01`
+- Verificado: todas las transferencias recibidas muestran badge (litros_distribuidos = 0 por defecto)
 
-| URL | Escenario | Resultado |
-|-----|-----------|-----------|
-| `/transferencias/crear` | La Shell + Gasolina Regular (sin tarjeta activa) | ✅ Aviso mostrado, submit deshabilitado |
-| `/transferencias/crear` | La Shell + Diésel (con tarjetas activas) | ✅ Sin aviso, submit habilitado |
-| `/transferencias/6/gestionar` | Confirmar llegada La Shell + Diésel | ✅ Aprobado correctamente (4 tarjetas activas) |
+### ISSUE 2d — Columna "L. distribuidos" en detalle gasolinera
+- Query de transferencias en `detalle()` incluye `t.litros_distribuidos`
+- Template `detalle.html`: columna "L. distribuidos" con sub-badge de pendiente
 
-### Frontend — aviso temprano (`validarTarjeta()`)
+### ISSUE 3 — Subinventarios consolidados por cliente
+- `detalle()` en `gasolineras.py`: agregación Python post-fetch; una fila por `cliente_id` con suma de `litros_reservados`
+- `suma_reservados` sigue computándose desde la lista raw (correcto)
 
-| Check | Valor observado |
-|-------|----------------|
-| `aviso-tarjeta` display (sin tarjeta) | `block` |
-| Mensaje | "La Shell no tiene tarjetas Fincimex activas de Gasolina Regular. No puede recibir este combustible hasta que se le asigne una." |
-| `btn-submit.disabled` (sin tarjeta) | `true` |
-| `aviso-tarjeta` display (con tarjeta) | `none` |
-| `btn-submit.disabled` (con tarjeta) | `false` |
+### ISSUE 4 — Tabla "Despachos realizados"
+- Query en `detalle()`: JOIN despachos→clientes→vehiculos→tarjetas
+- Sección nueva en `detalle.html` antes de "Transferencias recibidas"
+- **Bug detectado y corregido**: `fecha_despacho[:16]` fallaba en PostgreSQL (datetime object). Fix: `(d.fecha_despacho|string)[:16]`
 
-### Backend — bloqueo duro (`confirmar_llegada`)
+### ISSUE 5 — Botón "Ver" en transferencias recibidas/anuladas
+- Template: para `estado != 'en_transito'`, muestra `<a href="/transferencias/{{ t.id }}/gestionar" class="btn btn-secondary btn-sm">Ver</a>`
 
-El guardia crítico está en `blueprints/transferencias.py` líneas 396–408:
+### Archivos de debug eliminados
+- `conciliacion_crear_html.txt` y `conciliacion_crear_html2.txt` eliminados del repo
 
-```python
-cur.execute("""
-    SELECT COUNT(*) AS n FROM tarjetas
-    WHERE gasolinera_id = ? AND tipo_combustible = ? AND estado = 'activa'
-""", (transferencia["gasolinera_destino_id"], transferencia["tipo_combustible"]))
-if cur.fetchone()["n"] == 0:
-    conn.close()
-    error = "... No se puede confirmar la llegada sin respaldo de tarjeta. ..."
-else:
-    # INSERT transferencia_entrada solo si n > 0
-    conn.commit()
-    return redirect(...)
-```
+## Commits del sprint
 
-**Verificación live**: Transferencia #6 (La Shell + Diésel) se confirmó correctamente porque La Shell tiene 5 tarjetas de Diésel (4 activas al momento de la prueba). La lógica del bloqueo es correcta: el INSERT de `transferencia_entrada` está dentro del `else:`, garantizando que el combustible nunca entra al stock si el COUNT = 0.
-
-**Nota sobre el test de aislamiento**: Para verificar el path de bloqueo en producción se requeriría una gasolinera con cero tarjetas activas del tipo. El path de código está cubierto; el `if n == 0` está correctamente conectado al `error` que evita el commit.
-
-### Screenshots tomados
-
-- `sprint7_tar_01_aviso_sin_tarjeta.png` — Aviso frontend, submit deshabilitado (La Shell + Gasolina Regular)
-- `sprint7_tar_02_con_tarjeta_ok.png` — Sin aviso, submit habilitado (La Shell + Diésel)
+| Hash | Mensaje |
+|------|---------|
+| `e8089ef` | PM permiso transferencias + visibilidad combustible sin distribuir + consolidar subinventarios por cliente + tabla despachos realizados + boton ver transferencias |
+| `8e8293a` | fix: usar filtro \|string en fecha_despacho para compatibilidad SQLite/PostgreSQL |
+| `036feb2` | respaldo antes de produccion (debug txt files) |
 
 ## Recomendaciones
 
-- El sidebar del admin muestra AMBOS bloques PUESTO DE MANDO GENERAL y OPERADORES GASOLINERA (comportamiento correcto: el admin ve todo). Validar con un usuario `operador_gasolinera` real para confirmar que solo ve su bloque.
-- Las filas del panel comparativo muestran verde/rojo/ámbar según estado. Probar con habilitaciones en estado `pendiente` o `aprobada` para verificar filas rojas.
-- Para probar el bloqueo duro en producción end-to-end: crear una gasolinera de prueba sin tarjetas e intentar confirmar una llegada de combustible → debe rechazar con el mensaje configurado.
+- **I2b trazabilidad futura**: actualmente `litros_distribuidos` acumula cada vez que se llama `distribuir()`. Si se necesita resetear (transferencia devuelta parcialmente), será necesario un mecanismo de ajuste.
+- **I3 edición de subinventarios consolidados**: los botones "Editar/Toggle/Mover" en filas consolidadas apuntan al primer subinventario del cliente. Considerar una vista de subinventarios individuales por cliente si se necesita gestión granular.
+- **Test de I1 con rol puesto_de_mando**: verificar manualmente en producción con un usuario de ese rol.
+- **Backfill de litros_distribuidos**: las transferencias históricas tienen `litros_distribuidos = 0` aunque ya fueron distribuidas. Si es necesario, aplicar un UPDATE basado en movimientos de tipo `asignacion_tarjeta`.
