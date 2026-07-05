@@ -264,7 +264,7 @@
                 {% for d in despachos_recientes %}
                 <tr>
                     <td><span style="color:var(--muted);font-size:12px;">#{{ d.id }}</span></td>
-                    <td>{{ d.fecha_despacho[:16] if d.fecha_despacho else '—' }}</td>
+                    <td>{{ (d.fecha_despacho|string)[:16] if d.fecha_despacho else '—' }}</td>
                     <td>{{ d.cliente_nombre }}</td>
                     <td><code style="font-size:12px;">{{ d.unidad_chapa }}</code></td>
                     <td><code style="font-size:12px;">****{{ d.tarjeta_parcial }}</code></td>
