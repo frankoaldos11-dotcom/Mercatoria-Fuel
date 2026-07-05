@@ -160,7 +160,7 @@ def detalle(id):
     # Historial de transferencias recibidas
     cur.execute("""
         SELECT t.id, t.fecha_salida, t.fecha_llegada, t.tipo_combustible,
-               t.litros_solicitados, t.litros_recibidos, t.pipa_chapa,
+               t.litros_solicitados, t.litros_recibidos, t.litros_distribuidos, t.pipa_chapa,
                t.chofer_pipa, t.estado,
                d.nombre AS deposito_nombre
         FROM transferencias t
@@ -180,12 +180,48 @@ def detalle(id):
         WHERE s.gasolinera_id = ?
         ORDER BY s.orden_prioridad ASC, s.id ASC
     """, (id,))
-    subinventarios = cur.fetchall()
+    subinventarios_raw = cur.fetchall()
+
+    # Despachos realizados
+    cur.execute("""
+        SELECT d.id, d.fecha_despacho, d.litros_despachados, d.estado,
+               c.nombre AS cliente_nombre,
+               v.chapa  AS unidad_chapa,
+               t.numero_parcial AS tarjeta_parcial
+        FROM despachos d
+        JOIN clientes  c ON c.id = d.cliente_id
+        JOIN vehiculos v ON v.id = d.unidad_id
+        JOIN tarjetas  t ON t.id = d.tarjeta_id
+        WHERE d.gasolinera_id = ?
+        ORDER BY d.fecha_despacho DESC, d.id DESC
+        LIMIT 20
+    """, (id,))
+    despachos_recientes = cur.fetchall()
     conn.close()
 
-    suma_reservados = sum(float(s["litros_reservados"]) for s in subinventarios if s["activo"])
+    # suma_reservados computed from raw rows (accurate per-row activo flag)
+    suma_reservados = sum(float(s["litros_reservados"]) for s in subinventarios_raw if s["activo"])
     disponible_venta = max(0.0, stock_total - suma_reservados)
     combustibles_gasolinera = _combustibles_list(gasolinera["combustible"])
+
+    # Consolidate client subinventarios: one row per client with summed litros
+    subinventarios_display = []
+    _cliente_idx = {}
+    for s in subinventarios_raw:
+        cid = s["cliente_id"]
+        if s["tipo"] == "cliente" and cid:
+            if cid in _cliente_idx:
+                idx = _cliente_idx[cid]
+                subinventarios_display[idx] = dict(subinventarios_display[idx])
+                subinventarios_display[idx]["litros_reservados"] = (
+                    float(subinventarios_display[idx]["litros_reservados"]) +
+                    float(s["litros_reservados"])
+                )
+            else:
+                _cliente_idx[cid] = len(subinventarios_display)
+                subinventarios_display.append(dict(s))
+        else:
+            subinventarios_display.append(dict(s))
 
     return render_template(
         "gasolineras/detalle.html",
@@ -194,9 +230,10 @@ def detalle(id):
         stock_por_combustible=stock_por_combustible,
         combustibles_gasolinera=combustibles_gasolinera,
         transferencias=transferencias,
-        subinventarios=subinventarios,
+        subinventarios=subinventarios_display,
         suma_reservados=suma_reservados,
         disponible_venta=disponible_venta,
+        despachos_recientes=despachos_recientes,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         subinventario_labels=TIPOS_SUBINVENTARIO_LABELS,
     )

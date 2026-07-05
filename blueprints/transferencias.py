@@ -1,15 +1,16 @@
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
-from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM
+from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS
 from utils.auth import requiere_login
 
 transferencias_bp = Blueprint("transferencias", __name__, url_prefix="/transferencias")
 
 _DIFF_TOLERANCIA = 0.005  # 0.5%
+_ROLES_TRANSFERENCIAS = ["admin", "pm", "puesto_de_mando"]
 
 
 def _requiere_admin_pm():
-    return session.get("rol") not in ROLES_ADMIN_PM
+    return session.get("rol") not in _ROLES_TRANSFERENCIAS
 
 
 def _stock_deposito(cur, deposito_id):
@@ -61,7 +62,7 @@ def listado():
     cur = conn.cursor()
     cur.execute(f"""
         SELECT t.id, t.fecha_salida, t.fecha_llegada, t.tipo_combustible,
-               t.litros_solicitados, t.litros_recibidos, t.pipa_chapa,
+               t.litros_solicitados, t.litros_recibidos, t.litros_distribuidos, t.pipa_chapa,
                t.chofer_pipa, t.no_documento, t.estado,
                t.deposito_origen_id,
                d.nombre AS deposito_nombre,
@@ -327,6 +328,10 @@ def distribuir(id):
             (litros_val, tarjeta_id)
         )
 
+    cur.execute(
+        "UPDATE transferencias SET litros_distribuidos = COALESCE(litros_distribuidos, 0) + ? WHERE id = ?",
+        (suma_asignada, id)
+    )
     conn.commit()
     conn.close()
     return redirect(f"/transferencias/{id}/gestionar?ok=1")

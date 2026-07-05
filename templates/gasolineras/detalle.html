@@ -239,6 +239,52 @@
     </div>
 </div>
 
+<!-- Despachos realizados -->
+<div class="panel mb-4">
+    <div class="panel-header">
+        <h2 style="font-size:16px;font-weight:600;margin:0;">
+            <i class="bi bi-fuel-pump"></i> Despachos realizados
+        </h2>
+        <a href="/despachos?gasolinera_id={{ gasolinera.id }}" class="btn btn-soft btn-sm">Ver todos</a>
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Unidad</th>
+                    <th>Tarjeta</th>
+                    <th>L. despachados</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in despachos_recientes %}
+                <tr>
+                    <td><span style="color:var(--muted);font-size:12px;">#{{ d.id }}</span></td>
+                    <td>{{ d.fecha_despacho[:16] if d.fecha_despacho else '—' }}</td>
+                    <td>{{ d.cliente_nombre }}</td>
+                    <td><code style="font-size:12px;">{{ d.unidad_chapa }}</code></td>
+                    <td><code style="font-size:12px;">****{{ d.tarjeta_parcial }}</code></td>
+                    <td><strong>{{ "{:,.2f}".format(d.litros_despachados) }} L</strong></td>
+                    <td>
+                        {% if d.estado == 'completado' %}
+                        <span class="badge badge-ok">Completado</span>
+                        {% else %}
+                        <span class="badge badge-neutral">{{ d.estado }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty-state" style="padding:20px;">Sin despachos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- Historial de transferencias recibidas -->
 <div class="panel">
     <div class="panel-header">
@@ -258,6 +304,7 @@
                     <th>Combustible</th>
                     <th>L. solicitados</th>
                     <th>L. recibidos</th>
+                    <th>L. distribuidos</th>
                     <th>Pipa</th>
                     <th>Estado</th>
                 </tr>
@@ -272,6 +319,18 @@
                     <td><span class="badge badge-info">{{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}</span></td>
                     <td>{{ "{:,.2f}".format(t.litros_solicitados) }}</td>
                     <td>{{ "{:,.2f}".format(t.litros_recibidos) if t.litros_recibidos is not none else '—' }}</td>
+                    <td>
+                        {% if t.estado == 'recibida' and t.litros_recibidos is not none %}
+                        {% set _dist = (t.litros_distribuidos or 0)|float %}
+                        {% set _pend = (t.litros_recibidos)|float - _dist %}
+                        {{ "{:,.2f}".format(_dist) }}
+                        {% if _pend > 0.01 %}
+                        <span class="badge badge-warn" style="font-size:10px;margin-left:2px;" title="Sin distribuir a tarjetas">
+                            -{{ "{:,.0f}".format(_pend) }} L
+                        </span>
+                        {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
                     <td>{{ t.pipa_chapa or '—' }}</td>
                     <td>
                         {% if t.estado == 'recibida' %}
@@ -284,7 +343,7 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="9" class="empty-state" style="padding:20px;">Sin transferencias recibidas.</td></tr>
+                <tr><td colspan="10" class="empty-state" style="padding:20px;">Sin transferencias recibidas.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

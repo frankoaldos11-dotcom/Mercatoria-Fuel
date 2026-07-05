@@ -580,6 +580,7 @@ def ejecutar_migraciones(bcrypt):
         "ALTER TABLE reservas_tienda ADD COLUMN tarjeta_id INTEGER REFERENCES tarjetas(id)",
         "ALTER TABLE reservas_tienda ADD COLUMN motivo_cancelacion TEXT",
         "ALTER TABLE usuarios ADD COLUMN gasolinera_id INTEGER REFERENCES gasolineras(id)",
+        "ALTER TABLE transferencias ADD COLUMN litros_distribuidos REAL DEFAULT 0",
     ]:
         try:
             cur.execute(_sql)
