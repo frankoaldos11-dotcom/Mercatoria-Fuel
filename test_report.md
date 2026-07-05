@@ -10,68 +10,86 @@
 | `/gasolineras/` | Gasolineras — listado | ✅ |
 | `/gasolineras/1` | La Shell — detalle | ✅ |
 | `/gasolineras/2` | Berroa — detalle | ✅ |
+| `/tarjetas/` | Tarjetas Fincimex | ✅ |
+| `/tarjetas/1` | Tarjeta ****8777 — detalle (botón Editar) | ✅ |
+| `/tarjetas/1/editar` | Editar Tarjeta ****8777 | ✅ |
+| `/tienda/reservar` | Nueva reserva (sin vehículo) | ✅ bloqueado |
+| `/tienda/reservar` | Nueva reserva (con vehículo ABC-001) | ✅ permitido |
+| `/tienda/admin` | Panel reservas — aprobar #4 | ✅ |
+| `/despachos/` | Despachos — reserva aprobada visible | ✅ |
 
 ## Errores encontrados
 
 | Tipo | Descripción | Estado |
 |------|-------------|--------|
-| 500 Server Error | `/gasolineras/1` fallaba con TypeError por `fecha_despacho[:16]` en datetime de PostgreSQL | ✅ Corregido en commit `8e8293a` (filtro `\|string` en Jinja2) |
-| 0 errores de consola JS | Sin errores en ninguna página verificada | ✅ |
+| 500 Server Error | `/gasolineras/1` — TypeError en `fecha_despacho[:16]` (PostgreSQL) | ✅ Corregido commit `8e8293a` |
+| Bug lógico | Reserva creable sin vehículo — `vehiculo_id` no validado en backend | ✅ Corregido commit `82d6a9c` |
+| Bug lógico | Reserva aprobada invisible en flujo de despacho | ✅ Corregido commit `82d6a9c` |
+| 0 errores JS consola | Sin errores en ninguna página verificada | ✅ |
 
 ## Screenshots tomados
 
-- `sprint8_i1i2ci5_transferencias_listado.png` — Listado de transferencias con botón "Ver" (I5) y badge "Sin distribuir" (I2c)
-- `sprint8_i3i4_gasolinera_detalle.png` — La Shell detalle: subinventarios consolidados (I3), tabla despachos (I4), columna L. distribuidos (I2d)
-- `sprint8_i4_gasolinera_berroa_detalle.png` — Berroa detalle: mismas secciones
+- `sprint8_i1i2ci5_transferencias_listado.png` — Listado de transferencias (Sprint 8)
+- `sprint8_i3i4_gasolinera_detalle.png` — La Shell detalle (Sprint 8)
+- `sprint8_i4_gasolinera_berroa_detalle.png` — Berroa detalle (Sprint 8)
+- `sprint8_tarjeta_editar_form.png` — Formulario editar tarjeta
+- `sprint8_tarjeta_editar_aviso_saldo.png` — Aviso JS de saldo al cambiar gasolinera
+- `sprint8_tarjeta_editar_guardado_ok.png` — Detalle tras guardar tarjeta
+- `sprint8_tarjeta_editar_listado_final.png` — Listado de tarjetas final
+- `tienda_bug1_sin_vehiculo_bloqueado.png` — Formulario bloqueado sin vehículos: aviso + enlace, sin botón submit
+- `tienda_bug1_reserva_con_vehiculo_ok.png` — Reserva #4 confirmada con vehículo ABC-001 Toyota Hilux
+- `tienda_bug2_reserva_aprobada_en_despachos.png` — Reserva #4 aprobada visible en /despachos con botón Escanear QR
 
 ## Correcciones aplicadas
 
-### ISSUE 1 — puesto_de_mando puede crear/gestionar transferencias
-- `_requiere_admin_pm()` en `transferencias.py` ahora usa `_ROLES_TRANSFERENCIAS = ["admin", "pm", "puesto_de_mando"]`
-- Botones "Nueva transferencia" y "Gestionar" en `listado.html` actualizados
+### Sprint 8 — Issues 1-5 (commits `e8089ef`, `8e8293a`)
+Ver historial anterior. Todos verificados en producción.
 
-### ISSUE 2a — Columna `litros_distribuidos` en DB
-- `migraciones_pg.py`: `ALTER TABLE transferencias ADD COLUMN IF NOT EXISTS litros_distribuidos NUMERIC(14,2) DEFAULT 0`
-- `migraciones.py`: mismo ADD COLUMN para SQLite local (REAL DEFAULT 0)
+### Reasignación de gasolinera en tarjeta Fincimex (commit `4b74c9a`)
+Verificado: La Shell → Berroa → La Shell, saldo 3,200 L intacto en todo momento.
 
-### ISSUE 2b — `distribuir()` actualiza `litros_distribuidos`
-- `blueprints/transferencias.py`: `UPDATE transferencias SET litros_distribuidos = COALESCE(litros_distribuidos, 0) + ?` tras cada distribución
+### Bug 1 — Vehículo obligatorio en reserva de tienda (commit `82d6a9c`)
 
-### ISSUE 2c — Badge "Sin distribuir" en listado de transferencias
-- `listado()` SELECT incluye `t.litros_distribuidos`
-- Template muestra badge ámbar "Sin distribuir: X L" si `litros_recibidos - litros_distribuidos > 0.01`
-- Verificado: todas las transferencias recibidas muestran badge (litros_distribuidos = 0 por defecto)
+**Causa:** backend no validaba `vehiculo_id`; tabla `reservas_tienda` sin FK a `vehiculos_tienda`.
 
-### ISSUE 2d — Columna "L. distribuidos" en detalle gasolinera
-- Query de transferencias en `detalle()` incluye `t.litros_distribuidos`
-- Template `detalle.html`: columna "L. distribuidos" con sub-badge de pendiente
+**Correcciones:**
+- `migraciones_pg.py` / `migraciones.py`: `ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS vehiculo_id INTEGER REFERENCES vehiculos_tienda(id)`
+- `blueprints/tienda.py` POST `/reservar`: sin vehículos → error inmediato; `vehiculo_id` vacío o ajeno al cliente → error; `vehiculo_id` guardado en INSERT
+- `templates/tienda/reservar.html`: sin vehículos → aviso bloqueante + enlace, formulario oculto; con vehículos → `<select required>` sin opción "Otro vehículo"
 
-### ISSUE 3 — Subinventarios consolidados por cliente
-- `detalle()` en `gasolineras.py`: agregación Python post-fetch; una fila por `cliente_id` con suma de `litros_reservados`
-- `suma_reservados` sigue computándose desde la lista raw (correcto)
+| Prueba | Resultado |
+|--------|-----------|
+| Sin vehículos → `/tienda/reservar` | ✅ Formulario oculto, mensaje "Debes registrar al menos un vehículo", enlace a mis-vehículos |
+| Con vehículo ABC-001 Toyota Hilux → 500 L La Shell Diésel | ✅ Reserva #4 creada, redirección a confirmación |
 
-### ISSUE 4 — Tabla "Despachos realizados"
-- Query en `detalle()`: JOIN despachos→clientes→vehiculos→tarjetas
-- Sección nueva en `detalle.html` antes de "Transferencias recibidas"
-- **Bug detectado y corregido**: `fecha_despacho[:16]` fallaba en PostgreSQL (datetime object). Fix: `(d.fecha_despacho|string)[:16]`
+### Bug 2 — Reserva aprobada visible en Despachos (commit `82d6a9c`)
 
-### ISSUE 5 — Botón "Ver" en transferencias recibidas/anuladas
-- Template: para `estado != 'en_transito'`, muestra `<a href="/transferencias/{{ t.id }}/gestionar" class="btn btn-secondary btn-sm">Ver</a>`
+**Causa:** `reservas_tienda` era tabla aislada; `/despachos` nunca consultaba reservas de tienda.
 
-### Archivos de debug eliminados
-- `conciliacion_crear_html.txt` y `conciliacion_crear_html2.txt` eliminados del repo
+**Correcciones:**
+- `blueprints/despachos.py` `listado()`: segunda query `reservas_tienda WHERE estado='aprobada'`. `operador_gasolinera` → solo su gasolinera; admin/pm/puesto_de_mando → todas.
+- `templates/despachos/listado.html`: sección "Reservas de Tienda — Pendientes de despachar" encima de la tabla principal, con botón "Escanear QR" → `/turno/escanear`
+
+**Reglas respetadas:** `api_reserva_completar` (turno.py) sigue siendo el único punto de completado. Descuenta de `saldo_usable_l`. Idempotente (segundo escaneo rechazado si `estado != 'aprobada'`).
+
+| Prueba | Resultado |
+|--------|-----------|
+| Aprobar reserva #4 vía `/tienda/admin` | ✅ `{"ok": true, "token": "61c9b1cc-..."}` |
+| `/despachos/` tras aprobación | ✅ Sección naranja "Reservas de Tienda", Cliente PMA, ABC-001, 500.00 L, botón Escanear QR |
 
 ## Commits del sprint
 
 | Hash | Mensaje |
 |------|---------|
-| `e8089ef` | PM permiso transferencias + visibilidad combustible sin distribuir + consolidar subinventarios por cliente + tabla despachos realizados + boton ver transferencias |
-| `8e8293a` | fix: usar filtro \|string en fecha_despacho para compatibilidad SQLite/PostgreSQL |
-| `036feb2` | respaldo antes de produccion (debug txt files) |
+| `82d6a9c` | Tienda: vehiculo obligatorio en reserva + reserva aprobada visible en Despachos para escaneo |
+| `5eaec61` | MDS: integrar lecciones sesion estabilizacion PostgreSQL |
+| `4b74c9a` | Permitir reasignar gasolinera de tarjeta Fincimex con aviso de saldo + auditoria |
+| `be4cd4a` | Sprint 8: test_report.md QA Playwright — 5 issues verificados en produccion |
+| `8e8293a` | fix: filtro \|string en fecha_despacho para compatibilidad SQLite/PostgreSQL |
 
 ## Recomendaciones
 
-- **I2b trazabilidad futura**: actualmente `litros_distribuidos` acumula cada vez que se llama `distribuir()`. Si se necesita resetear (transferencia devuelta parcialmente), será necesario un mecanismo de ajuste.
-- **I3 edición de subinventarios consolidados**: los botones "Editar/Toggle/Mover" en filas consolidadas apuntan al primer subinventario del cliente. Considerar una vista de subinventarios individuales por cliente si se necesita gestión granular.
-- **Test de I1 con rol puesto_de_mando**: verificar manualmente en producción con un usuario de ese rol.
-- **Backfill de litros_distribuidos**: las transferencias históricas tienen `litros_distribuidos = 0` aunque ya fueron distribuidas. Si es necesario, aplicar un UPDATE basado en movimientos de tipo `asignacion_tarjeta`.
+- **DEUDA ABIERTA — saldo inicial de tarjeta**: tecleado a mano al crear, permite introducir saldo sin flujo real. Evaluar forzar `saldo_usable_l = 0` al crear y exigir primera recarga vía flujo.
+- **Backfill de litros_distribuidos**: transferencias históricas tienen 0 aunque ya distribuyeron. Aplicar UPDATE basado en movimientos si se necesita trazabilidad retroactiva.
+- **Migración PostgreSQL free tier**: expira 2026-07-26. Migrar antes de esa fecha.
+- **Auditoría de reasignaciones de tarjeta**: registradas en tabla `auditoria`. Considerar vista en panel admin si se necesita trazabilidad visible.
