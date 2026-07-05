@@ -14,6 +14,14 @@ El ecosistema Mercatoria está compuesto por tres plataformas independientes con
 | Mercatoria Fuel | frankoaldos11-dotcom/Mercatoria-Fuel | mercatoria-fuel.onrender.com | En desarrollo activo |
 | Mercatoria Assets | pendiente | pendiente | Planificado |
 
+### Aislamiento de bases de datos — regla irrenunciable
+
+**Cada plataforma tiene su propia base PostgreSQL separada desde el día uno. Nunca compartir base entre proyectos.**
+
+`CREATE TABLE IF NOT EXISTS` no protege contra bases compartidas: si dos aplicaciones tienen tablas con el mismo nombre pero esquemas distintos, la que arranca primero fija la estructura de la tabla y la otra queda leyendo columnas que no existen — error 500 "column does not exist" silencioso y difícil de diagnosticar.
+
+**Incidente real (2026-06):** Mercatoria Truck y Mercatoria Fuel compartían `mercatoria-db`. Fuel ejecutó primero sus migraciones y fijó la tabla `usuarios` con su propio esquema. Truck cayó con error 500 en todas las rutas autenticadas. Solución: crear una base separada `mercatoria-fuel-db` para Fuel y ejecutar sus migraciones desde cero.
+
 ---
 
 ## STACK COMÚN
@@ -92,13 +100,18 @@ conciliaciones ── gasolineras (N:1)
 
 ## ROLES DEL SISTEMA
 
+Cuatro roles activos en Mercatoria Fuel. Los roles legacy (`pm`, `operario`, `supervisor`) están eliminados del selector de creación de usuarios; el backend los reconoce pero no los acepta como nuevos.
+
 | Rol | Código | Acceso |
 |---|---|---|
-| Administrador | admin | Todo |
-| Puesto de Mando | pm | Operaciones completas, sin configuración de sistema |
-| Operario Gasolinera | operario | Su gasolinera: despachos, turnos, devoluciones tarjeta |
-| Supervisor | supervisor | Solo lectura. Sin modificaciones. |
-| Cliente | cliente | Solo su portal propio |
+| Administrador | `admin` | Todo: configuración, usuarios, financiero, operaciones |
+| Puesto de Mando | `puesto_de_mando` | Toda la operación sin información financiera. Sin gasolinera asignada. Puede crear y gestionar transferencias completas. |
+| Operador Gasolinera | `operador_gasolinera` | Acotado a la gasolinera asignada vía `usuarios.gasolinera_id`. Solo despachos, revisión operativa y escaneo QR. No crea transferencias. |
+| Cliente | `cliente` | Solo su portal propio (historial, consumo, unidades). |
+
+**Ocultación financiera:** los bloques de información financiera (saldos en CUP, detalles de recarga, reportes económicos) se guardan tras `{% if session.get('rol') in ('admin',) %}`. El rol `puesto_de_mando` no accede a información financiera.
+
+**Roles legacy** (reconocidos en backend como obsoletos, no seleccionables en UI): `pm`, `supervisor`, `operario`.
 
 ---
 

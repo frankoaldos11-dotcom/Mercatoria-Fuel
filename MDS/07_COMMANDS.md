@@ -75,6 +75,42 @@ python migraciones.py
 
 ---
 
+## GIT — RECUPERACIÓN DE REF CORRUPTO
+
+Síntoma: `git status`, `git log` o `git push` fallan con errores de objeto inválido o SHA cero. Causa habitual: cierre abrupto de Claude Code mientras tenía el repo bloqueado.
+
+**Paso 1 — Diagnosticar antes de tocar nada:**
+```powershell
+git fsck --no-dangling    # lista objetos corruptos o colgantes
+git reflog                # historial de refs local, muestra último commit bueno
+```
+
+**Paso 2 — Confirmar el último commit bueno y que no hay trabajo sin commitear.**
+
+**Paso 3 — Reparar el ref (solo si el SHA del ref es cero):**
+```powershell
+# Verificar el contenido del ref
+Get-Content ".git\refs\heads\master"
+
+# Si muestra 40 ceros, escribir el SHA correcto (obtenido de git reflog)
+"<sha-del-último-commit-bueno>" | Out-File -FilePath ".git\refs\heads\master" -Encoding ascii -NoNewline
+```
+
+**Paso 4 — Verificar que el repo quedó sano:**
+```powershell
+git fsck --no-dangling    # debe devolver output vacío
+git log --oneline -5
+git status
+```
+
+**Paso 5 — Si el index también quedó corrupto** (`bad signature 0x00000000`):
+```powershell
+Remove-Item ".git\index" -Force
+git reset HEAD
+```
+
+---
+
 ## GENERACIÓN DE ZIP PARA NUEVA SESIÓN
 
 ```powershell

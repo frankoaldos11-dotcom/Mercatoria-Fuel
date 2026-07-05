@@ -11,6 +11,8 @@
 | Desarrollo local | http://localhost:5000 | SQLite (mercatoria_fuel.db) | Automáticas al arrancar |
 | Producción | https://mercatoria-fuel.onrender.com | PostgreSQL (Render) | SKIP_MIGRATIONS=true |
 
+> **Lección de SQLite efímero:** Si los datos desaparecen en cada deploy, el problema no es el free tier de PostgreSQL — es que la app está corriendo con SQLite porque `DATABASE_URL` no está definida en las variables de entorno de Render. Mercatoria Fuel corrió meses en SQLite efímero por esta causa. Verificar siempre que `DATABASE_URL` esté presente y que los logs muestren "Conectado a PostgreSQL" al arrancar.
+
 ---
 
 ## VARIABLES DE ENTORNO REQUERIDAS
@@ -28,6 +30,8 @@ SKIP_MIGRATIONS=true             # Siempre true en producción
 El despliegue es automático al hacer push a la rama `master`. Render detecta el push, construye la imagen y reinicia el servicio.
 
 Tiempo estimado de cold start: ~30 segundos.
+
+> **`render.yaml` es decorativo si el servicio se creó a mano.** El archivo solo se aplica cuando el servicio fue creado como Blueprint desde Render. Si el servicio existe y se editó manualmente, `render.yaml` no se ejecuta automáticamente — los cambios deben aplicarse desde el dashboard de Render.
 
 Si hay cambios en el schema de base de datos (nuevas tablas o columnas), ejecutar las migraciones manualmente una vez apuntando a la DATABASE_URL de producción:
 
@@ -84,6 +88,16 @@ Necesario cuando expire el free tier (2026-07-26) o al migrar de entorno:
 1. En el web service `mercatoria-fuel` → **Environment**
 2. Actualizar (o añadir) la variable `DATABASE_URL` con la Internal Database URL copiada
 3. Asegurarse de que `SKIP_MIGRATIONS` está en `false` temporalmente
+
+### Orden de migraciones sobre base vacía
+
+Al apuntar a una base nueva o vacía, respetar este orden estrictamente:
+
+1. Todos los `CREATE TABLE IF NOT EXISTS` en orden de dependencias (tablas sin FK primero, tablas con FK después).
+2. Todos los `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para columnas añadidas en sprints posteriores.
+3. Seeds idempotentes (`INSERT ... ON CONFLICT DO NOTHING`).
+
+Nunca ejecutar un `SELECT`, `INSERT` o seed antes de que existan todas las tablas y columnas. Un fallo en orden produce errores de "column does not exist" que pueden confundirse con bugs de código.
 
 ### Paso 3 — Ejecutar migraciones una vez
 ```powershell

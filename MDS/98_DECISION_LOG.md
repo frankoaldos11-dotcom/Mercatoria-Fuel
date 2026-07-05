@@ -56,6 +56,30 @@ Formato: fecha | decisión | alternativas consideradas | motivo
 
 ---
 
+## 2026-07 | Bases de datos separadas por proyecto (incidente Truck+Fuel)
+
+**Decisión:** Cada plataforma Mercatoria (Truck, Fuel, Assets) tiene su propia base PostgreSQL. Nunca compartir base entre proyectos.
+**Alternativas:** Una sola base `mercatoria-db` con todas las tablas de todos los proyectos.
+**Motivo:** Incidente real en junio 2026: Truck y Fuel compartían `mercatoria-db`. Fuel ejecutó primero sus migraciones y fijó el esquema de la tabla `usuarios`. Truck quedó leyendo columnas que no existían → error 500 en todas sus rutas autenticadas. `CREATE TABLE IF NOT EXISTS` no protege contra este escenario: la primera app que corre fija la forma de la tabla. Solución: `mercatoria-fuel-db` separada para Fuel.
+
+---
+
+## 2026-07 | Reasignación de gasolinera en tarjeta Fincimex permitida con auditoría
+
+**Decisión:** Reasignar una tarjeta a otra gasolinera es una operación permitida. Solo cambia `gasolinera_id`; el saldo (`saldo_usable_l`, `saldo_retenido_l`) queda intacto. Se registra en auditoría. Si la tarjeta tiene saldo, se muestra un aviso pero la operación no se bloquea.
+**Alternativas:** Bloquear la reasignación si la tarjeta tiene saldo; o no registrar auditoría.
+**Motivo:** Operativamente las tarjetas físicas pueden moverse entre gasolineras. El saldo pertenece a la tarjeta, no a la gasolinera. La auditoría es necesaria para trazabilidad. Aprobar el movimiento con aviso es menos disruptivo que bloquearlo.
+
+---
+
+## 2026-07 | DEUDA TÉCNICA ABIERTA — Saldo usable inicial tecleado a mano
+
+**Decisión (pendiente de revisión):** Al crear una tarjeta Fincimex, el campo `saldo_usable_l` inicial se ingresa a mano por el administrador.
+**Problema:** Esto permite introducir saldo sin un flujo real de recarga, rompiendo la trazabilidad. Un tarjeta puede aparecer con 5,000 L sin ningún movimiento que lo justifique.
+**Acción pendiente:** Evaluar forzar `saldo_usable_l = 0` al crear, con la primera carga de saldo obligatoriamente vía flujo de recarga.
+
+---
+
 ## 2026-06 | Playwright MCP obligatorio en cierre de cada sprint
 
 **Decisión:** Ningún sprint puede cerrarse con commit final sin haber ejecutado la verificación Playwright en producción.

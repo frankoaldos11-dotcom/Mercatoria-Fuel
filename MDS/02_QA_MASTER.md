@@ -96,3 +96,5 @@ Antes de cada commit de cierre de sprint:
 - Saldo de tarjeta que no refleja el último movimiento.
 - Formulario que guarda datos sin validación de campos obligatorios.
 - Acción que modifica inventario sin insertar en movimientos.
+- Ruta del panel operativo accesible sin guard de ROL (solo con `requiere_login`): verificar en Playwright con sesión de rol `cliente`.
+- Cruce de roles entre sesiones: hacer login con usuario A, cerrar sesión, hacer login con usuario B y verificar que el sidebar y los permisos corresponden a B, no a A. Probar en ventana de incógnito para descartar caché del navegador.

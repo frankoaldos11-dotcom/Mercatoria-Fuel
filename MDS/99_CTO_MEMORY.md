@@ -35,13 +35,13 @@ La operación real fue documentada a partir de tres chats de WhatsApp (Guanabaco
 
 ---
 
-## ESTADO AL CIERRE DEL SPRINT 4
+## ESTADO AL CIERRE DEL SPRINT 8
 
-Sprint 4 en curso al momento de crear este documento. Ver 05_PROJECT_STATUS.md para estado actualizado.
+Ver 05_PROJECT_STATUS.md para estado actualizado.
 
-Sprints cerrados: 1, 2, 3.
-Sprint en curso: 4 (Tarjetas y Subinventarios).
-Pendientes: 5 (Habilitaciones, Despachos, Conciliación) y 6 (Portal Cliente, TL38, Reportes).
+Sprints cerrados: 1, 2, 3, 4, 5, 6, 7, 8.
+Sistema v1.0 completo en producción desde Sprint 6 (portal cliente, TL38, reportes, dashboard ejecutivo).
+Sprint 8 cerró con: permisos `puesto_de_mando` en transferencias, visibilidad de combustible sin distribuir, subinventarios consolidados por cliente, tabla despachos realizados en detalle gasolinera, botón Ver en transferencias, reasignación de gasolinera en tarjeta.
 
 ---
 
@@ -49,6 +49,16 @@ Pendientes: 5 (Habilitaciones, Despachos, Conciliación) y 6 (Portal Cliente, TL
 
 - PostgreSQL free tier de Render expira 2026-07-26. Acción requerida antes de esa fecha.
 - Dominio propio pendiente de compra.
+
+---
+
+## INCIDENTES RESUELTOS (lecciones permanentes)
+
+**Bases de datos compartidas (2026-06):** Truck y Fuel compartían `mercatoria-db`. Fuel fijó la tabla `usuarios` primero; Truck cayó con 500 en todas sus rutas. Resolución: base `mercatoria-fuel-db` separada. Regla permanente: una base por proyecto desde el día uno.
+
+**SQLite efímero (2026-06):** Mercatoria Fuel estuvo meses en producción sin persistencia real. Los datos desaparecían en cada deploy porque `DATABASE_URL` no estaba definida en Render y la app caía a SQLite (archivo local, efímero). No era expiración de free tier. Resolución: añadir `DATABASE_URL` en variables de entorno de Render y ejecutar migraciones PG.
+
+**Refs/heads/master corrupto (2026-07):** El archivo `.git/refs/heads/master` quedó con 40 bytes nulos tras un cierre abrupto de Claude Code. Síntoma: `git status` y `git log` fallaban. Resolución: `git fsck` identificó el último commit bueno (`036feb2`); se escribió el SHA correcto en el ref. Regla permanente: diagnosticar con `git fsck` + `git reflog` antes de reparar; nunca reparar a ciegas.
 
 ---
 
