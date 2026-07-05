@@ -7,6 +7,18 @@
     <p>Selecciona gasolinera, tipo y cantidad de combustible.</p>
 </div>
 
+{% if not mis_vehiculos %}
+<div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:15px;">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <strong>No puedes reservar todavía.</strong><br>
+    Debes registrar al menos un vehículo antes de hacer una reserva.
+    <br><br>
+    <a href="/tienda/mis-vehiculos/" class="btn-orange" style="display:inline-block;text-decoration:none;font-size:14px;">
+        <i class="bi bi-plus-lg"></i> Registrar mi primer vehículo
+    </a>
+</div>
+{% else %}
+
 {% if error %}
 <div class="alert-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
 {% endif %}
@@ -60,30 +72,18 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Vehículo</label>
-                {% if mis_vehiculos %}
-                <select name="vehiculo_id" id="sel-vehiculo" class="form-control" onchange="toggleOtroVehiculo(this)">
+                <label class="form-label">Vehículo *</label>
+                <select name="vehiculo_id" id="sel-vehiculo" class="form-control" required>
                     <option value="">— Selecciona un vehículo —</option>
                     {% for v in mis_vehiculos %}
                     <option value="{{ v.id }}" {{ 'selected' if form.get('vehiculo_id') == (v.id|string) else '' }}>
                         {{ v.placa }}{% if v.marca %} — {{ v.marca }}{% endif %}{% if v.modelo %} {{ v.modelo }}{% endif %}
                     </option>
                     {% endfor %}
-                    <option value="otro" {{ 'selected' if form.get('vehiculo_id') == 'otro' else '' }}>Otro vehículo...</option>
                 </select>
-                {% else %}
-                <input type="hidden" name="vehiculo_id" value="otro">
-                {% endif %}
-                <div id="otro-vehiculo-wrap" style="{{ '' if (not mis_vehiculos or form.get('vehiculo_id') == 'otro') else 'display:none;' }}margin-top:8px;">
-                    <input type="text" name="descripcion_vehiculo" class="form-control"
-                           value="{{ form.get('descripcion_vehiculo', '') }}"
-                           placeholder="Toyota Hilux blanca, ABC-123">
-                </div>
-                {% if mis_vehiculos %}
                 <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">
                     <a href="/tienda/mis-vehiculos/" style="color:#E86A2C;">Administrar mis vehículos</a>
                 </div>
-                {% endif %}
             </div>
 
             <div class="mb-3">
@@ -99,6 +99,8 @@
         </form>
     </div>
 </div>
+
+{% endif %}{# fin bloque mis_vehiculos #}
 
 {% endblock %}
 {% block scripts %}
@@ -149,10 +151,5 @@
 
     filtrarOpts();
 })();
-
-function toggleOtroVehiculo(sel) {
-    const wrap = document.getElementById('otro-vehiculo-wrap');
-    if (wrap) wrap.style.display = sel.value === 'otro' ? '' : 'none';
-}
 </script>
 {% endblock %}

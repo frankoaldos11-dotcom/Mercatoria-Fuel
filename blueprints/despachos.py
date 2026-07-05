@@ -98,6 +98,35 @@ def listado():
     gasolineras = cur.fetchall()
     cur.execute("SELECT id, nombre FROM clientes WHERE activo = 1 ORDER BY nombre ASC")
     clientes = cur.fetchall()
+
+    # Reservas de tienda aprobadas pendientes de despachar
+    # operador_gasolinera: solo las de su gasolinera. admin/pm/puesto_de_mando: todas.
+    if session.get("rol") == "operador_gasolinera":
+        cur.execute("""
+            SELECT r.id, r.litros_solicitados, r.tipo_combustible,
+                   r.descripcion_vehiculo, r.created_at, r.qr_token,
+                   g.nombre AS gasolinera_nombre,
+                   u.nombre AS cliente_nombre
+            FROM reservas_tienda r
+            JOIN gasolineras g ON g.id = r.gasolinera_id
+            JOIN usuarios u ON u.id = r.usuario_id
+            WHERE r.estado = 'aprobada' AND r.gasolinera_id = ?
+            ORDER BY r.created_at ASC
+        """, (session.get("gasolinera_id"),))
+    else:
+        cur.execute("""
+            SELECT r.id, r.litros_solicitados, r.tipo_combustible,
+                   r.descripcion_vehiculo, r.created_at, r.qr_token,
+                   g.nombre AS gasolinera_nombre,
+                   u.nombre AS cliente_nombre
+            FROM reservas_tienda r
+            JOIN gasolineras g ON g.id = r.gasolinera_id
+            JOIN usuarios u ON u.id = r.usuario_id
+            WHERE r.estado = 'aprobada'
+            ORDER BY r.created_at ASC
+        """)
+    reservas_tienda_pendientes = cur.fetchall()
+
     conn.close()
 
     return render_template(
@@ -111,6 +140,7 @@ def listado():
         filtro_hasta=filtro_hasta,
         filtro_estado=filtro_estado,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
+        reservas_tienda_pendientes=reservas_tienda_pendientes,
     )
 
 

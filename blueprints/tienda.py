@@ -103,15 +103,6 @@ def reservar():
         tc = request.form.get("tipo_combustible", "").strip()
         litros_str = request.form.get("litros", "0").strip()
         vehiculo_id_sel = request.form.get("vehiculo_id", "").strip()
-        desc_vehiculo = request.form.get("descripcion_vehiculo", "").strip()
-        if vehiculo_id_sel and vehiculo_id_sel != "otro":
-            cur.execute("""
-                SELECT placa, marca, modelo FROM vehiculos_tienda
-                WHERE id=? AND usuario_id=? AND activo=1
-            """, (vehiculo_id_sel, session["user_id"]))
-            vrow = cur.fetchone()
-            if vrow:
-                desc_vehiculo = " / ".join(filter(None, [vrow["placa"], vrow["marca"], vrow["modelo"]]))
         observaciones = request.form.get("observaciones", "").strip()
 
         try:
@@ -119,14 +110,34 @@ def reservar():
         except ValueError:
             litros = 0.0
 
-        if not gid:
-            error = "Selecciona una gasolinera."
-        elif not tc:
-            error = "Selecciona el tipo de combustible."
-        elif litros <= 0:
-            error = "La cantidad de litros debe ser mayor a cero."
-        elif compra_minima > 0 and litros < compra_minima:
-            error = f"La cantidad mínima por reserva es {compra_minima:,.0f} L."
+        # Validación de vehículo — obligatorio
+        vehiculo_id_valid = None
+        desc_vehiculo = ""
+        if not mis_vehiculos_activos:
+            error = "Debes registrar al menos un vehículo antes de reservar."
+        elif not vehiculo_id_sel:
+            error = "Selecciona un vehículo registrado."
+        else:
+            cur.execute("""
+                SELECT id, placa, marca, modelo FROM vehiculos_tienda
+                WHERE id=? AND usuario_id=? AND activo=1
+            """, (vehiculo_id_sel, session["user_id"]))
+            vrow = cur.fetchone()
+            if not vrow:
+                error = "El vehículo seleccionado no es válido."
+            else:
+                vehiculo_id_valid = vrow["id"]
+                desc_vehiculo = " / ".join(filter(None, [vrow["placa"], vrow["marca"], vrow["modelo"]]))
+
+        if not error:
+            if not gid:
+                error = "Selecciona una gasolinera."
+            elif not tc:
+                error = "Selecciona el tipo de combustible."
+            elif litros <= 0:
+                error = "La cantidad de litros debe ser mayor a cero."
+            elif compra_minima > 0 and litros < compra_minima:
+                error = f"La cantidad mínima por reserva es {compra_minima:,.0f} L."
 
         if not error:
             cur.execute("""
@@ -143,10 +154,11 @@ def reservar():
             cur.execute("""
                 INSERT INTO reservas_tienda
                     (usuario_id, gasolinera_id, tipo_combustible, litros_solicitados,
-                     precio_usd_por_litro, precio_total_usd, descripcion_vehiculo, observaciones)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     precio_usd_por_litro, precio_total_usd, descripcion_vehiculo,
+                     observaciones, vehiculo_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (session["user_id"], gid, tc, litros, precio_unitario, precio_total,
-                  desc_vehiculo or None, observaciones or None))
+                  desc_vehiculo or None, observaciones or None, vehiculo_id_valid))
             nueva_id = cur.lastrowid
             conn.commit()
             conn.close()

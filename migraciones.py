@@ -579,6 +579,7 @@ def ejecutar_migraciones(bcrypt):
     for _sql in [
         "ALTER TABLE reservas_tienda ADD COLUMN tarjeta_id INTEGER REFERENCES tarjetas(id)",
         "ALTER TABLE reservas_tienda ADD COLUMN motivo_cancelacion TEXT",
+        "ALTER TABLE reservas_tienda ADD COLUMN vehiculo_id INTEGER REFERENCES vehiculos_tienda(id)",
         "ALTER TABLE usuarios ADD COLUMN gasolinera_id INTEGER REFERENCES gasolineras(id)",
         "ALTER TABLE transferencias ADD COLUMN litros_distribuidos REAL DEFAULT 0",
     ]:
