@@ -2,6 +2,81 @@
 
 ---
 
+## Commit fix corrupcion de disco verificado
+`b785916` — fix: restaurar primer byte truncado en 7 blueprints
+
+### Causa raiz
+Disco SATA WD6TB (Event ID 157) desconecta cada ~56 segundos durante escritura atomica de git.
+Al renombrar `.git/...file.lock` → `.git/...file`, el SO trunca el primer byte del archivo Python.
+
+### Archivos corruptos restaurados
+
+| Archivo | Byte perdido | Primera linea correcta |
+|---------|-------------|----------------------|
+| blueprints/conciliacion.py | `f` | `from datetime import...` |
+| blueprints/habilitaciones.py | `f` | `from datetime import...` |
+| blueprints/recepciones.py | `f` | `from flask import...` |
+| blueprints/tarjetas.py | `f` | `from datetime import...` |
+| blueprints/transferencias.py | `f` | `from flask import...` |
+| blueprints/turno.py | `i` | `import os...` |
+| blueprints/unidades.py | `i` | `import datetime...` |
+
+### Efecto en produccion
+Todos los deploys desde C1 (`b1abea6`) hasta Fase 1 (`d1f6cab`) fallaron con:
+`SyntaxError: invalid syntax. Did you mean 'from'?` en blueprints/recepciones.py line 1.
+La version live se quedo en `e7064f7` (antes de C1). Solo `b785916` subio el fix.
+
+### Resultado
+Deploy `b785916` → **Live** a las 3:32 PM GMT-4. 0 errores de consola.
+
+---
+
+## Commit Fase 1 Mensajes verificado
+`d1f6cab` — Modulo Mensajes Fase 1: infraestructura SMTP + tabla mensajes + correo bienvenida
+
+### Paginas probadas
+
+| # | URL | Resultado | Notas |
+|---|-----|-----------|-------|
+| 1 | /mensajes/ | OK | Titulo "Mensajes enviados", tabla con 1 fila |
+| 2 | /registro/ | OK | Formulario carga, registro exitoso a /registro/ok |
+| 3 | /registro/ok | OK | Mensaje de confirmacion correcto |
+
+### Fila verificada en mensajes
+
+| Campo | Valor |
+|-------|-------|
+| destinatario | fase1.fix@test.mercatoria.online |
+| asunto | Bienvenido a Mercatoria Fuel — tu cuenta ha sido creada |
+| tipo | bienvenida |
+| estado | fallido |
+| error | (535, b'Incorrect authentication data') |
+| usuario | Cliente Fase1 Fix — Empresa Fix SRL |
+
+**Diagnostico del error 535:** Las variables SMTP estan configuradas en Render (SMTP_HOST,
+SMTP_USER, SMTP_PASSWORD existen; si faltaran el error seria "SMTP no configurado").
+El servidor responde pero rechaza las credenciales. Accion: verificar SMTP_PASSWORD en
+Render > Mercatoria-Fuel > Environment.
+
+### Errores de consola
+Ninguno. 0 errores, 0 warnings.
+
+### Screenshots
+- `fase1_mensajes_verificacion.png` — Tabla de mensajes con fila bienvenida
+
+### Infraestructura verificada
+
+| Item | Estado |
+|------|--------|
+| Tabla `mensajes` creada en PostgreSQL | OK |
+| Blueprint `/mensajes/` registrado y accesible (requiere_staff) | OK |
+| Hook `bienvenida()` ejecutado tras INSERT en /registro/ | OK |
+| Fila en mensajes: tipo=bienvenida, estado=fallido, error registrado | OK |
+| Cuenta del cliente creada normalmente (SMTP error no bloquea registro) | OK |
+| SMTP_PASSWORD correcto y envio real | PENDIENTE (error 535) |
+
+---
+
 ## Commit C3 verificado
 `e272a9e` — Refactor: centralizar calculo de stock y saldo Fincimex en helpers
 
