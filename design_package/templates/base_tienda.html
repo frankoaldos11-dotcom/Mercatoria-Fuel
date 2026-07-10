@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}Tienda — Mercatoria Fuel{% endblock %}</title>
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --orange: #E86A2C;
+            --orange-dark: #C45520;
+            --bg: #F3F4F6;
+            --surface: #FFFFFF;
+            --border: #E5E7EB;
+            --text: #111827;
+            --muted: #6B7280;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+        .tienda-nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 5%;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .tienda-brand {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tienda-brand i { color: var(--orange); }
+        .tienda-nav-links { display: flex; gap: 8px; align-items: center; }
+        .nav-pill {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+            text-decoration: none; color: var(--muted);
+            transition: background 0.15s, color 0.15s;
+        }
+        .nav-pill:hover, .nav-pill.active { background: rgba(232,106,44,0.1); color: var(--orange); }
+        .nav-pill-primary {
+            background: var(--orange); color: #fff;
+            padding: 7px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 700;
+            text-decoration: none; transition: background 0.15s;
+        }
+        .nav-pill-primary:hover { background: var(--orange-dark); color: #fff; }
+
+        .tienda-main { max-width: 1000px; margin: 0 auto; padding: 32px 5% 64px; }
+
+        .page-head { margin-bottom: 28px; }
+        .page-head h1 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; }
+        .page-head p { color: var(--muted); font-size: 0.9rem; margin: 0; }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .panel-body { padding: 24px; }
+
+        .btn-orange {
+            background: var(--orange); color: #fff; border: none; border-radius: 8px;
+            padding: 10px 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
+            transition: background 0.15s;
+        }
+        .btn-orange:hover { background: var(--orange-dark); color: #fff; }
+        .btn-sec {
+            background: transparent; color: var(--text); border: 1.5px solid var(--border); border-radius: 8px;
+            padding: 10px 18px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
+            transition: border-color 0.15s;
+        }
+        .btn-sec:hover { border-color: var(--orange); color: var(--orange); }
+
+        .form-label { font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 4px; display: block; }
+        .form-control {
+            border-radius: 8px; border: 1.5px solid #D1D5DB;
+            font-size: 0.9rem; padding: 0.6rem 0.75rem; width: 100%;
+        }
+        .form-control:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(232,106,44,0.15); outline: none; }
+        .mb-3 { margin-bottom: 1rem; }
+
+        .alert-info { background:#EFF6FF;border-left:4px solid #3B82F6;color:#1E40AF;border-radius:8px;padding:.75rem 1rem;font-size:14px;margin-bottom:1.25rem; }
+        .alert-success { background:#F0FDF4;border-left:4px solid #16A34A;color:#166534;border-radius:8px;padding:.75rem 1rem;font-size:14px;margin-bottom:1.25rem; }
+        .alert-error { background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:.75rem 1rem;font-size:14px;margin-bottom:1.25rem; }
+        .alert-warn { background:#FFFBEB;border-left:4px solid #F59E0B;color:#92400E;border-radius:8px;padding:.75rem 1rem;font-size:14px;margin-bottom:1.25rem; }
+
+        .badge-ok { display:inline-block;background:#DCFCE7;color:#166534;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600; }
+        .badge-warn { display:inline-block;background:#FEF9C3;color:#854D0E;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600; }
+        .badge-info { display:inline-block;background:#DBEAFE;color:#1E40AF;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600; }
+        .badge-danger { display:inline-block;background:#FEE2E2;color:#991B1B;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600; }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        th { padding: 10px 14px; background: #F9FAFB; font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; text-align: left; border-bottom: 1px solid var(--border); }
+        td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #F9FAFB; }
+    </style>
+</head>
+<body>
+
+<nav class="tienda-nav">
+    <a class="tienda-brand" href="/tienda/">
+        <i class="bi bi-fuel-pump-fill"></i> Mercatoria Fuel
+    </a>
+    <div class="tienda-nav-links">
+        <a href="/tienda/" class="nav-pill {{ 'active' if request.path == '/tienda/' else '' }}">
+            <i class="bi bi-grid"></i> Inicio
+        </a>
+        <a href="/tienda/reservar" class="nav-pill {{ 'active' if request.path.startswith('/tienda/reservar') else '' }}">
+            <i class="bi bi-plus-circle"></i> Reservar
+        </a>
+        <a href="/tienda/mis-reservas" class="nav-pill {{ 'active' if request.path.startswith('/tienda/mis-reservas') else '' }}">
+            <i class="bi bi-receipt"></i> Mis reservas
+        </a>
+        <a href="/tienda/mis-vehiculos/" class="nav-pill {{ 'active' if request.path.startswith('/tienda/mis-vehiculos') else '' }}">
+            <i class="bi bi-car-front"></i> Mis vehículos
+        </a>
+        <a href="/logout" class="nav-pill" style="color:var(--muted);">
+            <i class="bi bi-box-arrow-right"></i> Salir
+        </a>
+    </div>
+</nav>
+
+<main class="tienda-main">
+    {% block contenido %}{% endblock %}
+</main>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

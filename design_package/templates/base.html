@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}Mercatoria Fuel{% endblock %}</title>
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+    .sidebar-badge {
+        display:inline-flex;align-items:center;justify-content:center;
+        background:#E86A2C;color:#fff;border-radius:10px;
+        min-width:18px;height:18px;font-size:11px;font-weight:700;
+        padding:0 4px;margin-left:4px;line-height:1;
+    }
+    </style>
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="10" height="4" rx="1" fill="#E86A2C"/>
+                <rect x="2" y="2" width="4" height="10" rx="1" fill="#E86A2C"/>
+                <rect x="20" y="2" width="10" height="4" rx="1" fill="#F5A623"/>
+                <rect x="26" y="2" width="4" height="10" rx="1" fill="#F5A623"/>
+                <rect x="2" y="26" width="10" height="4" rx="1" fill="#F5A623"/>
+                <rect x="2" y="20" width="4" height="10" rx="1" fill="#F5A623"/>
+                <rect x="20" y="26" width="10" height="4" rx="1" fill="#E86A2C"/>
+                <rect x="26" y="20" width="4" height="10" rx="1" fill="#E86A2C"/>
+            </svg>
+            <span class="brand-name">Mercatoria Fuel</span>
+        </div>
+
+        {% set _rol = session.get('rol', '') %}
+        {% set _es_dep = _rol in ['admin', 'pm', 'supervisor', 'puesto_de_mando'] %}
+        {% set _es_gas = _rol in ['admin', 'pm', 'supervisor', 'puesto_de_mando', 'operador_gasolinera'] %}
+        {% set _es_adm = _rol in ['admin', 'pm', 'supervisor'] %}
+        {% set _es_pm = _rol == 'puesto_de_mando' %}
+        {% set _es_opgas = _rol == 'operador_gasolinera' %}
+        {% set _es_og = _rol in ['admin', 'pm', 'operador_gasolinera'] %}
+
+        <nav class="sidebar-nav">
+
+            {% if _es_dep %}
+            <div class="nav-section">Puesto de Mando General</div>
+            <div class="nav-section" style="font-size:10px;opacity:0.6;padding-left:14px;margin-top:-2px;letter-spacing:0.04em;">Operaciones</div>
+
+            <a href="/dashboard" class="nav-item {{ 'nav-item-active' if request.path in ('/', '/dashboard') else '' }}">
+                <i class="bi bi-grid-1x2"></i>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="/puertos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/puertos') else '' }}">
+                <i class="bi bi-water"></i>
+                <span>Puertos</span>
+            </a>
+
+            <a href="/depositos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/depositos') else '' }}">
+                <i class="bi bi-archive"></i>
+                <span>Depósitos</span>
+            </a>
+
+            <a href="/transferencias/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/transferencias') else '' }}">
+                <i class="bi bi-arrow-left-right"></i>
+                <span>Transferencias</span>
+            </a>
+
+            <a href="/gasolineras/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/gasolineras') else '' }}">
+                <i class="bi bi-fuel-pump"></i>
+                <span>Gasolineras</span>
+            </a>
+
+            {% if _rol in ['admin', 'pm'] %}
+            <a href="/tienda/admin" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tienda') else '' }}">
+                <i class="bi bi-shop"></i>
+                <span>Tienda</span>
+                {% if tienda_pendientes > 0 %}<span class="sidebar-badge">{{ tienda_pendientes }}</span>{% endif %}
+            </a>
+            {% endif %}
+
+            <div class="nav-section" style="font-size:10px;opacity:0.6;padding-left:14px;margin-top:4px;letter-spacing:0.04em;">Acciones</div>
+
+            <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') and not request.path.startswith('/turno/escanear') else '' }}">
+                <i class="bi bi-calendar-check"></i>
+                <span>Revisión operativa</span>
+            </a>
+
+            <a href="/habilitaciones/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/habilitaciones') else '' }}">
+                <i class="bi bi-toggle-on"></i>
+                <span>Habilitaciones</span>
+            </a>
+
+            <a href="/despachos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/despachos') else '' }}">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Despachos</span>
+            </a>
+
+            <a href="/conciliacion/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/conciliacion') else '' }}">
+                <i class="bi bi-check2-square"></i>
+                <span>Conciliación</span>
+            </a>
+
+            <a href="/tarjetas/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tarjetas') else '' }}">
+                <i class="bi bi-credit-card-2-front"></i>
+                <span>Tarjetas</span>
+            </a>
+            {% endif %}
+
+            {% if _es_gas %}
+            <div class="nav-section">Operadores Gasolinera</div>
+
+            <a href="/turno/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/turno') and not request.path.startswith('/turno/escanear') else '' }}">
+                <i class="bi bi-calendar-check"></i>
+                <span>Revisión operativa</span>
+            </a>
+
+            <a href="/despachos/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/despachos') else '' }}">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Despachos</span>
+            </a>
+
+            <a href="/turno/escanear" class="nav-item {{ 'nav-item-active' if request.path == '/turno/escanear' else '' }}">
+                <i class="bi bi-qr-code-scan"></i>
+                <span>Escanear QR</span>
+            </a>
+            {% endif %}
+
+            {% if _es_adm %}
+            <div class="nav-section">Comercial</div>
+
+            <a href="/clientes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/clientes') else '' }}">
+                <i class="bi bi-buildings"></i>
+                <span>Clientes</span>
+            </a>
+
+            <a href="/unidades/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/unidades') else '' }}">
+                <i class="bi bi-truck"></i>
+                <span>Unidades autorizadas</span>
+            </a>
+
+            <div class="nav-section">Sistema</div>
+
+            <a href="/reportes/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/reportes') else '' }}">
+                <i class="bi bi-bar-chart-line"></i>
+                <span>Reportes</span>
+            </a>
+
+            <a href="/tl38/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tl38') else '' }}">
+                <i class="bi bi-lightning-charge"></i>
+                <span>TL38</span>
+            </a>
+            {% endif %}
+
+            {% if _rol in ['admin', 'pm'] %}
+            <a href="/usuarios/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/usuarios') else '' }}">
+                <i class="bi bi-people"></i>
+                <span>Usuarios</span>
+                {% if usuarios_pendientes > 0 %}<span class="sidebar-badge">{{ usuarios_pendientes }}</span>{% endif %}
+            </a>
+
+            <a href="/configuracion/" class="nav-item {{ 'nav-item-active' if request.path.startswith('/configuracion') else '' }}">
+                <i class="bi bi-sliders"></i>
+                <span>Configuración</span>
+            </a>
+            {% endif %}
+
+            <hr class="nav-divider">
+
+            <a href="/logout" class="nav-item logout">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Salir</span>
+            </a>
+
+        </nav>
+
+    </aside>
+
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <main class="main-content">
+
+        <div class="topbar">
+            <button id="btn-hamburger" type="button" title="Menú"
+                    style="background:none;border:1px solid var(--border);border-radius:10px;padding:5px 11px;cursor:pointer;font-size:20px;line-height:1;color:var(--text);">
+                &#9776;
+            </button>
+            <span class="topbar-user">
+                <i class="bi bi-person-circle"></i> {{ session.get('nombre', '') }}
+            </span>
+            {% if _rol == 'admin' %}
+            <span class="role-badge role-admin">ADMIN</span>
+            {% elif _rol == 'pm' %}
+            <span class="role-badge role-pm">PM</span>
+            {% elif _rol == 'puesto_de_mando' %}
+            <span class="role-badge role-operario-deposito">P.MANDO</span>
+            {% elif _rol == 'operador_gasolinera' %}
+            <span class="role-badge role-operario-gasolinera">OP-GAS</span>
+            {% elif _rol == 'supervisor' %}
+            <span class="role-badge role-supervisor">SUP</span>
+            {% elif _rol == 'cliente' %}
+            <span class="role-badge role-cliente">CLI</span>
+            {% endif %}
+        </div>
+
+        {% if request.args.get('access_error') %}
+        <div class="access-error-banner">
+            <i class="bi bi-shield-exclamation"></i>
+            {{ request.args.get('access_error') }}
+        </div>
+        {% endif %}
+        {% if request.args.get('ok') %}
+        <div style="background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;">
+            <i class="bi bi-check-circle-fill"></i> Operación realizada con éxito.
+        </div>
+        {% endif %}
+        {% block contenido %}{% endblock %}
+    </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function() {
+    var sidebar = document.querySelector('.sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+    var btn = document.getElementById('btn-hamburger');
+    if (!btn || !sidebar || !overlay) return;
+    function open() { sidebar.classList.add('sidebar-open'); overlay.classList.add('active'); }
+    function close() { sidebar.classList.remove('sidebar-open'); overlay.classList.remove('active'); }
+    btn.addEventListener('click', open);
+    overlay.addEventListener('click', close);
+    document.querySelectorAll('.nav-item').forEach(function(el) { el.addEventListener('click', close); });
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

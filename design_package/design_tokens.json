@@ -1,0 +1,148 @@
+{
+  "_meta": {
+    "generated": "2026-07-10",
+    "source": "static/css/admin.css (497 lines) + inline CSS in base_tienda.html, landing.html, login.html",
+    "note": "Tokens extraídos del código fuente real. Los valores marcados con hardcoded_WARN no son variables CSS — aparecen hardcodeados en múltiples archivos."
+  },
+  "color": {
+    "panel": {
+      "bg": { "value": "#f4f6fb", "var": "--bg", "usage": "Fondo de página en panel interno y portal cliente" },
+      "surface": { "value": "#ffffff", "var": "--panel", "usage": "Superficie de cards y paneles" },
+      "surface_soft": { "value": "#f8fafc", "var": "--panel-soft", "usage": "Cabecera de tablas, fondos suaves" },
+      "text": { "value": "#172033", "var": "--text", "usage": "Texto principal" },
+      "muted": { "value": "#64748b", "var": "--muted", "usage": "Texto secundario, labels, subtítulos" },
+      "border": { "value": "#e5e7eb", "var": "--border", "usage": "Bordes de paneles, separadores de tabla" }
+    },
+    "brand": {
+      "orange": { "value": "#E86A2C", "var": "NONE — hardcoded_WARN", "usage": "Nav item activo, nav-badge, login brand, tienda accent, foco inputs tienda/login. Aparece en 9+ lugares sin variable." },
+      "orange_dark": { "value": "#C45520", "var": "NONE — hardcoded_WARN", "usage": "Hover del naranja en tienda/landing/login" },
+      "amber": { "value": "#F5A623", "var": "NONE — hardcoded_WARN", "usage": "Logo SVG corners alternos, product-price en landing" }
+    },
+    "accent": {
+      "primary": { "value": "#155eef", "var": "--primary", "usage": "Botón primario, focus ring, links activos en panel" },
+      "primary_dark": { "value": "#0f3ea8", "var": "--primary-dark", "usage": "Hover del botón primario" }
+    },
+    "semantic": {
+      "danger": { "value": "#dc2626", "var": "--danger", "usage": "Errores, estados críticos, botón danger" },
+      "success": { "value": "#16a34a", "var": "--success", "usage": "Confirmaciones, estados OK, botón success" },
+      "warning": { "value": "#f59e0b", "var": "--warning", "usage": "Alertas, saldos bajos, badge-warn" },
+      "info": { "value": "#0891b2", "var": "--info", "usage": "Información, badges de tipo combustible" }
+    },
+    "sidebar": {
+      "bg": { "value": "#0f172a", "var": "--sidebar", "usage": "Fondo del sidebar" },
+      "gradient_bottom": { "value": "#102a56", "var": "--sidebar-soft", "usage": "Color inferior del gradiente del sidebar" }
+    },
+    "alert_inline": {
+      "note": "Sin variable CSS — hardcodeados inline en templates con style=''",
+      "success_bg": { "value": "#F0FDF4", "var": "NONE — hardcoded_WARN" },
+      "success_border": { "value": "#16A34A", "var": "NONE — hardcoded_WARN" },
+      "success_text": { "value": "#15803D", "var": "NONE — hardcoded_WARN" },
+      "error_bg": { "value": "#FEF2F2", "var": "NONE — hardcoded_WARN" },
+      "error_border": { "value": "#DC2626", "var": "NONE — hardcoded_WARN" },
+      "error_text": { "value": "#991B1B", "var": "NONE — hardcoded_WARN" },
+      "warning_bg": { "value": "#FEF9C3", "var": "NONE — hardcoded_WARN" },
+      "warning_border": { "value": "#CA8A04", "var": "NONE — hardcoded_WARN" },
+      "warning_text": { "value": "#713F12", "var": "NONE — hardcoded_WARN" },
+      "info_bg": { "value": "#EFF6FF", "var": "NONE — hardcoded_WARN" },
+      "info_border": { "value": "#3B82F6", "var": "NONE — hardcoded_WARN" },
+      "info_text": { "value": "#1E40AF", "var": "NONE — hardcoded_WARN" }
+    },
+    "badge": {
+      "ok_bg": { "value": "#D1FAE5" },
+      "ok_text": { "value": "#065F46" },
+      "warn_bg": { "value": "#FEF3C7" },
+      "warn_text": { "value": "#92400E" },
+      "danger_bg": { "value": "#FEE2E2" },
+      "danger_text": { "value": "#991B1B" },
+      "info_bg": { "value": "#DBEAFE" },
+      "info_text": { "value": "#1E40AF" },
+      "neutral_bg": { "value": "#F3F4F6" },
+      "neutral_text": { "value": "#6B7280" }
+    },
+    "tienda": {
+      "note": "Contexto visual independiente — inline CSS en base_tienda.html",
+      "orange": { "value": "#E86A2C", "var": "--orange (local)" },
+      "orange_dark": { "value": "#C45520", "var": "--orange-dark (local)" },
+      "bg": { "value": "#F3F4F6", "var": "--bg (local)" },
+      "surface": { "value": "#FFFFFF", "var": "--surface (local)" },
+      "border": { "value": "#E5E7EB", "var": "--border (local)" },
+      "text": { "value": "#111827", "var": "--text (local)" },
+      "muted": { "value": "#6B7280", "var": "--muted (local)" }
+    },
+    "landing": {
+      "note": "Contexto visual independiente — dark theme — inline CSS en landing.html",
+      "bg": { "value": "#0F1117", "var": "NONE — hardcoded_WARN", "usage": "Fondo dark" },
+      "text": { "value": "#F3F4F6", "var": "NONE — hardcoded_WARN" },
+      "muted": { "value": "#9CA3AF", "var": "NONE — hardcoded_WARN" },
+      "subtle": { "value": "#6B7280", "var": "NONE — hardcoded_WARN" },
+      "orange": { "value": "#E86A2C", "var": "--orange (local)" },
+      "orange_dark": { "value": "#C45520", "var": "--orange-dark (local)" },
+      "amber": { "value": "#F5A623", "var": "--amber (local)" }
+    }
+  },
+  "typography": {
+    "panel_stack": "Inter, \"Segoe UI\", Arial, sans-serif",
+    "tienda_stack": "'Segoe UI', system-ui, sans-serif",
+    "note": "Inter se declara en admin.css pero NO se carga externamente. En Windows sin Inter instalado renderiza como Segoe UI.",
+    "scale": {
+      "xs": "11px",
+      "sm": "12px",
+      "base": "14px",
+      "md": "15px",
+      "lg": "16px",
+      "xl": "20px",
+      "2xl": "24px",
+      "3xl": "28px",
+      "4xl": "32px"
+    }
+  },
+  "spacing": {
+    "main_padding_desktop": "38px",
+    "main_padding_mobile": "16px",
+    "panel_padding": "24px",
+    "form_gap": "20px"
+  },
+  "border_radius": {
+    "panel": "18px",
+    "button": "11px",
+    "button_sm": "8px",
+    "input": "11px",
+    "badge": "999px",
+    "sidebar_nav_item": "13px",
+    "kpi_icon": "14px",
+    "alert_inline": "8px"
+  },
+  "shadow": {
+    "panel": "0 14px 35px rgba(15, 23, 42, 0.08)",
+    "var": "--shadow"
+  },
+  "layout": {
+    "sidebar_width": "280px",
+    "tienda_max_width": "1000px",
+    "breakpoint_mobile": "768px"
+  },
+  "framework": {
+    "bootstrap": {
+      "panel_version": "5.3.0",
+      "tienda_landing_login_version": "5.3.3",
+      "cdn": "jsDelivr",
+      "note": "Versión inconsistente entre contextos. Casi no se usa como design system — principalmente reset + JS bundle para sidebar móvil."
+    },
+    "icons": {
+      "library": "Bootstrap Icons",
+      "version": "1.11.3",
+      "cdn": "jsDelivr",
+      "usage": "Clases bi-* en etiquetas <i>"
+    }
+  },
+  "protected_data_attributes": {
+    "note": "NO renombrar ni eliminar en rediseño — leídos por JS",
+    "list": [
+      "data-saldo-usable",
+      "data-saldo-retenido",
+      "data-gasolinera-original",
+      "data-saldo",
+      "data-gasolinera"
+    ]
+  }
+}
