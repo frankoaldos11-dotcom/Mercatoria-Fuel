@@ -1,4 +1,4 @@
-from datetime import date
+rom datetime import date
 
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
@@ -104,7 +104,7 @@ def listado():
 
 @habilitaciones_bp.route("/<int:id>")
 def detalle(id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 

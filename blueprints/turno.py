@@ -1,4 +1,4 @@
-import os
+mport os
 import uuid
 from datetime import date
 
@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect, session, jsonif
 from werkzeug.utils import secure_filename
 
 from database import conectar
-from utils.auth import requiere_login
+from utils.auth import requiere_login, requiere_staff
 from utils.constants import ROLES_ADMIN_PM, TURNOS_CONCILIACION, TURNOS_CONCILIACION_LABELS, ROLES_OPERARIO_GAS
 
 turno_bp = Blueprint("turno", __name__, url_prefix="/turno")
@@ -30,7 +30,7 @@ def _allowed(filename):
 
 @turno_bp.route("/")
 def index():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -130,7 +130,7 @@ def index():
 
 @turno_bp.route("/api/habilitacion", methods=["POST"])
 def api_crear_habilitacion():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return jsonify({"error": "No autorizado"}), 401
     if session.get("rol") not in ROLES_ADMIN_PM:
@@ -208,7 +208,7 @@ def api_crear_habilitacion():
 
 @turno_bp.route("/api/<int:hab_id>/aprobar", methods=["POST"])
 def api_aprobar(hab_id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return jsonify({"error": "No autorizado"}), 401
     if session.get("rol") not in ROLES_ADMIN_PM:
@@ -265,7 +265,7 @@ def api_aprobar(hab_id):
 
 @turno_bp.route("/api/<int:hab_id>/despachar", methods=["POST"])
 def api_despachar(hab_id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return jsonify({"error": "No autorizado"}), 401
 
@@ -379,7 +379,7 @@ def api_despachar(hab_id):
 
 @turno_bp.route("/cerrar", methods=["POST"])
 def cerrar_turno():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redirect("/login")
 
@@ -444,7 +444,7 @@ def escanear():
 
 @turno_bp.route("/api/reserva-info/<token>")
 def api_reserva_info(token):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return jsonify({"error": "No autorizado"}), 401
 
@@ -484,7 +484,7 @@ def api_reserva_info(token):
 
 @turno_bp.route("/api/reserva-completar/<token>", methods=["POST"])
 def api_reserva_completar(token):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return jsonify({"error": "No autorizado"}), 401
     if session.get("rol") not in ROLES_OPERARIO_GAS:

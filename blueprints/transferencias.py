@@ -1,7 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, session
+rom flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS
-from utils.auth import requiere_login
+from utils.auth import requiere_login, requiere_staff
 
 transferencias_bp = Blueprint("transferencias", __name__, url_prefix="/transferencias")
 
@@ -27,7 +27,7 @@ def _stock_deposito(cur, deposito_id):
 
 @transferencias_bp.route("/")
 def listado():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 

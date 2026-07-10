@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+rom datetime import date, timedelta
 
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
@@ -6,7 +6,7 @@ from utils.constants import (
     ESTADOS_CONCILIACION, TURNOS_CONCILIACION, TURNOS_CONCILIACION_LABELS,
     TIPOS_COMBUSTIBLE_LABELS,
 )
-from utils.auth import requiere_login
+from utils.auth import requiere_login, requiere_staff
 
 conciliacion_bp = Blueprint("conciliacion", __name__, url_prefix="/conciliacion")
 
@@ -60,7 +60,7 @@ def _calcular_totales(cur, gasolinera_id, fecha):
 
 @conciliacion_bp.route("/")
 def listado():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -125,7 +125,7 @@ def listado():
 
 @conciliacion_bp.route("/<int:id>")
 def detalle(id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -157,7 +157,7 @@ def detalle(id):
 
 @conciliacion_bp.route("/crear", methods=["GET", "POST"])
 def crear():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 

@@ -1,11 +1,11 @@
-from datetime import date
+rom datetime import date
 
 from flask import Blueprint, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash
 
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM, ESTADOS_TARJETA
-from utils.auth import requiere_login
+from utils.auth import requiere_login, requiere_staff
 
 tarjetas_bp = Blueprint("tarjetas", __name__, url_prefix="/tarjetas")
 
@@ -74,7 +74,7 @@ def _stock_gasolinera(cur, gasolinera_id):
 
 @tarjetas_bp.route("/")
 def listado():
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -143,7 +143,7 @@ def listado():
 
 @tarjetas_bp.route("/<int:id>")
 def detalle(id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -528,7 +528,7 @@ def asignar_saldo(id):
 
 @tarjetas_bp.route("/<int:id>/devolucion", methods=["GET", "POST"])
 def devolucion(id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
@@ -608,7 +608,7 @@ def devolucion(id):
 
 @tarjetas_bp.route("/<int:tarjeta_id>/liberar/<int:dev_id>", methods=["POST"])
 def liberar_devolucion(tarjeta_id, dev_id):
-    redir = requiere_login()
+    redir = requiere_staff()
     if redir:
         return redir
 
