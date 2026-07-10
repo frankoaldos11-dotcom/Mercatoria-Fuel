@@ -27,7 +27,7 @@ _ESTADO_BADGE = {
     "cancelada":  "badge-danger",
 }
 
-_ROLES_STAFF = ("admin", "pm", "supervisor")
+_ROLES_STAFF = ("admin", "puesto_de_mando")
 
 
 def _requiere_cliente():
@@ -285,7 +285,7 @@ def admin():
 
 @tienda_bp.route("/api/<int:rid>/aprobar", methods=["POST"])
 def api_aprobar(rid):
-    if "usuario" not in session or session.get("rol") not in ("admin", "pm"):
+    if "usuario" not in session or session.get("rol") not in ("admin", "puesto_de_mando"):
         return jsonify({"error": "Sin permiso"}), 403
 
     tarjeta_id_manual = request.form.get("tarjeta_id", "").strip() or None
@@ -358,7 +358,7 @@ def api_aprobar(rid):
 
 @tienda_bp.route("/api/<int:rid>/cancelar", methods=["POST"])
 def api_cancelar(rid):
-    if "usuario" not in session or session.get("rol") not in ("admin", "pm"):
+    if "usuario" not in session or session.get("rol") not in ("admin", "puesto_de_mando"):
         return jsonify({"error": "Sin permiso"}), 403
 
     motivo = request.form.get("motivo", "").strip() or None

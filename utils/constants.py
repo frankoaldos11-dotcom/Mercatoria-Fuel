@@ -7,9 +7,9 @@ ROLES = {
     "CLIENTE":             "cliente",
 }
 
-ROLES_ADMIN_PM = ["admin", "pm"]
-ROLES_OPERARIO_GAS = ["admin", "pm", "puesto_de_mando", "operador_gasolinera"]
-ROLES_OPERARIO_DEP = ["admin", "pm", "supervisor", "puesto_de_mando"]
+ROLES_ADMIN_PM = ["admin", "puesto_de_mando"]
+ROLES_OPERARIO_GAS = ["admin", "puesto_de_mando", "operador_gasolinera"]
+ROLES_OPERARIO_DEP = ["admin", "puesto_de_mando"]
 
 REGIONES = ["Occidente", "Centro", "Oriente"]
 

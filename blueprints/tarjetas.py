@@ -9,7 +9,7 @@ from utils.auth import requiere_login, requiere_staff
 
 tarjetas_bp = Blueprint("tarjetas", __name__, url_prefix="/tarjetas")
 
-_ROLES_EDITAR_TARJETA = ["admin", "pm", "puesto_de_mando"]
+_ROLES_EDITAR_TARJETA = ["admin", "puesto_de_mando"]
 
 
 def _get_factor(cur):

@@ -6,7 +6,7 @@ from utils.auth import requiere_login, requiere_staff
 transferencias_bp = Blueprint("transferencias", __name__, url_prefix="/transferencias")
 
 _DIFF_TOLERANCIA = 0.005  # 0.5%
-_ROLES_TRANSFERENCIAS = ["admin", "pm", "puesto_de_mando"]
+_ROLES_TRANSFERENCIAS = ["admin", "puesto_de_mando"]
 
 
 def _requiere_admin_pm():

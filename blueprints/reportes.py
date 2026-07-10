@@ -11,14 +11,14 @@ from utils.constants import ROLES_ADMIN_PM
 
 reportes_bp = Blueprint("reportes", __name__, url_prefix="/reportes")
 
-_ROLES_REPORTE = ["admin", "pm", "supervisor"]
+_ROLES_REPORTE = ["admin", "puesto_de_mando"]
 
 
 def _requiere_reporte():
     if "usuario" not in session:
         return redirect("/login")
     if session.get("rol") not in _ROLES_REPORTE:
-        return redirect("/dashboard?access_error=Acceso+restringido+a+admin,+pm+y+supervisor")
+        return redirect("/dashboard?access_error=Acceso+restringido+a+admin+y+puesto_de_mando")
     return None
 
 

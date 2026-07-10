@@ -15,7 +15,7 @@ _TIPOS_TL38 = ["entrada", "despacho", "ajuste"]
 
 def _requiere_admin_pm():
     if session.get("rol") not in ROLES_ADMIN_PM:
-        return redirect("/tl38/?access_error=Acceso+restringido+a+admin+y+pm")
+        return redirect("/tl38/?access_error=Acceso+restringido+a+admin+y+puesto_de_mando")
     return None
 
 
