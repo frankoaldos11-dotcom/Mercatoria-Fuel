@@ -283,7 +283,7 @@ def api_despachar(hab_id):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        SELECT h.*, v.id AS vid, t.id AS tid, t.saldo_usable_l
+        SELECT h.*, v.id AS vid, t.id AS tid, t.saldo_usable_l, t.saldo_usd
         FROM habilitaciones h
         JOIN vehiculos v ON v.id = h.unidad_id
         JOIN tarjetas t ON t.id = h.tarjeta_id
@@ -304,6 +304,23 @@ def api_despachar(hab_id):
         if not gid_sesion or int(hab["gasolinera_id"]) != int(gid_sesion):
             conn.close()
             return jsonify({"error": "No autorizado: esta habilitación no corresponde a tu gasolinera"}), 403
+
+    # Validar saldo_usable_l (litros)
+    if float(hab["saldo_usable_l"]) < litros - 0.001:
+        conn.close()
+        return jsonify({"error": f"Saldo insuficiente: {float(hab['saldo_usable_l']):,.2f} L disponible"}), 400
+
+    # Validar saldo_usd (Fincimex) — bloqueo duro, sin override
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    _frow = cur.fetchone()
+    factor = float(_frow["valor"]) if _frow else 0.90
+    monto_usd = round(litros * factor, 2)
+    if float(hab["saldo_usd"] or 0) < monto_usd - 0.001:
+        conn.close()
+        return jsonify({
+            "error": f"Saldo Fincimex insuficiente. Disponible: ${float(hab['saldo_usd'] or 0):,.2f} USD, "
+                     f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
+        }), 400
 
     # Guardar foto si viene
     foto_url = None
@@ -331,8 +348,18 @@ def api_despachar(hab_id):
 
     nuevo_saldo = float(hab["saldo_usable_l"]) - litros
     cur.execute("""
-        UPDATE tarjetas SET saldo_usable_l=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-    """, (max(0, nuevo_saldo), hab["tarjeta_id"]))
+        UPDATE tarjetas SET saldo_usable_l=?, saldo_usd=saldo_usd-?,
+        updated_at=CURRENT_TIMESTAMP WHERE id=?
+    """, (max(0, nuevo_saldo), monto_usd, hab["tarjeta_id"]))
+    cur.execute("""
+        INSERT INTO movimientos_saldo_fincimex
+            (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
+        VALUES ('descuento', ?, ?, ?, ?, ?, ?)
+    """, (
+        monto_usd, litros, factor, hab["tarjeta_id"],
+        session.get("user_id"),
+        f"Despacho habilitación #{hab_id} — turno — {litros:,.2f} L × {factor}",
+    ))
 
     cur.execute("""
         INSERT INTO movimientos (tipo, fecha, gasolinera_id, tarjeta_id, cliente_id,
@@ -484,19 +511,46 @@ def api_reserva_completar(token):
             conn.close()
             return jsonify({"error": "No autorizado: esta reserva no corresponde a tu gasolinera"}), 403
 
+    litros = float(row["litros_solicitados"])
+
+    # Si hay tarjeta asignada: validar y descontar saldo_usd (bloqueo duro)
+    if row["tarjeta_id"]:
+        cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+        _frow = cur.fetchone()
+        factor = float(_frow["valor"]) if _frow else 0.90
+        monto_usd = round(litros * factor, 2)
+
+        cur.execute("SELECT saldo_usable_l, saldo_usd FROM tarjetas WHERE id=?", (row["tarjeta_id"],))
+        t = cur.fetchone()
+        if not t:
+            conn.close()
+            return jsonify({"error": "Tarjeta asignada no encontrada"}), 400
+        if float(t["saldo_usd"] or 0) < monto_usd - 0.001:
+            conn.close()
+            return jsonify({
+                "error": f"Saldo Fincimex insuficiente. Disponible: ${float(t['saldo_usd'] or 0):,.2f} USD, "
+                         f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
+            }), 400
+
     cur.execute("""
         UPDATE reservas_tienda SET estado='completada', updated_at=CURRENT_TIMESTAMP WHERE id=?
     """, (row["id"],))
 
     if row["tarjeta_id"]:
-        litros = float(row["litros_solicitados"])
-        cur.execute("SELECT saldo_usable_l FROM tarjetas WHERE id=?", (row["tarjeta_id"],))
-        t = cur.fetchone()
-        if t:
-            nuevo_saldo = max(0.0, float(t["saldo_usable_l"]) - litros)
-            cur.execute("""
-                UPDATE tarjetas SET saldo_usable_l=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-            """, (nuevo_saldo, row["tarjeta_id"]))
+        nuevo_saldo = max(0.0, float(t["saldo_usable_l"]) - litros)
+        cur.execute("""
+            UPDATE tarjetas SET saldo_usable_l=?, saldo_usd=saldo_usd-?,
+            updated_at=CURRENT_TIMESTAMP WHERE id=?
+        """, (nuevo_saldo, monto_usd, row["tarjeta_id"]))
+        cur.execute("""
+            INSERT INTO movimientos_saldo_fincimex
+                (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
+            VALUES ('descuento', ?, ?, ?, ?, ?, ?)
+        """, (
+            monto_usd, litros, factor, row["tarjeta_id"],
+            session.get("user_id"),
+            f"Despacho tienda reserva #{row['id']} — QR — {litros:,.2f} L × {factor}",
+        ))
 
     conn.commit()
     conn.close()

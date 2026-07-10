@@ -183,7 +183,14 @@ def confirmar(id):
         conn.close()
         return redirect("/recepciones?access_error=Recepción+no+disponible+para+confirmar")
 
-    # Confirmar: cambiar estado e insertar en movimientos
+    # Leer factor de conversión
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    _frow = cur.fetchone()
+    factor = float(_frow["valor"]) if _frow else 0.90
+    litros_rec = float(recepcion["litros_recibidos"])
+    monto_usd = round(litros_rec * factor, 2)
+
+    # Confirmar: cambiar estado e insertar en movimientos de litros
     cur.execute(
         "UPDATE recepciones SET estado = 'confirmada', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         (id,)
@@ -195,9 +202,18 @@ def confirmar(id):
     """, (
         recepcion["fecha"],
         recepcion["deposito_id"],
-        recepcion["litros_recibidos"],
+        litros_rec,
         session.get("user_id"),
         f"Recepción #{id} — {recepcion['proveedor']} — Vale: {recepcion['no_vale'] or 'N/A'}",
+    ))
+    # Generar saldo en bolsón general Fincimex
+    cur.execute("""
+        INSERT INTO movimientos_saldo_fincimex
+            (tipo, monto_usd, litros, factor, recepcion_id, responsable_id, observaciones)
+        VALUES ('generacion', ?, ?, ?, ?, ?, ?)
+    """, (
+        monto_usd, litros_rec, factor, id, session.get("user_id"),
+        f"Generación automática — Recepción #{id} — {recepcion['proveedor']} ({litros_rec:,.2f} L × {factor})",
     ))
     conn.commit()
     conn.close()

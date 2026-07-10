@@ -110,6 +110,18 @@ def listado():
             stock_gasolineras[_gid] = {}
         stock_gasolineras[_gid][_r["tipo_combustible"]] = float(_r["stock"] or 0)
 
+    # Saldo USD en tarjetas activas por gasolinera
+    cur.execute("""
+        SELECT gasolinera_id, COALESCE(SUM(saldo_usd), 0) AS saldo_usd_total
+        FROM tarjetas WHERE estado = 'activa'
+        GROUP BY gasolinera_id
+    """)
+    saldo_tarjetas_gas = {r["gasolinera_id"]: float(r["saldo_usd_total"] or 0) for r in cur.fetchall()}
+
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    _frow = cur.fetchone()
+    factor = float(_frow["valor"]) if _frow else 0.90
+
     conn.close()
 
     return render_template(
@@ -122,6 +134,8 @@ def listado():
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         combustibles_list=_combustibles_list,
         stock_gasolineras=stock_gasolineras,
+        saldo_tarjetas_gas=saldo_tarjetas_gas,
+        factor=factor,
     )
 
 
@@ -197,6 +211,20 @@ def detalle(id):
         LIMIT 20
     """, (id,))
     despachos_recientes = cur.fetchall()
+
+    # Saldo USD en tarjetas activas de esta gasolinera
+    cur.execute("""
+        SELECT id, numero_parcial, tipo_combustible, saldo_usd, saldo_usable_l, estado
+        FROM tarjetas WHERE gasolinera_id = ? AND estado = 'activa'
+        ORDER BY numero_parcial ASC
+    """, (id,))
+    tarjetas_gas = cur.fetchall()
+    saldo_usd_total_gas = sum(float(t["saldo_usd"] or 0) for t in tarjetas_gas)
+
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    _frow = cur.fetchone()
+    factor = float(_frow["valor"]) if _frow else 0.90
+
     conn.close()
 
     # suma_reservados computed from raw rows (accurate per-row activo flag)
@@ -236,6 +264,9 @@ def detalle(id):
         despachos_recientes=despachos_recientes,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         subinventario_labels=TIPOS_SUBINVENTARIO_LABELS,
+        tarjetas_gas=tarjetas_gas,
+        saldo_usd_total_gas=saldo_usd_total_gas,
+        factor=factor,
     )
 
 

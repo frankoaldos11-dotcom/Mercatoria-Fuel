@@ -61,6 +61,8 @@
                     <th>Ubicación</th>
                     <th>Combustibles</th>
                     <th>Cap. máx. (L)</th>
+                    <th>Saldo Fincimex (USD)</th>
+                    <th>LITROS equiv.</th>
                     <th>Responsable supervisor</th>
                     <th>Estado</th>
                 </tr>
@@ -116,6 +118,21 @@
                         {% endfor %}
                     </td>
                     <td>{{ "{:,.0f}".format(g.capacidad_l or 0) }}</td>
+                    <td>
+                        {% set gas_saldo_usd = saldo_tarjetas_gas.get(g.id, 0) | float %}
+                        {% if gas_saldo_usd > 0 %}
+                        <strong style="color:#16A34A;">${{ "{:,.2f}".format(gas_saldo_usd) }}</strong>
+                        {% else %}
+                        <span style="color:var(--muted);">$0.00</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if gas_saldo_usd > 0 %}
+                        <span style="font-size:13px;">{{ "{:,.2f}".format(gas_saldo_usd / factor if factor else 0) }} L</span>
+                        {% else %}
+                        <span style="color:var(--muted);">—</span>
+                        {% endif %}
+                    </td>
                     <td>{{ g.gestor_responsable or '—' }}</td>
                     <td>
                         {% if g.estado == 'activo' %}
@@ -127,7 +144,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" class="empty-state">
+                    <td colspan="10" class="empty-state">
                         <i class="bi bi-fuel-pump" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay gasolineras registradas.
                         {% if session.get('rol') in ('admin', 'pm') %}

@@ -21,6 +21,16 @@
 </div>
 {% endif %}
 
+{% if advertencia_tarjeta %}
+<div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
+    <div style="font-weight:600;margin-bottom:6px;"><i class="bi bi-exclamation-triangle-fill"></i> Aviso: sin tarjeta Fincimex</div>
+    <div>{{ advertencia_tarjeta }}</div>
+    <div style="margin-top:10px;font-size:13px;color:#92400E;">
+        Para confirmar la llegada sin cobertura Fincimex, marca la casilla de confirmación en el formulario de abajo.
+    </div>
+</div>
+{% endif %}
+
 <!-- Resumen de la transferencia -->
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
     <div class="panel" style="padding:16px;">
@@ -90,6 +100,17 @@
             </div>
 
         </div>
+
+        {% if advertencia_tarjeta %}
+        <div class="mb-3" style="grid-column:1/-1;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;background:#FEF9C3;border-radius:8px;border:1px solid #FDE68A;">
+                <input type="checkbox" name="sin_tarjeta_ok" value="1" style="width:16px;height:16px;cursor:pointer;">
+                <span style="font-size:14px;font-weight:600;color:#713F12;">
+                    Entendido — confirmar llegada aunque no haya tarjeta Fincimex activa para este combustible
+                </span>
+            </label>
+        </div>
+        {% endif %}
 
         <div style="background:#F0FDF4;border-left:4px solid #16A34A;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#14532D;">
             <i class="bi bi-info-circle"></i>

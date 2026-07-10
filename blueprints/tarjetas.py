@@ -12,6 +12,22 @@ tarjetas_bp = Blueprint("tarjetas", __name__, url_prefix="/tarjetas")
 _ROLES_EDITAR_TARJETA = ["admin", "pm", "puesto_de_mando"]
 
 
+def _get_factor(cur):
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    row = cur.fetchone()
+    return float(row["valor"]) if row else 0.90
+
+
+def _bolson_disponible(cur):
+    cur.execute("""
+        SELECT COALESCE(SUM(CASE WHEN tipo='generacion' THEN monto_usd
+                                 WHEN tipo='asignacion'  THEN -monto_usd
+                                 ELSE 0 END), 0) AS disponible
+        FROM movimientos_saldo_fincimex
+    """)
+    return float(cur.fetchone()["disponible"] or 0)
+
+
 def _requiere_admin_pm():
     return session.get("rol") not in ROLES_ADMIN_PM
 
@@ -90,7 +106,7 @@ def listado():
     cur = conn.cursor()
     cur.execute(f"""
         SELECT t.id, t.numero_parcial, t.tipo_combustible,
-               t.saldo_usable_l, t.saldo_retenido_l, t.estado,
+               t.saldo_usable_l, t.saldo_retenido_l, t.saldo_usd, t.estado,
                g.nombre AS gasolinera_nombre,
                (SELECT COUNT(*) FROM devoluciones_tarjetas d
                 WHERE d.tarjeta_id = t.id AND d.estado = 'pendiente') AS devoluciones_pendientes
@@ -103,6 +119,8 @@ def listado():
 
     cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
     gasolineras = cur.fetchall()
+    factor = _get_factor(cur)
+    bolson = _bolson_disponible(cur)
     conn.close()
 
     return render_template(
@@ -116,6 +134,8 @@ def listado():
         estados_tarjeta=ESTADOS_TARJETA,
         tipos_combustible=TIPOS_COMBUSTIBLE,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
+        factor=factor,
+        bolson_disponible=bolson,
     )
 
 
@@ -167,6 +187,12 @@ def detalle(id):
     devoluciones = cur.fetchall()
     conn.close()
 
+    conn2 = conectar()
+    cur2 = conn2.cursor()
+    factor = _get_factor(cur2)
+    bolson = _bolson_disponible(cur2)
+    conn2.close()
+
     return render_template(
         "tarjetas/detalle.html",
         tarjeta=tarjeta,
@@ -174,6 +200,8 @@ def detalle(id):
         devoluciones=devoluciones,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=date.today().isoformat(),
+        factor=factor,
+        bolson_disponible=bolson,
     )
 
 
@@ -419,6 +447,79 @@ def recargar(id):
         "tarjetas/recargar.html",
         tarjeta=tarjeta,
         error=error,
+        hoy=date.today().isoformat(),
+    )
+
+
+# ── Asignar saldo desde bolsón ────────────────────────────────────────────────
+
+@tarjetas_bp.route("/<int:id>/asignar-saldo", methods=["GET", "POST"])
+def asignar_saldo(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/tarjetas/{id}?access_error=Solo+Admin+y+PM+pueden+asignar+saldo")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT t.*, g.nombre AS gasolinera_nombre
+        FROM tarjetas t JOIN gasolineras g ON g.id = t.gasolinera_id
+        WHERE t.id = ?
+    """, (id,))
+    tarjeta = cur.fetchone()
+    if not tarjeta:
+        conn.close()
+        return redirect("/tarjetas")
+
+    factor = _get_factor(cur)
+    bolson = _bolson_disponible(cur)
+    error = None
+
+    if request.method == "POST":
+        monto_str = request.form.get("monto_usd", "0").strip().replace(",", ".")
+        observaciones = request.form.get("observaciones", "").strip()
+        try:
+            monto = float(monto_str)
+        except ValueError:
+            monto = 0.0
+            error = "El monto debe ser un número válido."
+
+        if not error and monto <= 0:
+            error = "El monto a asignar debe ser mayor a cero."
+        elif not error and monto > bolson + 0.001:
+            error = (
+                f"Monto supera el bolsón disponible. "
+                f"Disponible: ${bolson:,.2f} USD, solicitado: ${monto:,.2f} USD."
+            )
+
+        if not error:
+            monto = round(monto, 2)
+            cur.execute(
+                "UPDATE tarjetas SET saldo_usd = saldo_usd + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (monto, id)
+            )
+            cur.execute("""
+                INSERT INTO movimientos_saldo_fincimex
+                    (tipo, monto_usd, tarjeta_id, responsable_id, observaciones)
+                VALUES ('asignacion', ?, ?, ?, ?)
+            """, (
+                monto, id, session.get("user_id"),
+                observaciones or f"Asignación a tarjeta ****{tarjeta['numero_parcial']}",
+            ))
+            conn.commit()
+            conn.close()
+            return redirect(f"/tarjetas/{id}?ok=1")
+
+    conn.close()
+    return render_template(
+        "tarjetas/asignar_saldo.html",
+        tarjeta=tarjeta,
+        factor=factor,
+        bolson_disponible=bolson,
+        error=error,
+        combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=date.today().isoformat(),
     )
 

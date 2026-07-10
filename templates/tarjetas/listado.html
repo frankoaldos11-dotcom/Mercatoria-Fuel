@@ -58,6 +58,24 @@
     </form>
 </div>
 
+{% if session.get('rol') in ('admin', 'pm') %}
+<!-- Bolsón general Fincimex -->
+<div class="panel mb-4" style="border:2px solid #16A34A;">
+    <div class="panel-header" style="background:#F0FDF4;">
+        <div>
+            <h2 style="font-size:16px;font-weight:600;margin:0;color:#14532D;">
+                <i class="bi bi-cash-stack"></i> Bolsón general Fincimex
+            </h2>
+            <p style="margin:4px 0 0;font-size:13px;color:#166534;">Saldo USD disponible generado en recepciones y aún no asignado a ninguna tarjeta.</p>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:32px;font-weight:700;color:#16A34A;">${{ "{:,.2f}".format(bolson_disponible) }}</div>
+            <div style="font-size:13px;color:#166534;">≈ {{ "{:,.2f}".format(bolson_disponible / factor if factor else 0) }} L equiv. &nbsp;·&nbsp; factor {{ factor }} $/L</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="panel">
     <div class="table-wrapper">
         <table class="data-table">
@@ -68,6 +86,8 @@
                     <th>Gasolinera</th>
                     <th>Combustible</th>
                     <th>Saldo usable (L)</th>
+                    <th>SALDO (USD)</th>
+                    <th>LITROS equiv.</th>
                     <th>Saldo retenido (L)</th>
                     <th>Estado</th>
                 </tr>
@@ -83,6 +103,9 @@
                             {% if session.get('rol') in ('admin', 'pm') %}
                             <a href="/tarjetas/{{ t.id }}/recargar" class="btn btn-secondary btn-sm">
                                 <i class="bi bi-plus-circle"></i> Recargar
+                            </a>
+                            <a href="/tarjetas/{{ t.id }}/asignar-saldo" class="btn btn-success btn-sm">
+                                <i class="bi bi-currency-dollar"></i> Saldo USD
                             </a>
                             {% endif %}
                         </div>
@@ -110,6 +133,14 @@
                         {% endif %}
                     </td>
                     <td>
+                        <strong style="font-size:15px;color:{% if (t.saldo_usd | float) > 0 %}#16A34A{% else %}var(--muted){% endif %};">
+                            ${{ "{:,.2f}".format(t.saldo_usd | float) }}
+                        </strong>
+                    </td>
+                    <td>
+                        <span style="font-size:13px;color:var(--muted);">{{ "{:,.2f}".format((t.saldo_usd | float) / factor if factor else 0) }} L</span>
+                    </td>
+                    <td>
                         {% if t.saldo_retenido_l > 0 %}
                         <strong style="color:#D97706;">{{ "{:,.2f}".format(t.saldo_retenido_l) }}</strong>
                         {% else %}
@@ -128,7 +159,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="empty-state">
+                    <td colspan="9" class="empty-state">
                         <i class="bi bi-credit-card-2-front" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay tarjetas registradas.
                         {% if session.get('rol') in ('admin', 'pm') %}

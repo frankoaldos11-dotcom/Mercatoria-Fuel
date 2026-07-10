@@ -21,6 +21,18 @@
 </div>
 {% endif %}
 
+{% if advertencia_tarjeta %}
+<div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
+    <div style="font-weight:600;margin-bottom:6px;"><i class="bi bi-exclamation-triangle-fill"></i> Aviso: sin tarjeta Fincimex</div>
+    <div>{{ advertencia_tarjeta }}</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:600;cursor:pointer;">
+        <input type="checkbox" id="chk-sin-tarjeta" onchange="activarSinTarjeta(this)"
+               style="width:16px;height:16px;cursor:pointer;">
+        Entendido — proceder igualmente sin tarjeta Fincimex
+    </label>
+</div>
+{% endif %}
+
 <div class="panel">
     <form method="POST" action="/transferencias/crear">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -68,30 +80,34 @@
                 <label class="form-label">Litros solicitados <span style="color:var(--danger)">*</span></label>
                 <input type="text" name="litros_solicitados" class="form-control"
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
+                       value="{{ form_vals.get('litros_solicitados', '') if form_vals else '' }}"
                        placeholder="0.00" required>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Fecha de salida <span style="color:var(--danger)">*</span></label>
-                <input type="date" name="fecha_salida" class="form-control" value="{{ hoy }}" required>
+                <input type="date" name="fecha_salida" class="form-control"
+                       value="{{ form_vals.get('fecha_salida', hoy) if form_vals else hoy }}" required>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">N.° de documento</label>
                 <input type="text" name="no_documento" class="form-control"
+                       value="{{ form_vals.get('no_documento', '') if form_vals else '' }}"
                        placeholder="Ej. TRF-2024-001">
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Chofer de la pipa</label>
                 <input type="text" name="chofer_pipa" class="form-control"
+                       value="{{ form_vals.get('chofer_pipa', '') if form_vals else '' }}"
                        placeholder="Nombre del chofer">
             </div>
 
             <div class="mb-3" style="grid-column: 1 / -1;">
                 <label class="form-label">Observaciones</label>
                 <textarea name="observaciones" class="form-control" rows="2"
-                          placeholder="Observaciones sobre el envío..."></textarea>
+                          placeholder="Observaciones sobre el envío...">{{ form_vals.get('observaciones', '') if form_vals else '' }}</textarea>
             </div>
 
         </div>
@@ -101,6 +117,8 @@
             Al guardar se registra la <strong>salida</strong> del depósito. Los litros se descontarán del stock inmediatamente.
             La <strong>llegada</strong> se confirma en un segundo paso desde el listado.
         </div>
+
+        <input type="hidden" name="sin_tarjeta_ok" id="sin-tarjeta-ok-input" value="">
 
         <div style="padding:0 24px 24px;display:flex;gap:10px;">
             <button type="submit" id="btn-submit" class="btn btn-primary">
@@ -141,13 +159,16 @@ function validarTarjeta() {
     if (!tiposDisponibles.includes(tc)) {
         const nombre = GAS_NOMBRES[gasId] || gasId;
         const label  = TC_LABELS[tc] || tc;
-        msg.textContent = nombre + ' no tiene tarjetas Fincimex activas de ' + label + '. No puede recibir este combustible hasta que se le asigne una.';
+        msg.textContent = nombre + ' no tiene tarjetas Fincimex activas de ' + label + '. Puedes continuar, pero la transferencia quedará sin cobertura Fincimex.';
         aviso.style.display = 'block';
-        btn.disabled = true;
     } else {
         aviso.style.display = 'none';
-        btn.disabled = false;
     }
+    btn.disabled = false;
+}
+
+function activarSinTarjeta(chk) {
+    document.getElementById('sin-tarjeta-ok-input').value = chk.checked ? '1' : '';
 }
 </script>
 {% endblock %}

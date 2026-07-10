@@ -13,6 +13,11 @@ _PARAMS_LABELS = {
         "hint": "El mínimo de litros que debe tener una habilitación para ser aceptada.",
         "tipo": "numero",
     },
+    "factor_litro_usd": {
+        "label": "Factor de conversión litro→USD",
+        "hint": "Multiplicador para convertir litros a USD al generar saldo Fincimex. Ejemplo: 0.90 = $0.90 por litro.",
+        "tipo": "numero",
+    },
 }
 
 

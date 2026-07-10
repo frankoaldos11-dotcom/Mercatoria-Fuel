@@ -96,6 +96,83 @@
 
 </div>
 
+<!-- Panel Tarjetas Fincimex -->
+{% if tarjetas_gas %}
+{% set litros_equiv_total = (saldo_usd_total_gas / factor) if factor else 0 %}
+<div class="panel mb-4">
+    <div class="panel-header">
+        <div>
+            <h2 style="font-size:16px;font-weight:600;margin:0;">
+                <i class="bi bi-credit-card-2-front"></i> Tarjetas Fincimex activas
+            </h2>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">Saldo USD acumulado en tarjetas de esta gasolinera.</p>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:22px;font-weight:700;color:#16A34A;">${{ "{:,.2f}".format(saldo_usd_total_gas) }}</div>
+            <div style="font-size:12px;color:var(--muted);">≈ {{ "{:,.2f}".format(litros_equiv_total) }} L equiv. · factor {{ factor }}</div>
+        </div>
+    </div>
+
+    {% if stock_total > 0 and litros_equiv_total > stock_total %}
+    <div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:0;padding:0.75rem 1rem;font-size:13px;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>Aviso de cobertura:</strong> los litros equivalentes en tarjetas ({{ "{:,.0f}".format(litros_equiv_total) }} L)
+        superan el stock físico actual ({{ "{:,.0f}".format(stock_total) }} L). Hay tarjetas con saldo USD que no tiene respaldo físico en esta gasolinera. Esto es informativo — no bloquea despachos.
+    </div>
+    {% endif %}
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Tarjeta</th>
+                    <th>Combustible</th>
+                    <th>SALDO (USD)</th>
+                    <th>LITROS equiv.</th>
+                    <th>Litros usables</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tarjetas_gas %}
+                <tr>
+                    <td>
+                        <a href="/tarjetas/{{ t.id }}" style="font-family:monospace;font-weight:700;color:var(--primary);text-decoration:none;">
+                            **** {{ t.numero_parcial }}
+                        </a>
+                    </td>
+                    <td><span class="badge badge-info">{{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}</span></td>
+                    <td>
+                        <strong style="color:{% if (t.saldo_usd | float) > 0 %}#16A34A{% else %}var(--muted){% endif %};">
+                            ${{ "{:,.2f}".format(t.saldo_usd | float) }}
+                        </strong>
+                    </td>
+                    <td style="color:var(--muted);font-size:13px;">
+                        {{ "{:,.2f}".format((t.saldo_usd | float) / factor if factor else 0) }} L
+                    </td>
+                    <td>{{ "{:,.2f}".format(t.saldo_usable_l | float) }} L</td>
+                    <td>
+                        {% if session.get('rol') in ('admin', 'pm') %}
+                        <a href="/tarjetas/{{ t.id }}/asignar-saldo" class="btn btn-success btn-sm">
+                            <i class="bi bi-currency-dollar"></i> Asignar
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                <!-- Fila total -->
+                <tr style="background:#F8FAFC;font-weight:700;border-top:2px solid var(--border);">
+                    <td colspan="2" style="font-size:13px;color:var(--muted);">Total tarjetas activas</td>
+                    <td style="color:#16A34A;">${{ "{:,.2f}".format(saldo_usd_total_gas) }}</td>
+                    <td style="color:var(--muted);font-size:13px;">{{ "{:,.2f}".format(litros_equiv_total) }} L</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
 <!-- Subinventarios -->
 <div class="panel mb-4">
     <div class="panel-header">

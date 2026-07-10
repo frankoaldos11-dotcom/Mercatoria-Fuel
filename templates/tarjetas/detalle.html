@@ -21,6 +21,11 @@
             <i class="bi bi-pencil"></i> Editar
         </a>
         {% endif %}
+        {% if session.get('rol') in ('admin', 'pm') %}
+        <a href="/tarjetas/{{ tarjeta.id }}/asignar-saldo" class="btn btn-success">
+            <i class="bi bi-currency-dollar"></i> Asignar saldo USD
+        </a>
+        {% endif %}
         <a href="/tarjetas/{{ tarjeta.id }}/devolucion" class="btn btn-secondary">
             <i class="bi bi-arrow-counterclockwise"></i> Registrar devolución
         </a>
@@ -52,6 +57,25 @@
         {% if tarjeta.saldo_usable_l < 200 %}
         <div style="margin-top:8px;">
             <span class="badge badge-warn"><i class="bi bi-exclamation-triangle"></i> Saldo bajo</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Saldo Fincimex USD — siempre junto a litros equiv -->
+    <div class="panel" style="padding:20px;text-align:center;{% if (tarjeta.saldo_usd | float) > 0 %}border:2px solid #16A34A;{% endif %}">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo Fincimex (USD)</div>
+        <div style="font-size:28px;font-weight:700;color:{% if (tarjeta.saldo_usd | float) > 0 %}#16A34A{% else %}var(--muted){% endif %};">
+            ${{ "{:,.2f}".format(tarjeta.saldo_usd | float) }}
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px;">
+            ≈ {{ "{:,.2f}".format((tarjeta.saldo_usd | float) / factor if factor else 0) }} L equiv.
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Factor: {{ factor }} $/L</div>
+        {% if session.get('rol') in ('admin', 'pm') and bolson_disponible > 0 %}
+        <div style="margin-top:10px;">
+            <a href="/tarjetas/{{ tarjeta.id }}/asignar-saldo" class="btn btn-success btn-sm">
+                <i class="bi bi-plus-lg"></i> Asignar desde bolsón
+            </a>
         </div>
         {% endif %}
     </div>

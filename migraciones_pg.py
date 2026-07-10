@@ -449,6 +449,22 @@ def ejecutar_migraciones_pg(bcrypt):
     cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS vehiculo_id INTEGER REFERENCES vehiculos_tienda(id)")
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gasolinera_id INTEGER REFERENCES gasolineras(id)")
     cur.execute("ALTER TABLE transferencias ADD COLUMN IF NOT EXISTS litros_distribuidos NUMERIC(14,2) DEFAULT 0")
+    cur.execute("ALTER TABLE tarjetas ADD COLUMN IF NOT EXISTS saldo_usd NUMERIC(14,2) NOT NULL DEFAULT 0")
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS movimientos_saldo_fincimex (
+        id             SERIAL PRIMARY KEY,
+        tipo           TEXT NOT NULL,
+        monto_usd      NUMERIC(14,2) NOT NULL DEFAULT 0,
+        litros         NUMERIC(14,2),
+        factor         NUMERIC(10,4),
+        recepcion_id   INTEGER REFERENCES recepciones(id),
+        tarjeta_id     INTEGER REFERENCES tarjetas(id),
+        responsable_id INTEGER NOT NULL REFERENCES usuarios(id),
+        observaciones  TEXT,
+        created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 
     # Esquema completo garantizado antes de cualquier seed
     conn.commit()
@@ -563,6 +579,7 @@ def ejecutar_migraciones_pg(bcrypt):
     # seed: configuracion
     params_default = [
         ("compra_minima_litros", "500"),
+        ("factor_litro_usd", "0.90"),
     ]
     for clave, valor in params_default:
         cur.execute(

@@ -259,7 +259,7 @@ def crear():
             cur = conn.cursor()
             cur.execute("""
                 SELECT h.*,
-                       t.saldo_usable_l, t.estado AS tarjeta_estado,
+                       t.saldo_usable_l, t.saldo_usd, t.estado AS tarjeta_estado,
                        s.litros_reservados AS sub_litros
                 FROM habilitaciones h
                 JOIN tarjetas t ON t.id = h.tarjeta_id
@@ -268,6 +268,11 @@ def crear():
             """, (habilitacion_id,))
             hab = cur.fetchone()
 
+            cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+            _frow = cur.fetchone()
+            factor = float(_frow["valor"]) if _frow else 0.90
+            monto_usd = round(litros * factor, 2)
+
             if not hab:
                 error = "La habilitación no está disponible para despacho."
                 conn.close()
@@ -275,6 +280,13 @@ def crear():
                 error = (
                     f"Saldo insuficiente en la tarjeta. Disponible: "
                     f"{float(hab['saldo_usable_l']):,.2f} L, solicitado: {litros:,.2f} L."
+                )
+                conn.close()
+            elif float(hab["saldo_usd"] or 0) < monto_usd - 0.001:
+                error = (
+                    f"Saldo Fincimex insuficiente. Disponible: "
+                    f"${float(hab['saldo_usd'] or 0):,.2f} USD, "
+                    f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
                 )
                 conn.close()
             else:
@@ -296,9 +308,20 @@ def crear():
 
                 cur.execute("""
                     UPDATE tarjetas
-                    SET saldo_usable_l = saldo_usable_l - ?, updated_at = CURRENT_TIMESTAMP
+                    SET saldo_usable_l = saldo_usable_l - ?,
+                        saldo_usd = saldo_usd - ?,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """, (litros, hab["tarjeta_id"]))
+                """, (litros, monto_usd, hab["tarjeta_id"]))
+                cur.execute("""
+                    INSERT INTO movimientos_saldo_fincimex
+                        (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
+                    VALUES ('descuento', ?, ?, ?, ?, ?, ?)
+                """, (
+                    monto_usd, litros, factor, hab["tarjeta_id"],
+                    session.get("user_id"),
+                    f"Despacho habilitación #{habilitacion_id} — {litros:,.2f} L × {factor}",
+                ))
 
                 if hab["subinventario_id"] and hab["sub_litros"] is not None:
                     cur.execute("""

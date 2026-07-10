@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block titulo %}Asignar Saldo Fincimex — **** {{ tarjeta.numero_parcial }} — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial / Tarjetas</span>
+        <h1 style="font-family:monospace;letter-spacing:2px;">**** **** **** {{ tarjeta.numero_parcial }}</h1>
+        <p>Asignar saldo desde el bolsón general Fincimex.</p>
+    </div>
+    <a href="/tarjetas/{{ tarjeta.id }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+{% if error %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<!-- KPI: Bolsón disponible y saldo actual de la tarjeta -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
+
+    <div class="panel" style="padding:20px;text-align:center;border:2px solid #16A34A;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Bolsón disponible</div>
+        <div style="font-size:26px;font-weight:700;color:#16A34A;">${{ "{:,.2f}".format(bolson_disponible) }}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">≈ {{ "{:,.2f}".format(bolson_disponible / factor if factor else 0) }} L equiv.</div>
+    </div>
+
+    <div class="panel" style="padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Saldo actual tarjeta (USD)</div>
+        <div style="font-size:26px;font-weight:700;color:var(--primary);">${{ "{:,.2f}".format(tarjeta.saldo_usd | float) }}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">≈ {{ "{:,.2f}".format((tarjeta.saldo_usd | float) / factor if factor else 0) }} L equiv.</div>
+    </div>
+
+    <div class="panel" style="padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Factor actual</div>
+        <div style="font-size:26px;font-weight:700;color:var(--text);">{{ factor }}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">USD por litro</div>
+    </div>
+
+    <div class="panel" style="padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Gasolinera asignada</div>
+        <div style="font-size:16px;font-weight:600;">{{ tarjeta.gasolinera_nombre }}</div>
+        <div style="font-size:12px;margin-top:4px;"><span class="badge badge-info">{{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}</span></div>
+    </div>
+
+</div>
+
+{% if bolson_disponible <= 0 %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-x-circle"></i>
+    <strong>Bolsón vacío.</strong> No hay saldo Fincimex disponible para asignar. El saldo se genera automáticamente al confirmar recepciones de combustible en los depósitos.
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/tarjetas/{{ tarjeta.id }}/asignar-saldo">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Monto a asignar (USD) <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="monto_usd" class="form-control"
+                       min="0.01" step="0.01" max="{{ "{:.2f}".format(bolson_disponible) }}"
+                       placeholder="0.00" required {{ 'disabled' if bolson_disponible <= 0 }}
+                       oninput="calcEquiv(this.value)">
+                <div id="equiv-display" style="font-size:13px;color:var(--muted);margin-top:4px;"></div>
+            </div>
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Motivo de la asignación (opcional)..."></textarea>
+            </div>
+
+        </div>
+
+        <div style="background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#1E40AF;">
+            <i class="bi bi-info-circle"></i>
+            El monto asignado se descuenta del <strong>bolsón general</strong> y se acredita al <strong>saldo Fincimex</strong> de esta tarjeta. No afecta el saldo en litros (<strong>{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</strong> usables actualmente).
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary" {{ 'disabled' if bolson_disponible <= 0 }}>
+                <i class="bi bi-check-lg"></i> Asignar saldo
+            </button>
+            <a href="/tarjetas/{{ tarjeta.id }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const FACTOR = {{ factor }};
+function calcEquiv(val) {
+    const monto = parseFloat(val) || 0;
+    const equiv = FACTOR > 0 ? monto / FACTOR : 0;
+    const el = document.getElementById('equiv-display');
+    if (monto > 0) {
+        el.textContent = '≈ ' + equiv.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L equivalentes';
+    } else {
+        el.textContent = '';
+    }
+}
+</script>
+{% endblock %}

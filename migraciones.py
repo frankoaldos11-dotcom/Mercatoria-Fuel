@@ -582,15 +582,32 @@ def ejecutar_migraciones(bcrypt):
         "ALTER TABLE reservas_tienda ADD COLUMN vehiculo_id INTEGER REFERENCES vehiculos_tienda(id)",
         "ALTER TABLE usuarios ADD COLUMN gasolinera_id INTEGER REFERENCES gasolineras(id)",
         "ALTER TABLE transferencias ADD COLUMN litros_distribuidos REAL DEFAULT 0",
+        "ALTER TABLE tarjetas ADD COLUMN saldo_usd REAL NOT NULL DEFAULT 0",
     ]:
         try:
             cur.execute(_sql)
         except Exception:
             pass
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS movimientos_saldo_fincimex (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo           TEXT NOT NULL,
+        monto_usd      REAL NOT NULL DEFAULT 0,
+        litros         REAL,
+        factor         REAL,
+        recepcion_id   INTEGER REFERENCES recepciones(id),
+        tarjeta_id     INTEGER REFERENCES tarjetas(id),
+        responsable_id INTEGER NOT NULL REFERENCES usuarios(id),
+        observaciones  TEXT,
+        created_at     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
     # ── seed: configuracion ───────────────────────────────────────────────────
     params_default = [
         ("compra_minima_litros", "500"),
+        ("factor_litro_usd", "0.90"),
     ]
     for clave, valor in params_default:
         cur.execute("INSERT OR IGNORE INTO configuracion (clave, valor) VALUES (?, ?)", (clave, valor))
