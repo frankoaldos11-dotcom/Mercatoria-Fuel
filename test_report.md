@@ -348,3 +348,53 @@ Ninguna — no se encontraron bugs en el código de Fase 3. Los hallazgos de la 
 1. **Pendiente de Aldo**: verificar en producción que el correo de verificación (enlace + código) llega correctamente y que el enlace `https://mercatoria-fuel.onrender.com/tienda/verificar-email/<token>` resuelve bien sobre HTTPS real.
 2. Igual que en Fase 2, correr una verificación ligera post-deploy en `fuel.mercatoria.online` (carga de `/tienda/reservar`, sin mutar datos reales) para confirmar que el código desplegado no tiene errores de consola/HTTP.
 3. Considerar, en una fase futura, mostrar un recordatorio no bloqueante de "correo sin verificar" en el dashboard del cliente, para que no se entere solo hasta el momento de reservar (no se implementó ahora por estar fuera del alcance pedido: el bloqueo debía ser únicamente al confirmar).
+
+---
+
+# Mensajes Fase 4 — Mensajería masiva con aprobación y gestión — 2026-07-10
+
+## Nota sobre el entorno de verificación
+
+Verificado antes del push, contra instancia local (SQLite local, puerto 5053 dedicado, sin tocar producción ni datos reales). Navegador para los pasos visuales; `curl` autenticado (tokens CSRF reales extraídos de páginas) para los flujos adicionales de rol.
+
+## Bug preexistente encontrado (no relacionado con Fase 4, no corregido — fuera de alcance)
+
+`app.py::login()` línea 129: `session["gasolinera_id"] = fila.get("gasolinera_id")`. `fila` es un `sqlite3.Row` (SQLite) que **no tiene método `.get()`** — solo los dicts reales de `RealDictCursor` (Postgres/producción) lo soportan. Resultado: **cualquier login de un usuario con rol `operador_gasolinera` sobre SQLite local lanza un 500** en esa línea; en producción (Postgres) esta línea funciona sin problema. No se tocó `app.py` porque está fuera de los archivos aprobados en el plan de esta fase. Recomiendo corregirlo en una fase/commit aparte (cambio de una línea: `fila.get("gasolinera_id")` → `fila["gasolinera_id"]`), ya que actualmente bloquea probar ese rol en local con SQLite (no afecta producción).
+
+## Flujos probados
+
+| # | Flujo | Método | Resultado |
+|---|-------|--------|-----------|
+| 1 | Admin redacta masivo (`filtro=verificado`, in-app activado) → envía directo | Navegador | ✅ (screenshot: redacción con selección de destinatarios) |
+| 2 | Resumen del envío: 4 destinatarios verificados, 0 excluidos (el filtro ya solo trajo verificados), 4 fallidos por SMTP no configurado en local (esperado) | Navegador | ✅ |
+| 3 | Traza en `mensajes`: 4 filas `tipo='masivo'` (estado `fallido`, SMTP local) + 4 filas `tipo='masivo_inapp'` (estado `enviado`, sin canal externo) | BD | ✅ |
+| 4 | PM redacta masivo (`modo=todos`) → botón dice "Enviar a aprobación", queda `estado='pendiente'`, **0 filas nuevas en `mensajes`** | Navegador + BD | ✅ |
+| 5 | Admin entra a `/mensajes/masivos`: bandeja con Acciones primera columna, Ver/Aprobar/Rechazar inline solo para el pendiente | Navegador | ✅ (screenshot: bandeja de aprobación) |
+| 6 | Admin aprueba el masivo del PM → pasa a `enviado`, resumen: 8 destinatarios totales (`todos` sin filtrar), 4 excluidos por no verificado, 4 fallidos (SMTP local) — coincide exactamente con los datos de prueba sembrados | Navegador | ✅ (screenshot: resumen de envío con excluidos) |
+| 7 | PM redacta un tercer masivo; admin lo **rechaza** con motivo (`POST .../rechazar`) → `estado='rechazado'`, `motivo_rechazo` guardado, `total_enviados=0`, nada enviado | curl autenticado | ✅ |
+| 8 | `operador_gasolinera` (rol staff pero no admin/PM) intenta `GET /mensajes/masivos/nuevo` y `GET /mensajes/masivos` → **302 a `/login`** (bloqueado por `requiere_rol(*ROLES_ADMIN_PM)`, no solo oculto en la UI) | curl con sesión firmada válida* | ✅ |
+| 9 | Revisión de código: `masivos_aprobar()` y `masivos_rechazar()` llaman `requiere_rol("admin")` como primer chequeo, antes de tocar cualquier fila — confirmado por inspección directa del código entregado | Lectura de código | ✅ |
+
+\* Para probar el paso 8 fue necesario **forjar una cookie de sesión Flask firmada** con el rol `operador_gasolinera` en vez de loguear por el formulario real, porque el bug preexistente descrito arriba impide completar ese login en SQLite local. Las rutas GET (que no requieren CSRF) confirmaron el bloqueo de forma concluyente. Las rutas POST (`aprobar`/`rechazar`) además exigen un token CSRF vinculado a una sesión creada por un login real — como la sesión fue forjada manualmente (no por un login real), esas pruebas específicas devolvieron 400 por CSRF antes de llegar siquiera al chequeo de rol; es decir, quedan bloqueadas por una capa de defensa previa (CSRF) además de por `requiere_rol`, lo cual es más protección, no menos. La captura visual del intento bloqueado no pudo tomarse vía login real de navegador por el mismo motivo; se sustituyó por la verificación HTTP directa arriba, más la revisión de código.
+
+## Errores encontrados
+
+- **Ninguno en el código de Fase 4.** El único 500 en todo el log del servidor de prueba corresponde al bug preexistente de `app.py::login()` descrito arriba, no relacionado con esta fase. El resto: 39× 200, 12× 302, 7× 400 (CSRF, todos explicados: mis propios errores de script o la sesión forjada de la prueba 8), 1× 404 (favicon).
+
+## Correcciones aplicadas
+
+Ninguna en el alcance de Fase 4 — no se encontraron bugs en el código entregado. Se documenta (sin corregir, fuera de alcance) el bug preexistente de `app.py` arriba.
+
+## Screenshots
+
+1. Redacción con selección de destinatarios (filtro = verificado, in-app activado).
+2. Bandeja de aprobación (`/mensajes/masivos`, Acciones primera columna, Aprobar/Rechazar inline).
+3. Resumen de envío con excluidos (8 destinatarios, 4 excluidos por no verificado, 4 fallidos por SMTP local).
+
+(No se incluye captura del intento bloqueado por rol — ver nota arriba; el bloqueo quedó confirmado por HTTP directo y revisión de código.)
+
+## Recomendaciones
+
+1. **Pendiente de Aldo**: decidir si corregir el bug preexistente de `app.py::login()` (línea 129, `.get()` sobre `sqlite3.Row`) en un commit aparte — no afecta producción (Postgres) pero bloquea pruebas locales de `operador_gasolinera`.
+2. Verificar en producción que los correos masivos lleguen bien formateados (el cuerpo permite HTML simple tecleado por el staff — sin sanitización adicional más allá de lo que ya hace el cliente de correo del destinatario).
+3. Considerar en una fase futura un límite de tamaño de lote o un job asíncrono si el número de clientes crece mucho — hoy el envío ocurre síncronamente dentro de la misma request de aprobar/enviar.

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block titulo %}Redactar mensaje masivo — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Sistema / Mensajes</span>
+        <h1>Redactar mensaje masivo</h1>
+        <p>
+            {% if session.get('rol') == 'admin' %}
+            Como administrador, el mensaje se envía directo al confirmar.
+            {% else %}
+            Como puesto de mando, el mensaje quedará pendiente de aprobación por un administrador.
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+{% endif %}
+
+<div class="panel">
+    <div class="panel-body" style="padding:20px;">
+        <form method="POST" action="/mensajes/masivos/nuevo" id="frm-masivo">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label class="form-label">Asunto *</label>
+                <input type="text" name="asunto" class="form-control" required
+                       value="{{ form.get('asunto', '') }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Mensaje *</label>
+                <textarea name="cuerpo" class="form-control" rows="6" required
+                          placeholder="Puedes usar HTML simple (p, strong, a, br)...">{{ form.get('cuerpo', '') }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">¿A quién va dirigido? *</label>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+                    <label style="font-weight:normal;">
+                        <input type="radio" name="modo_destinatario" value="todos"
+                               onchange="actualizarModoDestinatario()"
+                               {{ 'checked' if form.get('modo_destinatario', 'todos') == 'todos' else '' }}>
+                        Todos los clientes
+                    </label>
+                    <label style="font-weight:normal;">
+                        <input type="radio" name="modo_destinatario" value="filtro"
+                               onchange="actualizarModoDestinatario()"
+                               {{ 'checked' if form.get('modo_destinatario') == 'filtro' else '' }}>
+                        Un subconjunto filtrado por estado
+                    </label>
+                    <label style="font-weight:normal;">
+                        <input type="radio" name="modo_destinatario" value="manual"
+                               onchange="actualizarModoDestinatario()"
+                               {{ 'checked' if form.get('modo_destinatario') == 'manual' else '' }}>
+                        Selección manual de clientes
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3" id="bloque-filtro" style="display:none;">
+                <label class="form-label">Filtrar por</label>
+                <select name="filtro_estado" class="form-control">
+                    <option value="">— Selecciona —</option>
+                    <option value="activo" {{ 'selected' if form.get('filtro_estado') == 'activo' else '' }}>Clientes activos</option>
+                    <option value="verificado" {{ 'selected' if form.get('filtro_estado') == 'verificado' else '' }}>Clientes con correo verificado</option>
+                </select>
+            </div>
+
+            <div class="mb-3" id="bloque-manual" style="display:none;">
+                <label class="form-label">Selecciona los clientes</label>
+                <div style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px;">
+                    {% for c in clientes %}
+                    <label style="display:block;font-weight:normal;padding:4px 0;">
+                        <input type="checkbox" name="destinatarios_manual" value="{{ c.id }}"
+                               {{ 'checked' if (c.id|string) in form.getlist('destinatarios_manual') else '' }}>
+                        {{ c.nombre }} — {{ c.email }}
+                        {% if not c.email_verificado %}<span class="badge badge-warn" style="font-size:10px;">sin verificar</span>{% endif %}
+                    </label>
+                    {% else %}
+                    <p style="color:var(--muted);font-size:13px;margin:0;">No hay clientes registrados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label style="font-weight:normal;">
+                    <input type="checkbox" name="incluir_inapp"
+                           {{ 'checked' if form.get('incluir_inapp') == 'on' else '' }}>
+                    También dejar este mensaje trazado como mensaje in-app para los destinatarios
+                </label>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-send"></i>
+                    {% if session.get('rol') == 'admin' %}Enviar ahora{% else %}Enviar a aprobación{% endif %}
+                </button>
+                <a href="/mensajes/masivos" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function actualizarModoDestinatario() {
+    const modo = document.querySelector('input[name="modo_destinatario"]:checked');
+    const bloqueFiltro = document.getElementById('bloque-filtro');
+    const bloqueManual = document.getElementById('bloque-manual');
+    bloqueFiltro.style.display = (modo && modo.value === 'filtro') ? 'block' : 'none';
+    bloqueManual.style.display = (modo && modo.value === 'manual') ? 'block' : 'none';
+}
+
+actualizarModoDestinatario();
+</script>
+{% endblock %}

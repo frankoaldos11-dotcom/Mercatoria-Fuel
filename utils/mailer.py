@@ -279,3 +279,35 @@ def verificacion_email(nombre, email, usuario_id, token, codigo):
 {_PIE}
 </body></html>"""
     return enviar_email(email, asunto, cuerpo, tipo="verificacion_email", usuario_id=usuario_id)
+
+
+def masivo_email(nombre, email, usuario_id, asunto, cuerpo_masivo):
+    """Send a staff-composed bulk email to a client. Wraps the composed body
+    in the standard envelope and reuses enviar_email() — never raises."""
+    cuerpo = f"""<html><body style="font-family:sans-serif;color:#1e293b;line-height:1.6;">
+<p>Hola <strong>{nombre}</strong>,</p>
+{cuerpo_masivo}
+{_PIE}
+</body></html>"""
+    return enviar_email(email, asunto, cuerpo, tipo="masivo", usuario_id=usuario_id)
+
+
+def registrar_mensaje_inapp(destinatario_email, asunto, cuerpo_html, usuario_id):
+    """Record an in-app copy of a bulk message in the mensajes table.
+
+    There is no external channel here (no SMTP), so there is nothing that can
+    fail besides the DB write itself — logs and returns quietly on error.
+    """
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO mensajes
+               (destinatario, asunto, cuerpo, tipo, estado, usuario_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (destinatario_email, asunto, cuerpo_html, "masivo_inapp", "enviado", usuario_id),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        logger.error("Error registrando mensaje in-app para usuario #%s", usuario_id, exc_info=True)

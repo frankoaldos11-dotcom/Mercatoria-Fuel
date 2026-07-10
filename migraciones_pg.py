@@ -486,6 +486,36 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS mensajes_masivos (
+        id                             SERIAL PRIMARY KEY,
+        asunto                         TEXT NOT NULL,
+        cuerpo                         TEXT NOT NULL,
+        modo_destinatario              TEXT NOT NULL,
+        filtro_estado                  TEXT,
+        incluir_inapp                  INTEGER NOT NULL DEFAULT 0,
+        estado                         TEXT NOT NULL DEFAULT 'pendiente',
+        autor_id                       INTEGER NOT NULL REFERENCES usuarios(id),
+        aprobado_por                   INTEGER REFERENCES usuarios(id),
+        motivo_rechazo                 TEXT,
+        total_destinatarios            INTEGER NOT NULL DEFAULT 0,
+        total_enviados                 INTEGER NOT NULL DEFAULT 0,
+        total_excluidos_no_verificado  INTEGER NOT NULL DEFAULT 0,
+        total_fallidos                 INTEGER NOT NULL DEFAULT 0,
+        enviado_at                     TIMESTAMP,
+        created_at                     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at                     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS mensajes_masivos_destinatarios (
+        id         SERIAL PRIMARY KEY,
+        masivo_id  INTEGER NOT NULL REFERENCES mensajes_masivos(id),
+        usuario_id INTEGER NOT NULL REFERENCES usuarios(id)
+    )
+    """)
+
     # Esquema completo garantizado antes de cualquier seed
     conn.commit()
     print("[migraciones_pg] Fase 1 (schema) completada y commitada.")

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block titulo %}Mensajes masivos — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Sistema / Mensajes</span>
+        <h1>Mensajes masivos</h1>
+        <p>Historial de campañas a clientes{% if session.get('rol') == 'admin' %} y bandeja de aprobación{% endif %}.</p>
+    </div>
+    <a href="/mensajes/masivos/nuevo" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Redactar masivo
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="panel mb-4">
+    <form method="GET" action="/mensajes/masivos" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <select name="estado" class="form-select" style="max-width:220px;" onchange="this.form.submit()">
+            <option value="">Todos los estados</option>
+            <option value="pendiente" {{ 'selected' if filtro == 'pendiente' else '' }}>Pendiente de aprobación</option>
+            <option value="enviado" {{ 'selected' if filtro == 'enviado' else '' }}>Enviado</option>
+            <option value="rechazado" {{ 'selected' if filtro == 'rechazado' else '' }}>Rechazado</option>
+        </select>
+        {% if filtro %}
+        <a href="/mensajes/masivos" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Acciones</th>
+                    <th>Estado</th>
+                    <th>Asunto</th>
+                    <th>Autor</th>
+                    <th>Destinatarios</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in lista %}
+                <tr>
+                    <td>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <a href="/mensajes/masivos/{{ m.id }}" class="btn btn-sm btn-soft">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% if session.get('rol') == 'admin' and m.estado == 'pendiente' %}
+                            <form method="POST" action="/mensajes/masivos/{{ m.id }}/aprobar" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-check-lg"></i> Aprobar
+                                </button>
+                            </form>
+                            <button onclick="abrirRechazo({{ m.id }})" class="btn btn-sm btn-secondary"
+                                    style="color:#DC2626;border-color:#DC2626;">
+                                <i class="bi bi-x-lg"></i> Rechazar
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if m.estado == 'enviado' %}
+                        <span class="badge badge-ok">Enviado</span>
+                        {% elif m.estado == 'pendiente' %}
+                        <span class="badge badge-warn">Pendiente de aprobación</span>
+                        {% else %}
+                        <span class="badge badge-danger">Rechazado</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:13px;">{{ m.asunto | truncate(50) }}</td>
+                    <td style="font-size:13px;">{{ m.autor_nombre }}</td>
+                    <td style="font-size:13px;">
+                        {% if m.estado == 'enviado' %}
+                        {{ m.total_enviados }} enviados
+                        {% if m.total_excluidos_no_verificado %}<br><span style="color:var(--muted);">{{ m.total_excluidos_no_verificado }} excluidos (sin verificar)</span>{% endif %}
+                        {% else %}
+                        {{ m.total_destinatarios or '—' }}
+                        {% endif %}
+                    </td>
+                    <td style="font-size:12px;color:var(--muted);white-space:nowrap;">
+                        {{ (m.created_at | string)[:16] if m.created_at else '—' }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty-state">No hay mensajes masivos todavía.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal rechazar -->
+<div id="modal-rechazo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+        <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:700;">Rechazar mensaje masivo</h3>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Indica el motivo del rechazo (obligatorio):</p>
+        <textarea id="motivo-rechazo" class="form-control" rows="3"
+                  placeholder="Ej: Contenido a revisar antes de enviar..."></textarea>
+        <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+            <button onclick="cerrarModalRechazo()" class="btn btn-secondary">Cancelar</button>
+            <button onclick="confirmarRechazo()" class="btn btn-primary" style="background:#DC2626;border-color:#DC2626;">
+                <i class="bi bi-x-lg"></i> Confirmar rechazo
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const CSRF_T_MASIVOS = '{{ csrf_token() }}';
+let _rechazarMasivoId = null;
+
+function abrirRechazo(id) {
+    _rechazarMasivoId = id;
+    document.getElementById('motivo-rechazo').value = '';
+    document.getElementById('modal-rechazo').style.display = 'flex';
+}
+
+function cerrarModalRechazo() {
+    document.getElementById('modal-rechazo').style.display = 'none';
+    _rechazarMasivoId = null;
+}
+
+async function confirmarRechazo() {
+    const motivo = document.getElementById('motivo-rechazo').value.trim();
+    if (!motivo) {
+        alert('El motivo de rechazo es obligatorio.');
+        return;
+    }
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF_T_MASIVOS);
+    fd.append('motivo', motivo);
+    const r = await fetch(`/mensajes/masivos/${_rechazarMasivoId}/rechazar`, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.ok) {
+        location.reload();
+    } else {
+        alert(data.error || 'Error al rechazar');
+    }
+}
+</script>
+{% endblock %}

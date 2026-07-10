@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block titulo %}Mensaje masivo #{{ masivo.id }} — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Sistema / Mensajes / Masivos</span>
+        <h1>Mensaje masivo #{{ masivo.id }}</h1>
+    </div>
+    <a href="/mensajes/masivos" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+<div class="panel mb-4">
+    <div class="panel-body" style="padding:20px;">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+            {% if masivo.estado == 'enviado' %}
+            <span class="badge badge-ok">Enviado</span>
+            {% elif masivo.estado == 'pendiente' %}
+            <span class="badge badge-warn">Pendiente de aprobación</span>
+            {% else %}
+            <span class="badge badge-danger">Rechazado</span>
+            {% endif %}
+            <span style="font-size:13px;color:var(--muted);">
+                Redactado por <strong>{{ masivo.autor_nombre }}</strong>
+                el {{ (masivo.created_at | string)[:16] if masivo.created_at else '—' }}
+            </span>
+        </div>
+
+        <h3 style="font-size:16px;margin:0 0 6px;">{{ masivo.asunto }}</h3>
+        <div style="border:1px solid var(--border);border-radius:8px;padding:14px;background:#fafafa;font-size:14px;">
+            {{ masivo.cuerpo | safe }}
+        </div>
+
+        <div style="margin-top:16px;font-size:13px;color:var(--muted);">
+            <strong>Dirigido a:</strong>
+            {% if masivo.modo_destinatario == 'todos' %}Todos los clientes
+            {% elif masivo.modo_destinatario == 'filtro' %}Clientes {{ 'activos' if masivo.filtro_estado == 'activo' else 'con correo verificado' }}
+            {% else %}Selección manual ({{ destinatarios_manual|length }} clientes){% endif %}
+            &nbsp;·&nbsp;
+            <strong>In-app:</strong> {{ 'Sí' if masivo.incluir_inapp else 'No' }}
+        </div>
+
+        {% if masivo.modo_destinatario == 'manual' and destinatarios_manual %}
+        <div style="margin-top:10px;font-size:13px;">
+            {% for d in destinatarios_manual %}
+            <span class="badge badge-info" style="margin:2px;">{{ d.nombre }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if masivo.estado == 'rechazado' %}
+        <div class="alert-error" style="margin-top:16px;">
+            <i class="bi bi-x-circle"></i> <strong>Motivo del rechazo:</strong> {{ masivo.motivo_rechazo }}
+            <div style="font-size:12px;margin-top:4px;">Rechazado por {{ masivo.aprobado_por_nombre or '—' }}</div>
+        </div>
+        {% endif %}
+
+        {% if masivo.estado == 'enviado' %}
+        <div style="margin-top:16px;display:flex;gap:20px;flex-wrap:wrap;">
+            <div class="panel" style="padding:14px 18px;background:#F0FDF4;border:1px solid #86efac;">
+                <div style="font-size:24px;font-weight:700;color:#16A34A;">{{ masivo.total_enviados }}</div>
+                <div style="font-size:12px;color:#166534;">Correos enviados</div>
+            </div>
+            <div class="panel" style="padding:14px 18px;background:#FFFBEB;border:1px solid #FDE68A;">
+                <div style="font-size:24px;font-weight:700;color:#CA8A04;">{{ masivo.total_excluidos_no_verificado }}</div>
+                <div style="font-size:12px;color:#92400E;">Excluidos — correo no verificado</div>
+            </div>
+            {% if masivo.total_fallidos %}
+            <div class="panel" style="padding:14px 18px;background:#FEF2F2;border:1px solid #FCA5A5;">
+                <div style="font-size:24px;font-weight:700;color:#DC2626;">{{ masivo.total_fallidos }}</div>
+                <div style="font-size:12px;color:#991B1B;">Fallidos al enviar</div>
+            </div>
+            {% endif %}
+            <div class="panel" style="padding:14px 18px;">
+                <div style="font-size:24px;font-weight:700;">{{ masivo.total_destinatarios }}</div>
+                <div style="font-size:12px;color:var(--muted);">Total destinatarios</div>
+            </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:10px;">
+            Aprobado/enviado por {{ masivo.aprobado_por_nombre or '—' }}
+            el {{ (masivo.enviado_at | string)[:16] if masivo.enviado_at else '—' }}
+        </div>
+        {% endif %}
+
+        {% if session.get('rol') == 'admin' and masivo.estado == 'pendiente' %}
+        <div style="display:flex;gap:10px;margin-top:20px;">
+            <form method="POST" action="/mensajes/masivos/{{ masivo.id }}/aprobar" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Aprobar y enviar</button>
+            </form>
+            <button onclick="abrirRechazo({{ masivo.id }})" class="btn btn-secondary"
+                    style="color:#DC2626;border-color:#DC2626;">
+                <i class="bi bi-x-lg"></i> Rechazar
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal rechazar -->
+<div id="modal-rechazo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+        <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:700;">Rechazar mensaje masivo</h3>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Indica el motivo del rechazo (obligatorio):</p>
+        <textarea id="motivo-rechazo" class="form-control" rows="3"></textarea>
+        <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+            <button onclick="cerrarModalRechazo()" class="btn btn-secondary">Cancelar</button>
+            <button onclick="confirmarRechazo()" class="btn btn-primary" style="background:#DC2626;border-color:#DC2626;">
+                <i class="bi bi-x-lg"></i> Confirmar rechazo
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const CSRF_T_MASIVOS = '{{ csrf_token() }}';
+let _rechazarMasivoId = {{ masivo.id }};
+
+function abrirRechazo(id) {
+    _rechazarMasivoId = id;
+    document.getElementById('motivo-rechazo').value = '';
+    document.getElementById('modal-rechazo').style.display = 'flex';
+}
+
+function cerrarModalRechazo() {
+    document.getElementById('modal-rechazo').style.display = 'none';
+}
+
+async function confirmarRechazo() {
+    const motivo = document.getElementById('motivo-rechazo').value.trim();
+    if (!motivo) {
+        alert('El motivo de rechazo es obligatorio.');
+        return;
+    }
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF_T_MASIVOS);
+    fd.append('motivo', motivo);
+    const r = await fetch(`/mensajes/masivos/${_rechazarMasivoId}/rechazar`, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.ok) {
+        location.reload();
+    } else {
+        alert(data.error || 'Error al rechazar');
+    }
+}
+</script>
+{% endblock %}

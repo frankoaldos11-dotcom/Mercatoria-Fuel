@@ -439,6 +439,37 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── mensajes_masivos ─────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS mensajes_masivos (
+        id                             INTEGER PRIMARY KEY AUTOINCREMENT,
+        asunto                         TEXT NOT NULL,
+        cuerpo                         TEXT NOT NULL,
+        modo_destinatario              TEXT NOT NULL,
+        filtro_estado                  TEXT,
+        incluir_inapp                  INTEGER NOT NULL DEFAULT 0,
+        estado                         TEXT NOT NULL DEFAULT 'pendiente',
+        autor_id                       INTEGER NOT NULL REFERENCES usuarios(id),
+        aprobado_por                   INTEGER REFERENCES usuarios(id),
+        motivo_rechazo                 TEXT,
+        total_destinatarios            INTEGER NOT NULL DEFAULT 0,
+        total_enviados                 INTEGER NOT NULL DEFAULT 0,
+        total_excluidos_no_verificado  INTEGER NOT NULL DEFAULT 0,
+        total_fallidos                 INTEGER NOT NULL DEFAULT 0,
+        enviado_at                     TEXT,
+        created_at                     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at                     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS mensajes_masivos_destinatarios (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        masivo_id  INTEGER NOT NULL REFERENCES mensajes_masivos(id),
+        usuario_id INTEGER NOT NULL REFERENCES usuarios(id)
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = ?", ("admin@mercatoria.com",))
     if not cur.fetchone():

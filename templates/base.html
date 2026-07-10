@@ -171,6 +171,13 @@
             </a>
             {% endif %}
 
+            {% if _rol in ['admin', 'puesto_de_mando'] %}
+            <a href="/mensajes/masivos" class="nav-item {{ 'nav-item-active' if request.path.startswith('/mensajes') else '' }}">
+                <i class="bi bi-megaphone"></i>
+                <span>Mensajes</span>
+            </a>
+            {% endif %}
+
             <hr class="nav-divider">
 
             <a href="/logout" class="nav-item logout">
