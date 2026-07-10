@@ -2,6 +2,69 @@
 
 ---
 
+## Commit C3 verificado
+`e272a9e` — Refactor: centralizar calculo de stock y saldo Fincimex en helpers
+
+### Páginas probadas (C3)
+
+| # | URL | Stock visible | Resultado |
+|---|-----|---------------|-----------|
+| 1 | /depositos/ | 11,900.00 L (Refineria Nico Lopez) | ✅ |
+| 2 | /gasolineras/ | Berroa 13,985 L / La Shell 43,844 L | ✅ |
+| 3 | /transferencias/ | Página carga correctamente | ✅ |
+
+### Errores C3
+Ninguno. 0 errores de consola.
+
+### Cambios aplicados (C3)
+
+| Archivo | Cambio |
+|---------|--------|
+| utils/stock.py | NUEVO — `stock_deposito()` y `stock_gasolinera()` centralizados |
+| blueprints/depositos.py | Local `_stock_deposito` removida → `from utils.stock import stock_deposito` |
+| blueprints/recepciones.py | Local `_stock_deposito` removida → importada |
+| blueprints/transferencias.py | Local `_stock_deposito` removida → importada |
+| blueprints/gasolineras.py | Local `_stock_gasolinera` removida → `from utils.stock import stock_gasolinera` |
+| blueprints/tarjetas.py | Dead `_stock_gasolinera` removida (definida pero nunca llamada) |
+
+**Nota:** La copia en `depositos.py` usaba `row = cur.fetchone()` en línea separada; el SQL y resultado eran numéricamente idénticos al resto. El helper centralizado usa la forma inline. Resultado en producción: idéntico al centavo.
+
+**Nota git:** Ref master quedó con SHA nulo tras error de cwd en shell. Reparado con `git cat-file` (verificación SHA) + Python file write. `git fsck --no-dangling` confirmó integridad completa. Push exitoso `733c146..e272a9e`.
+
+---
+
+## Commit C2 verificado
+`733c146` — Limpieza: consolidar referencias a roles legacy en guards
+
+**DB pre-commit:** SELECT confirmó 0 cuentas activas con rol pm o supervisor.
+
+### Páginas probadas (C2)
+
+| # | URL | Resultado | Notas |
+|---|-----|-----------|-------|
+| 1 | /reportes/ (admin) | ✅ | _ROLES_REPORTE actualizado a [admin, puesto_de_mando] |
+| 2 | /transferencias/ (admin) | ✅ | _ROLES_TRANSFERENCIAS actualizado |
+| 3 | /tl38/ (admin) | ✅ | Mensaje de error actualizado a puesto_de_mando |
+| 4 | /tienda/admin (admin) | ✅ | _ROLES_STAFF y guards inline actualizados |
+
+### Errores C2
+Ninguno. 0 errores de consola.
+
+### Cambios aplicados (C2)
+
+| Archivo | Cambio |
+|---------|--------|
+| utils/constants.py | ROLES_ADMIN_PM, ROLES_OPERARIO_GAS, ROLES_OPERARIO_DEP: pm/supervisor removidos |
+| blueprints/reportes.py | _ROLES_REPORTE: ["admin","puesto_de_mando"] |
+| blueprints/tienda.py | _ROLES_STAFF + 2 inline guards: pm/supervisor → puesto_de_mando |
+| blueprints/tarjetas.py | _ROLES_EDITAR_TARJETA: "pm" removido |
+| blueprints/transferencias.py | _ROLES_TRANSFERENCIAS: "pm" removido |
+| blueprints/tl38.py | Mensaje de error: pm → puesto_de_mando |
+| blueprints/dashboard.py | Sin cambio — rama supervisor dejada como dead no-op |
+| blueprints/usuarios.py | Sin cambio — _ROLES_VALIDOS conserva pm/supervisor intencionalmente |
+
+---
+
 ## Commit C1 verificado
 `b1abea6` — Seguridad: guard requiere_staff en barrido de rutas sin proteger
 
@@ -32,7 +95,7 @@ Ninguno. 0 errores de consola, 0 warnings.
 
 ---
 
-## Commit verificado
+## Commit anterior verificado
 `e7064f7` — Usuarios: rediseno estilo Truck (form embebido, chips por rol, acciones inline, buscador) preservando seguridad
 
 ## Páginas probadas
@@ -97,6 +160,6 @@ Ninguna post-commit. El rediseño funcionó correctamente en primer despliegue.
 
 ## Recomendaciones
 
-1. **Crear un usuario de prueba con rol cliente** y verificar el flujo completo de creación desde el form embebido (no se probó submit real para no crear datos basura en producción).
-2. **El buscador filtra solo por email** — considerar ampliar a nombre en una iteración futura si el equipo lo solicita.
+1. **Crear un usuario de prueba con rol cliente** y verificar el flujo completo de creación desde el form embebido.
+2. **El buscador filtra solo por email** — considerar ampliar a nombre en una iteración futura.
 3. Los screenshots de sesiones anteriores (`sprint8_*.png`, `fincimex_*.png`) quedaron sin trackear en git — considerar limpiarlos o añadirlos a `.gitignore`.
