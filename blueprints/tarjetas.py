@@ -58,16 +58,6 @@ def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=
         current_app.logger.exception("Error registrando auditoría")
 
 
-def _stock_gasolinera(cur, gasolinera_id):
-    cur.execute("""
-        SELECT COALESCE(SUM(CASE WHEN tipo = 'transferencia_entrada' THEN litros
-                                  WHEN tipo = 'despacho' THEN -litros
-                                  ELSE 0 END), 0) AS stock
-        FROM movimientos
-        WHERE gasolinera_id = ?
-          AND tipo IN ('transferencia_entrada', 'despacho')
-    """, (gasolinera_id,))
-    return float(cur.fetchone()["stock"] or 0)
 
 
 # ── Listado ───────────────────────────────────────────────────────────────────

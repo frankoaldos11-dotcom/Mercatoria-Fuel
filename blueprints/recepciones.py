@@ -2,6 +2,7 @@ rom flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM
 from utils.auth import requiere_login, requiere_staff
+from utils.stock import stock_deposito
 
 recepciones_bp = Blueprint("recepciones", __name__, url_prefix="/recepciones")
 
@@ -10,16 +11,6 @@ def _requiere_admin_pm():
     return session.get("rol") not in ROLES_ADMIN_PM
 
 
-def _stock_deposito(cur, deposito_id):
-    cur.execute("""
-        SELECT COALESCE(SUM(
-            CASE WHEN tipo = 'transferencia_salida' THEN -litros ELSE litros END
-        ), 0) AS stock
-        FROM movimientos
-        WHERE deposito_id = ?
-        AND tipo IN ('recepcion', 'transferencia_salida', 'transferencia_anulacion')
-    """, (deposito_id,))
-    return float(cur.fetchone()["stock"] or 0)
 
 
 @recepciones_bp.route("/")
@@ -239,7 +230,7 @@ def anular(id):
 
     # Si estaba confirmada, verificar que el stock del depósito no quede negativo
     if recepcion["estado"] == "confirmada":
-        stock_actual = _stock_deposito(cur, recepcion["deposito_id"])
+        stock_actual = stock_deposito(cur, recepcion["deposito_id"])
         stock_tras_anulacion = stock_actual - recepcion["litros_recibidos"]
         if stock_tras_anulacion < -0.001:  # tolerancia de 0.001 L por decimales flotantes
             conn.close()

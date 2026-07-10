@@ -2,6 +2,7 @@ rom flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS
 from utils.auth import requiere_login, requiere_staff
+from utils.stock import stock_deposito
 
 transferencias_bp = Blueprint("transferencias", __name__, url_prefix="/transferencias")
 
@@ -13,16 +14,6 @@ def _requiere_admin_pm():
     return session.get("rol") not in _ROLES_TRANSFERENCIAS
 
 
-def _stock_deposito(cur, deposito_id):
-    cur.execute("""
-        SELECT COALESCE(SUM(
-            CASE WHEN tipo = 'transferencia_salida' THEN -litros ELSE litros END
-        ), 0) AS stock
-        FROM movimientos
-        WHERE deposito_id = ?
-        AND tipo IN ('recepcion', 'transferencia_salida', 'transferencia_anulacion')
-    """, (deposito_id,))
-    return float(cur.fetchone()["stock"] or 0)
 
 
 @transferencias_bp.route("/")
@@ -161,7 +152,7 @@ def crear():
             # Verificar stock suficiente
             conn = conectar()
             cur = conn.cursor()
-            stock = _stock_deposito(cur, int(deposito_id))
+            stock = stock_deposito(cur, int(deposito_id))
             if litros > stock + 0.001:
                 error = (
                     f"Stock insuficiente. El depósito tiene {stock:,.2f} L "

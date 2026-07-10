@@ -5,6 +5,7 @@ from utils.constants import (
     TIPOS_SUBINVENTARIO, TIPOS_SUBINVENTARIO_LABELS,
 )
 from utils.auth import requiere_login, requiere_staff
+from utils.stock import stock_gasolinera
 
 gasolineras_bp = Blueprint("gasolineras", __name__, url_prefix="/gasolineras")
 
@@ -35,16 +36,6 @@ def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=
         current_app.logger.exception("Error registrando auditoría")
 
 
-def _stock_gasolinera(cur, gasolinera_id):
-    cur.execute("""
-        SELECT COALESCE(SUM(CASE WHEN tipo = 'transferencia_entrada' THEN litros
-                                  WHEN tipo = 'despacho' THEN -litros
-                                  ELSE 0 END), 0) AS stock
-        FROM movimientos
-        WHERE gasolinera_id = ?
-          AND tipo IN ('transferencia_entrada', 'despacho')
-    """, (gasolinera_id,))
-    return float(cur.fetchone()["stock"] or 0)
 
 
 def _combustibles_list(raw):
@@ -497,7 +488,7 @@ def subinventario_crear(id):
             if not error:
                 conn = conectar()
                 cur = conn.cursor()
-                stock_actual = _stock_gasolinera(cur, id)
+                stock_actual = stock_gasolinera(cur, id)
                 cur.execute("""
                     SELECT COALESCE(SUM(litros_reservados), 0) AS total
                     FROM subinventarios WHERE gasolinera_id = ? AND activo = 1
@@ -584,7 +575,7 @@ def subinventario_editar(id, sub_id):
             if not error:
                 conn = conectar()
                 cur = conn.cursor()
-                stock_actual = _stock_gasolinera(cur, id)
+                stock_actual = stock_gasolinera(cur, id)
                 cur.execute("""
                     SELECT COALESCE(SUM(litros_reservados), 0) AS total
                     FROM subinventarios WHERE gasolinera_id = ? AND activo = 1 AND id != ?

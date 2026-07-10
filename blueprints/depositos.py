@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM
 from utils.auth import requiere_login, requiere_staff
+from utils.stock import stock_deposito
 
 depositos_bp = Blueprint("depositos", __name__, url_prefix="/depositos")
 
@@ -32,18 +33,6 @@ def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=
         current_app.logger.exception("Error registrando auditoría")
 
 
-def _stock_deposito(cur, deposito_id):
-    """Stock = entradas (recepcion + anulacion reversal) - salidas (transferencia_salida)."""
-    cur.execute("""
-        SELECT COALESCE(SUM(
-            CASE WHEN tipo = 'transferencia_salida' THEN -litros ELSE litros END
-        ), 0) AS stock
-        FROM movimientos
-        WHERE deposito_id = ?
-        AND tipo IN ('recepcion', 'transferencia_salida', 'transferencia_anulacion')
-    """, (deposito_id,))
-    row = cur.fetchone()
-    return float(row["stock"] or 0)
 
 
 @depositos_bp.route("/")
@@ -121,7 +110,7 @@ def detalle(id):
         conn.close()
         return redirect("/depositos")
 
-    stock_actual = _stock_deposito(cur, id)
+    stock_actual = stock_deposito(cur, id)
 
     # Historial de recepciones
     cur.execute("""
