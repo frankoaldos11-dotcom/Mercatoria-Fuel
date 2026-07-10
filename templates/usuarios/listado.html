@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block titulo %}Usuarios — Mercatoria Fuel{% endblock %}
+
 {% block contenido %}
 
 <div class="page-header">
@@ -11,76 +12,247 @@
         <a href="/usuarios/cambiar-password" class="btn btn-secondary">
             <i class="bi bi-key"></i> Mi contraseña
         </a>
-        <a href="/usuarios/crear" class="btn btn-primary">
+        <button onclick="toggleFormNuevo()" class="btn btn-primary" id="btn-nuevo">
             <i class="bi bi-person-plus"></i> Nuevo usuario
-        </a>
+        </button>
     </div>
 </div>
 
-<div class="panel">
+{% if request.args.get('ok') %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-check-circle"></i> Cambios guardados correctamente.
+</div>
+{% endif %}
+
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error') | replace('+', ' ') }}
+</div>
+{% endif %}
+
+<!-- ── Form embebido (colapsable) ─────────────────────────────────────────── -->
+<div id="form-nuevo" class="panel" style="display:none;margin-bottom:24px;border-top:3px solid var(--primary);">
+    <div class="panel-header" style="background:#EFF6FF;">
+        <div>
+            <h2 style="color:var(--primary);margin:0;"><i class="bi bi-person-plus"></i> Nuevo usuario</h2>
+            <p style="margin:2px 0 0;font-size:13px;color:var(--muted);">Completa los campos y haz clic en "Crear usuario".</p>
+        </div>
+        <button onclick="toggleFormNuevo()" class="btn btn-sm btn-secondary">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <form method="POST" action="/usuarios/crear">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid" style="padding:20px 24px 0;">
+
+            <div class="mb-3">
+                <label class="form-label">Nombre completo <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="nombre" class="form-control" placeholder="Nombre completo" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Email <span style="color:var(--danger)">*</span></label>
+                <input type="email" name="email" class="form-control" placeholder="usuario@ejemplo.com" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Contraseña <span style="color:var(--danger)">*</span></label>
+                <input type="password" name="password" class="form-control" placeholder="Mín. 8 caracteres" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Confirmar contraseña <span style="color:var(--danger)">*</span></label>
+                <input type="password" name="confirm_password" class="form-control" placeholder="Repetir contraseña" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Rol <span style="color:var(--danger)">*</span></label>
+                <select name="rol" id="nuevo-rol" class="form-select" required onchange="toggleNuevoRol(this.value)">
+                    <option value="">— Selecciona un rol —</option>
+                    {% for r_val, r_label in roles %}
+                    <option value="{{ r_val }}">{{ r_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3" id="nuevo-bloque-cliente" style="display:none;">
+                <label class="form-label">Cliente vinculado <span style="color:var(--danger)">*</span></label>
+                <select name="cliente_id" class="form-select">
+                    <option value="">Seleccionar cliente...</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}">{{ c.nombre }} ({{ c.codigo }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3" id="nuevo-bloque-gasolinera" style="display:none;">
+                <label class="form-label">Gasolinera asignada <span style="color:var(--danger)">*</span></label>
+                <select name="gasolinera_id" class="form-select">
+                    <option value="">Seleccionar gasolinera...</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}">{{ g.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
+                <input type="checkbox" name="activo" value="1" id="nuevo-activo"
+                       style="width:18px;height:18px;cursor:pointer;" checked>
+                <label for="nuevo-activo" style="cursor:pointer;font-weight:600;font-size:14px;">Activo desde el inicio</label>
+            </div>
+
+        </div>
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Crear usuario
+            </button>
+            <button type="button" onclick="toggleFormNuevo()" class="btn btn-secondary">Cancelar</button>
+        </div>
+    </form>
+</div>
+
+<!-- ── Toolbar: chips de rol + buscador ─────────────────────────────────────── -->
+<div class="panel" style="padding:14px 20px;border-radius:18px 18px 0 0;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="chips-rol">
+            <button class="u-chip active" data-rol="todos" onclick="filtrarRol('todos',this)">
+                Todos <span class="u-chip-count" id="count-todos">0</span>
+            </button>
+            <button class="u-chip" data-rol="admin" onclick="filtrarRol('admin',this)">
+                Admin <span class="u-chip-count" id="count-admin">0</span>
+            </button>
+            <button class="u-chip" data-rol="puesto_de_mando" onclick="filtrarRol('puesto_de_mando',this)">
+                Puesto de Mando <span class="u-chip-count" id="count-puesto_de_mando">0</span>
+            </button>
+            <button class="u-chip" data-rol="operador_gasolinera" onclick="filtrarRol('operador_gasolinera',this)">
+                Operador Gas. <span class="u-chip-count" id="count-operador_gasolinera">0</span>
+            </button>
+            <button class="u-chip" data-rol="cliente" onclick="filtrarRol('cliente',this)">
+                Cliente <span class="u-chip-count" id="count-cliente">0</span>
+            </button>
+        </div>
+        <div style="flex:1;min-width:180px;max-width:260px;margin-left:auto;">
+            <input type="text" id="busqueda-email" class="form-control"
+                   placeholder="Buscar por email..." oninput="filtrarBusqueda()"
+                   style="font-size:13px;padding:6px 12px;">
+        </div>
+    </div>
+</div>
+
+<!-- ── Tabla ──────────────────────────────────────────────────────────────── -->
+<div class="panel" style="border-radius:0 0 18px 18px;padding-top:0;">
     <div class="table-wrapper">
-        <table class="data-table">
+        <table class="data-table" id="tabla-usuarios">
             <thead>
                 <tr>
-                    <th></th>
-                    <th>Nombre</th>
-                    <th>Email</th>
+                    <th>Nombre / Email</th>
                     <th>Rol</th>
-                    <th>Cliente vinculado</th>
+                    <th>Vinculado a</th>
                     <th>Estado</th>
                     <th>Creado</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for u in lista %}
-                <tr>
+
+                <!-- Fila principal -->
+                <tr class="fila-usuario"
+                    data-rol="{{ u.rol }}"
+                    data-email="{{ u.email | lower }}"
+                    data-uid="{{ u.id }}">
+
+                    <!-- Nombre + email -->
                     <td>
-                        <div style="display:flex;gap:6px;">
-                            <a href="/usuarios/{{ u.id }}/editar" class="btn btn-sm btn-secondary">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            {% if not u.activo and u.rol == 'cliente' %}
-                            <form method="POST" action="/usuarios/{{ u.id }}/aprobar" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-primary" title="Aprobar cuenta">
-                                    <i class="bi bi-check-circle"></i> Aprobar
-                                </button>
-                            </form>
+                        <strong>{{ u.nombre }}</strong><br>
+                        <span style="font-size:12px;color:var(--muted);">{{ u.email }}</span>
+                    </td>
+
+                    <!-- Rol: badge + formulario inline -->
+                    <td style="min-width:200px;">
+                        <!-- Vista badge -->
+                        <div id="rol-badge-{{ u.id }}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            {% if u.rol == 'admin' %}
+                            <span class="badge" style="background:#fee2e2;color:#991b1b;">Admin</span>
+                            {% elif u.rol == 'pm' %}
+                            <span class="badge badge-neutral">PM <small style="opacity:.6">(legacy)</small></span>
+                            {% elif u.rol == 'puesto_de_mando' %}
+                            <span class="badge" style="background:#dcfce7;color:#166534;">Puesto de Mando</span>
+                            {% elif u.rol == 'operador_gasolinera' %}
+                            <span class="badge" style="background:#e0f2fe;color:#0c4a6e;">Operador Gas.</span>
+                            {% elif u.rol == 'supervisor' %}
+                            <span class="badge badge-neutral">Supervisor <small style="opacity:.6">(legacy)</small></span>
+                            {% elif u.rol == 'cliente' %}
+                            <span class="badge" style="background:#ffedd5;color:#9a3412;">Cliente</span>
                             {% else %}
-                            <form method="POST" action="/usuarios/{{ u.id }}/toggle" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm {{ 'btn-secondary' if u.activo else 'btn-success' }}"
-                                        title="{{ 'Desactivar' if u.activo else 'Activar' }}">
-                                    <i class="bi bi-{{ 'toggle-on' if u.activo else 'toggle-off' }}"></i>
-                                </button>
-                            </form>
+                            <span class="badge badge-neutral">{{ u.rol }}</span>
+                            {% endif %}
+                            {% if session.get('user_id') != u.id %}
+                            <button onclick="editarRol({{ u.id }})"
+                                    class="btn btn-soft btn-sm"
+                                    style="padding:2px 8px;font-size:11px;"
+                                    title="Cambiar rol">
+                                <i class="bi bi-pencil"></i>
+                            </button>
                             {% endif %}
                         </div>
+                        <!-- Formulario inline cambiar rol -->
+                        <div id="rol-form-{{ u.id }}" style="display:none;">
+                            <form method="POST" action="/usuarios/{{ u.id }}/cambiar-rol">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <select name="rol" id="sel-rol-{{ u.id }}" class="form-select"
+                                        style="font-size:13px;margin-bottom:4px;"
+                                        onchange="actualizarCamposRol({{ u.id }}, this.value)">
+                                    {% for r_val, r_label in roles %}
+                                    <option value="{{ r_val }}" {{ 'selected' if u.rol == r_val }}>{{ r_label }}</option>
+                                    {% endfor %}
+                                    {% if u.rol == 'pm' %}
+                                    <option value="pm" selected>PM (legacy)</option>
+                                    {% elif u.rol == 'supervisor' %}
+                                    <option value="supervisor" selected>Supervisor (legacy)</option>
+                                    {% endif %}
+                                </select>
+                                <div id="bloque-cliente-{{ u.id }}" style="display:none;margin-bottom:4px;">
+                                    <select name="cliente_id" class="form-select" style="font-size:13px;">
+                                        <option value="">Seleccionar cliente...</option>
+                                        {% for c in clientes %}
+                                        <option value="{{ c.id }}" {{ 'selected' if u.cliente_id == c.id }}>
+                                            {{ c.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div id="bloque-gasolinera-{{ u.id }}" style="display:none;margin-bottom:4px;">
+                                    <select name="gasolinera_id" class="form-select" style="font-size:13px;">
+                                        <option value="">Seleccionar gasolinera...</option>
+                                        {% for g in gasolineras %}
+                                        <option value="{{ g.id }}" {{ 'selected' if u.gasolinera_id == g.id }}>
+                                            {{ g.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div style="display:flex;gap:4px;">
+                                    <button type="submit" class="btn btn-sm btn-primary" title="Guardar rol">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                    <button type="button" onclick="cancelarRol({{ u.id }})"
+                                            class="btn btn-sm btn-secondary" title="Cancelar">✕</button>
+                                </div>
+                            </form>
+                        </div>
                     </td>
-                    <td><strong>{{ u.nombre }}</strong></td>
-                    <td style="font-size:13px;color:var(--muted);">{{ u.email }}</td>
-                    <td>
-                        {% if u.rol == 'admin' %}
-                        <span class="badge" style="background:#fee2e2;color:#991b1b;">Admin</span>
-                        {% elif u.rol == 'pm' %}
-                        <span class="badge" style="background:#dbeafe;color:#1e40af;">PM</span>
-                        {% elif u.rol == 'puesto_de_mando' %}
-                        <span class="badge" style="background:#dcfce7;color:#166534;">Puesto de Mando</span>
-                        {% elif u.rol == 'operador_gasolinera' %}
-                        <span class="badge" style="background:#e0f2fe;color:#0c4a6e;">Operador Gasolinera</span>
-                        {% elif u.rol == 'supervisor' %}
-                        <span class="badge badge-neutral">Supervisor</span>
-                        {% elif u.rol == 'cliente' %}
-                        <span class="badge" style="background:#ffedd5;color:#9a3412;">Cliente</span>
-                        {% else %}
-                        <span class="badge badge-neutral">{{ u.rol }}</span>
-                        {% endif %}
-                    </td>
-                    <td style="font-size:13px;">
+
+                    <!-- Vinculado a (cliente o gasolinera) -->
+                    <td style="font-size:13px;color:var(--muted);">
                         {% if u.cliente_nombre %}
-                        <span style="color:var(--muted);">{{ u.cliente_nombre }}</span>
+                        <i class="bi bi-building" style="font-size:11px;margin-right:3px;"></i>{{ u.cliente_nombre }}
+                        {% elif u.gasolinera_nombre %}
+                        <i class="bi bi-fuel-pump" style="font-size:11px;margin-right:3px;"></i>{{ u.gasolinera_nombre }}
                         {% else %}—{% endif %}
                     </td>
+
+                    <!-- Estado -->
                     <td>
                         {% if u.activo %}
                         <span class="badge badge-ok">Activo</span>
@@ -90,14 +262,220 @@
                         <span class="badge badge-danger">Inactivo</span>
                         {% endif %}
                     </td>
-                    <td style="font-size:12px;color:var(--muted);">{{ (u.created_at | string)[:10] if u.created_at else '—' }}</td>
+
+                    <!-- Creado -->
+                    <td style="font-size:12px;color:var(--muted);">
+                        {{ (u.created_at | string)[:10] if u.created_at else '—' }}
+                    </td>
+
+                    <!-- Acciones -->
+                    <td>
+                        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+                            {% if not u.activo and u.rol == 'cliente' %}
+                            <form method="POST" action="/usuarios/{{ u.id }}/aprobar" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-success" title="Aprobar cuenta">
+                                    <i class="bi bi-check-circle"></i> Aprobar
+                                </button>
+                            </form>
+                            {% else %}
+                            {% if session.get('user_id') != u.id %}
+                            <form method="POST" action="/usuarios/{{ u.id }}/toggle" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit"
+                                        class="btn btn-sm {{ 'btn-secondary' if u.activo else 'btn-soft' }}"
+                                        title="{{ 'Desactivar' if u.activo else 'Activar' }}">
+                                    <i class="bi bi-{{ 'toggle-on' if u.activo else 'toggle-off' }}"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+                            <a href="/usuarios/{{ u.id }}/editar" class="btn btn-sm btn-secondary"
+                               title="Editar completo">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <button onclick="togglePwReset({{ u.id }})"
+                                    class="btn btn-sm btn-secondary"
+                                    title="Resetear contraseña">
+                                <i class="bi bi-key-fill"></i>
+                            </button>
+                        </div>
+                    </td>
                 </tr>
+
+                <!-- Sub-fila reset contraseña -->
+                <tr id="pw-row-{{ u.id }}" style="display:none;background:#F8FAFC;">
+                    <td colspan="6" style="padding:10px 16px;">
+                        <form method="POST" action="/usuarios/{{ u.id }}/reset-password"
+                              style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div>
+                                <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">
+                                    Nueva contraseña — {{ u.nombre }}
+                                </label>
+                                <input type="password" name="nueva_password" class="form-control"
+                                       style="font-size:13px;min-width:180px;"
+                                       placeholder="Mín. 8 caracteres" required>
+                            </div>
+                            <div>
+                                <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Confirmar</label>
+                                <input type="password" name="confirm_password" class="form-control"
+                                       style="font-size:13px;min-width:160px;"
+                                       placeholder="Repetir" required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-check-lg"></i> Guardar
+                            </button>
+                            <button type="button" onclick="togglePwReset({{ u.id }})"
+                                    class="btn btn-sm btn-secondary">Cancelar</button>
+                        </form>
+                    </td>
+                </tr>
+
                 {% else %}
-                <tr><td colspan="7" class="empty-state">No hay usuarios registrados.</td></tr>
+                <tr><td colspan="6" class="empty-state">No hay usuarios registrados.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<style>
+.u-chip {
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel-soft);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.u-chip:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.u-chip.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+.u-chip-count {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    margin-left: 4px;
+    background: var(--border);
+    color: var(--muted);
+}
+.u-chip.active .u-chip-count {
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+}
+</style>
+<script>
+var _filtroRol = 'todos';
+var _busqueda  = '';
+
+function filtrarRol(rol, el) {
+    document.querySelectorAll('.u-chip').forEach(function(c) { c.classList.remove('active'); });
+    el.classList.add('active');
+    _filtroRol = rol;
+    actualizarFiltro();
+}
+
+function filtrarBusqueda() {
+    _busqueda = document.getElementById('busqueda-email').value.toLowerCase().trim();
+    actualizarFiltro();
+}
+
+function actualizarFiltro() {
+    var filas = document.querySelectorAll('#tabla-usuarios tr.fila-usuario');
+    var counts = {};
+
+    filas.forEach(function(fila) {
+        var rol   = fila.dataset.rol;
+        var email = fila.dataset.email || '';
+        var uid   = fila.dataset.uid;
+
+        var matchSearch = !_busqueda || email.includes(_busqueda);
+        var matchChip   = (_filtroRol === 'todos') || (rol === _filtroRol);
+        var visible     = matchSearch && matchChip;
+
+        fila.style.display = visible ? '' : 'none';
+
+        // Ocultar sub-fila reset-pw si la fila principal se oculta
+        var pwRow = document.getElementById('pw-row-' + uid);
+        if (pwRow && !visible) { pwRow.style.display = 'none'; }
+
+        // Contar por rol (aplicando filtro de búsqueda, pero NO el de chip)
+        // para que los counts siempre reflejen el universo de búsqueda actual
+        if (matchSearch) {
+            counts[rol] = (counts[rol] || 0) + 1;
+        }
+    });
+
+    // "Todos" suma todos los roles (incluye legacy pm/supervisor)
+    var total = Object.values(counts).reduce(function(a, b) { return a + b; }, 0);
+    document.getElementById('count-todos').textContent = total;
+
+    ['admin', 'puesto_de_mando', 'operador_gasolinera', 'cliente'].forEach(function(r) {
+        var el = document.getElementById('count-' + r);
+        if (el) { el.textContent = counts[r] || 0; }
+    });
+}
+
+/* ── Cambio de rol inline ───────────────────────────────────────────────── */
+function editarRol(uid) {
+    document.getElementById('rol-badge-' + uid).style.display = 'none';
+    document.getElementById('rol-form-' + uid).style.display  = 'block';
+    actualizarCamposRol(uid, document.getElementById('sel-rol-' + uid).value);
+}
+
+function cancelarRol(uid) {
+    document.getElementById('rol-badge-' + uid).style.display = '';
+    document.getElementById('rol-form-' + uid).style.display  = 'none';
+}
+
+function actualizarCamposRol(uid, rol) {
+    document.getElementById('bloque-cliente-' + uid).style.display =
+        (rol === 'cliente') ? 'block' : 'none';
+    document.getElementById('bloque-gasolinera-' + uid).style.display =
+        (rol === 'operador_gasolinera') ? 'block' : 'none';
+}
+
+/* ── Reset contraseña ───────────────────────────────────────────────────── */
+function togglePwReset(uid) {
+    var row = document.getElementById('pw-row-' + uid);
+    var oculto = (row.style.display === 'none' || row.style.display === '');
+    row.style.display = oculto ? 'table-row' : 'none';
+}
+
+/* ── Form embebido nuevo usuario ────────────────────────────────────────── */
+function toggleFormNuevo() {
+    var panel = document.getElementById('form-nuevo');
+    var btn   = document.getElementById('btn-nuevo');
+    var abrir = (panel.style.display === 'none' || panel.style.display === '');
+    panel.style.display = abrir ? '' : 'none';
+    btn.innerHTML = abrir
+        ? '<i class="bi bi-x-lg"></i> Cerrar formulario'
+        : '<i class="bi bi-person-plus"></i> Nuevo usuario';
+}
+
+function toggleNuevoRol(rol) {
+    document.getElementById('nuevo-bloque-cliente').style.display =
+        (rol === 'cliente') ? 'block' : 'none';
+    document.getElementById('nuevo-bloque-gasolinera').style.display =
+        (rol === 'operador_gasolinera') ? 'block' : 'none';
+}
+
+/* Inicializar conteos al cargar */
+document.addEventListener('DOMContentLoaded', actualizarFiltro);
+</script>
 {% endblock %}

@@ -34,20 +34,29 @@ def listado():
     cur = conn.cursor()
     cur.execute("""
         SELECT u.id, u.nombre, u.email, u.rol, u.activo, u.created_at,
+               u.gasolinera_id,
                cu.cliente_id,
-               cl.nombre AS cliente_nombre
+               cl.nombre AS cliente_nombre,
+               g.nombre  AS gasolinera_nombre
         FROM usuarios u
         LEFT JOIN cliente_usuarios cu ON cu.usuario_id = u.id
         LEFT JOIN clientes cl ON cl.id = cu.cliente_id
+        LEFT JOIN gasolineras g ON g.id = u.gasolinera_id
         ORDER BY u.created_at DESC
     """)
     lista = cur.fetchall()
+
+    cur.execute("SELECT id, nombre, codigo FROM clientes WHERE activo = 1 ORDER BY nombre ASC")
+    clientes = cur.fetchall()
+    cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
+    gasolineras = cur.fetchall()
     conn.close()
 
-    return render_template("usuarios/listado.html", lista=lista)
+    return render_template("usuarios/listado.html", lista=lista,
+                           clientes=clientes, gasolineras=gasolineras, roles=_ROLES_LISTA)
 
 
-# ── Crear ─────────────────────────────────────────────────────────────────────
+# ── Crear ────────────────────────────────────────────────────────────────────
 
 @usuarios_bp.route("/crear", methods=["GET", "POST"])
 def crear():
@@ -152,7 +161,7 @@ def editar(uid):
     gasolineras = cur.fetchall()
     conn.close()
 
-    error = None
+    error = request.args.get("access_error", "").replace("+", " ") or None
 
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
@@ -203,7 +212,6 @@ def editar(uid):
                         activo=?, gasolinera_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
                     """, (nombre, email, rol, activo, gid, uid))
 
-                # Gestionar cliente_usuarios
                 cur.execute("DELETE FROM cliente_usuarios WHERE usuario_id = ?", (uid,))
                 if rol == "cliente" and cliente_id:
                     cur.execute("""
@@ -213,7 +221,7 @@ def editar(uid):
 
                 conn.commit()
                 conn.close()
-                return redirect(f"/usuarios/?ok=1")
+                return redirect("/usuarios/?ok=1")
 
     return render_template(
         "usuarios/editar.html",
@@ -264,6 +272,71 @@ def aprobar(uid):
     if row and row["rol"] == "cliente" and row["activo"] == 0:
         cur.execute("UPDATE usuarios SET activo=1, updated_at=CURRENT_TIMESTAMP WHERE id=?", (uid,))
         conn.commit()
+    conn.close()
+    return redirect("/usuarios/?ok=1")
+
+
+# ── Cambiar rol inline ────────────────────────────────────────────────────────
+
+@usuarios_bp.route("/<int:uid>/cambiar-rol", methods=["POST"])
+def cambiar_rol(uid):
+    redir = _solo_admin()
+    if redir:
+        return redir
+
+    if uid == session.get("user_id"):
+        return redirect("/usuarios/?access_error=No+puedes+cambiar+tu+propio+rol")
+
+    nuevo_rol = request.form.get("rol", "").strip()
+    cliente_id = request.form.get("cliente_id", "").strip() or None
+    gasolinera_id = request.form.get("gasolinera_id", "").strip() or None
+
+    if nuevo_rol not in _ROLES_VALIDOS:
+        return redirect("/usuarios/?access_error=Rol+invalido")
+
+    if nuevo_rol == "cliente" and not cliente_id:
+        return redirect(f"/usuarios/{uid}/editar?access_error=Selecciona+el+cliente+asociado+para+el+rol+cliente")
+
+    if nuevo_rol == "operador_gasolinera" and not gasolinera_id:
+        return redirect(f"/usuarios/{uid}/editar?access_error=Selecciona+la+gasolinera+asignada+para+el+operador")
+
+    conn = conectar()
+    cur = conn.cursor()
+    gid = int(gasolinera_id) if gasolinera_id else None
+    cur.execute("""
+        UPDATE usuarios SET rol=?, gasolinera_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+    """, (nuevo_rol, gid, uid))
+    cur.execute("DELETE FROM cliente_usuarios WHERE usuario_id = ?", (uid,))
+    if nuevo_rol == "cliente" and cliente_id:
+        cur.execute("INSERT INTO cliente_usuarios (cliente_id, usuario_id) VALUES (?, ?)",
+                    (int(cliente_id), uid))
+    conn.commit()
+    conn.close()
+    return redirect("/usuarios/?ok=1")
+
+
+# ── Resetear contraseña (admin) ───────────────────────────────────────────────
+
+@usuarios_bp.route("/<int:uid>/reset-password", methods=["POST"])
+def reset_password(uid):
+    redir = _solo_admin()
+    if redir:
+        return redir
+
+    nueva = request.form.get("nueva_password", "")
+    confirm = request.form.get("confirm_password", "")
+
+    if not nueva or len(nueva) < 8:
+        return redirect("/usuarios/?access_error=La+contrasena+debe+tener+al+menos+8+caracteres")
+    if nueva != confirm:
+        return redirect("/usuarios/?access_error=Las+contrasenas+no+coinciden")
+
+    conn = conectar()
+    cur = conn.cursor()
+    hash_pw = bcrypt.generate_password_hash(nueva).decode("utf-8")
+    cur.execute("UPDATE usuarios SET password_hash=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (hash_pw, uid))
+    conn.commit()
     conn.close()
     return redirect("/usuarios/?ok=1")
 
