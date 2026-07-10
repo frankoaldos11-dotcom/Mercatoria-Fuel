@@ -1,4 +1,4 @@
-rom datetime import date
+from datetime import date
 
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
