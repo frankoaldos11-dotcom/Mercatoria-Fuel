@@ -258,3 +258,24 @@ def staff_combustible_sin_distribuir(gasolinera, tipo_combustible, litros_recibi
 {_PIE}
 </body></html>"""
     notificar_staff("combustible_sin_distribuir", asunto, cuerpo)
+
+
+def verificacion_email(nombre, email, usuario_id, token, codigo):
+    """Send email verification link (primary) + fallback code to a tienda client."""
+    asunto = "Verifica tu correo — Mercatoria Fuel"
+    link = f"https://mercatoria-fuel.onrender.com/tienda/verificar-email/{token}"
+    cuerpo = f"""<html><body style="font-family:sans-serif;color:#1e293b;line-height:1.6;">
+<p>Hola <strong>{nombre}</strong>,</p>
+<p>Para poder confirmar reservas en <strong>Mercatoria Fuel</strong> necesitas verificar tu correo.</p>
+<p style="text-align:center;margin:24px 0;">
+   <a href="{link}" style="background:#E86A2C;color:#fff;padding:12px 24px;border-radius:8px;
+      text-decoration:none;font-weight:bold;">Verificar mi correo</a>
+</p>
+<p>Si el botón no funciona, copia este enlace en tu navegador:<br>
+   <a href="{link}">{link}</a></p>
+<p>¿No puedes usar el enlace? Ingresa este código dentro de la app:
+   <strong style="font-size:1.3em;letter-spacing:2px;">{codigo}</strong></p>
+<p style="color:#64748b;font-size:13px;">Este enlace y código vencen en 24 horas.</p>
+{_PIE}
+</body></html>"""
+    return enviar_email(email, asunto, cuerpo, tipo="verificacion_email", usuario_id=usuario_id)

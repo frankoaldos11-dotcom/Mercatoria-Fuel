@@ -7,6 +7,13 @@
     <p>Selecciona gasolinera, tipo y cantidad de combustible.</p>
 </div>
 
+{% if request.args.get('verificado') %}
+<div class="alert-success">
+    <i class="bi bi-check-circle"></i>
+    Correo verificado correctamente. Ya puedes confirmar tu reserva.
+</div>
+{% endif %}
+
 {% if not mis_vehiculos %}
 <div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:15px;">
     <i class="bi bi-exclamation-triangle-fill"></i>
@@ -21,6 +28,26 @@
 
 {% if error %}
 <div class="alert-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+{% endif %}
+
+{% if email_no_verificado %}
+<div id="aviso-verificacion" style="background:#FEF2F2;border-left:4px solid #DC2626;color:#7F1D1D;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:15px;">
+    <i class="bi bi-envelope-exclamation-fill"></i>
+    <strong>Debes verificar tu correo electrónico antes de confirmar una reserva.</strong><br>
+    Revisa tu bandeja de entrada y haz clic en el enlace que te enviamos. Si no lo encuentras,
+    puedes reenviarlo o ingresar el código de 6 dígitos aquí abajo.
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;">
+        <button type="button" class="btn-sec" onclick="reenviarVerificacion()" id="btn-reenviar-verif">
+            <i class="bi bi-envelope"></i> Reenviar correo de verificación
+        </button>
+        <input type="text" id="inp-codigo-verif" maxlength="6" placeholder="Código de 6 dígitos"
+               class="form-control" style="max-width:180px;display:inline-block;">
+        <button type="button" class="btn-orange" onclick="verificarCodigo()" id="btn-verificar-codigo">
+            <i class="bi bi-check-lg"></i> Verificar código
+        </button>
+    </div>
+    <div id="msg-verificacion" style="margin-top:10px;font-size:13px;"></div>
+</div>
 {% endif %}
 
 <div class="panel">
@@ -151,5 +178,55 @@
 
     filtrarOpts();
 })();
+
+const CSRF_T_VERIF = '{{ csrf_token() }}';
+
+async function reenviarVerificacion() {
+    const btn = document.getElementById('btn-reenviar-verif');
+    const msg = document.getElementById('msg-verificacion');
+    btn.disabled = true;
+    msg.textContent = 'Enviando...';
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF_T_VERIF);
+    try {
+        const r = await fetch('/tienda/verificar-email/reenviar', { method: 'POST', body: fd });
+        const data = await r.json();
+        msg.textContent = data.ok
+            ? 'Correo reenviado. Revisa tu bandeja de entrada.'
+            : 'No se pudo reenviar el correo. Intenta de nuevo en unos minutos.';
+    } catch (e) {
+        msg.textContent = 'Error de conexión al reenviar el correo.';
+    }
+    btn.disabled = false;
+}
+
+async function verificarCodigo() {
+    const input = document.getElementById('inp-codigo-verif');
+    const msg = document.getElementById('msg-verificacion');
+    const codigo = input.value.trim();
+    if (!codigo) {
+        msg.textContent = 'Ingresa el código que recibiste por correo.';
+        return;
+    }
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF_T_VERIF);
+    fd.append('codigo', codigo);
+    try {
+        const r = await fetch('/tienda/verificar-email/codigo', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (data.ok) {
+            const aviso = document.getElementById('aviso-verificacion');
+            aviso.innerHTML = '<i class="bi bi-check-circle"></i> ' +
+                '<strong>Correo verificado.</strong> Ya puedes confirmar tu reserva.';
+            aviso.style.background = '#F0FDF4';
+            aviso.style.borderLeftColor = '#16A34A';
+            aviso.style.color = '#14532D';
+        } else {
+            msg.textContent = data.error || 'Código inválido o vencido.';
+        }
+    } catch (e) {
+        msg.textContent = 'Error de conexión al verificar el código.';
+    }
+}
 </script>
 {% endblock %}

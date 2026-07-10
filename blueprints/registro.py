@@ -1,9 +1,12 @@
+import logging
 import re
 
 from utils.mailer import bienvenida
 from flask import Blueprint, render_template, request, redirect
 from database import conectar
 from extensions import bcrypt
+
+logger = logging.getLogger(__name__)
 
 registro_bp = Blueprint("registro", __name__, url_prefix="/registro")
 
@@ -50,6 +53,12 @@ def index():
                 conn.commit()
                 conn.close()
                 bienvenida(nombre_completo, email, nuevo_id)
+                try:
+                    from blueprints.tienda import enviar_verificacion
+                    enviar_verificacion(nuevo_id, nombre_completo, email)
+                except Exception:
+                    logger.error("Error enviando verificación inicial de correo para usuario #%s",
+                                 nuevo_id, exc_info=True)
                 return redirect("/registro/ok")
 
     return render_template("registro.html", error=error, form=form)

@@ -450,6 +450,10 @@ def ejecutar_migraciones_pg(bcrypt):
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gasolinera_id INTEGER REFERENCES gasolineras(id)")
     cur.execute("ALTER TABLE transferencias ADD COLUMN IF NOT EXISTS litros_distribuidos NUMERIC(14,2) DEFAULT 0")
     cur.execute("ALTER TABLE tarjetas ADD COLUMN IF NOT EXISTS saldo_usd NUMERIC(14,2) NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email_verificado INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS verificacion_token_hash TEXT")
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS verificacion_codigo_hash TEXT")
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS verificacion_expira TIMESTAMP")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS movimientos_saldo_fincimex (

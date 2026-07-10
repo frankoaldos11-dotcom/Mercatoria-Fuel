@@ -1,11 +1,16 @@
 import logging
 import uuid
 import base64
+import hashlib
 import io
+import secrets
+from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request, redirect, session, jsonify
 from database import conectar
 from utils import mailer
+
+_VERIFICACION_VIGENCIA = timedelta(hours=24)
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +106,7 @@ def reservar():
     compra_minima = float(row_min["valor"]) if row_min else 0.0
 
     error = None
+    email_no_verificado = False
 
     if request.method == "POST":
         gid = request.form.get("gasolinera_id", "").strip()
@@ -153,6 +159,12 @@ def reservar():
                 error = "Esa combinación de gasolinera y combustible no está disponible."
 
         if not error:
+            cur.execute("SELECT email_verificado FROM usuarios WHERE id=?", (session["user_id"],))
+            urow = cur.fetchone()
+            if not urow or not urow["email_verificado"]:
+                email_no_verificado = True
+
+        if not error and not email_no_verificado:
             precio_unitario = float(precio_row["precio_usd_por_litro"])
             precio_total = round(litros * precio_unitario, 2)
             cur.execute("""
@@ -188,6 +200,7 @@ def reservar():
                            mis_vehiculos=mis_vehiculos_activos,
                            combustible_labels=_COMBUSTIBLE_LABELS,
                            compra_minima=compra_minima,
+                           email_no_verificado=email_no_verificado,
                            gid_pre=request.args.get("gasolinera_id", ""),
                            tc_pre=request.args.get("tipo", ""),
                            error=error,
@@ -567,3 +580,115 @@ def _generar_qr_b64(token):
         return base64.b64encode(buf.getvalue()).decode("utf-8")
     except Exception:
         return None
+
+
+# ── Verificación de correo ──────────────────────────────────────────────────────
+
+def _hash_valor(valor):
+    return hashlib.sha256(valor.encode("utf-8")).hexdigest()
+
+
+def _generar_verificacion():
+    token = secrets.token_urlsafe(32)
+    codigo = f"{secrets.randbelow(1000000):06d}"
+    expira = datetime.utcnow() + _VERIFICACION_VIGENCIA
+    return token, codigo, _hash_valor(token), _hash_valor(codigo), expira
+
+
+def enviar_verificacion(usuario_id, nombre, email):
+    """Genera un token+código nuevos, los persiste y envía el correo.
+
+    Reutilizado por el registro y por el reenvío. Nunca lanza excepción.
+    """
+    token, codigo, token_hash, codigo_hash, expira = _generar_verificacion()
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE usuarios
+            SET verificacion_token_hash=?, verificacion_codigo_hash=?,
+                verificacion_expira=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+        """, (token_hash, codigo_hash, expira, usuario_id))
+        conn.commit()
+        conn.close()
+    except Exception:
+        logger.error("Error guardando token de verificación para usuario #%s",
+                     usuario_id, exc_info=True)
+        return False
+
+    return mailer.verificacion_email(nombre, email, usuario_id, token, codigo)
+
+
+@tienda_bp.route("/verificar-email/<token>")
+def verificar_email_token(token):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, email FROM usuarios
+        WHERE verificacion_token_hash = ? AND verificacion_expira > ?
+    """, (_hash_valor(token), datetime.utcnow()))
+    usuario = cur.fetchone()
+
+    if not usuario:
+        conn.close()
+        return redirect("/login?verif_error=1")
+
+    cur.execute("""
+        UPDATE usuarios
+        SET email_verificado=1, verificacion_token_hash=NULL,
+            verificacion_codigo_hash=NULL, verificacion_expira=NULL,
+            updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+    """, (usuario["id"],))
+    conn.commit()
+    conn.close()
+
+    if session.get("user_id") == usuario["id"]:
+        return redirect("/tienda/reservar?verificado=1")
+    return redirect("/login?verificado=1")
+
+
+@tienda_bp.route("/verificar-email/codigo", methods=["POST"])
+def verificar_email_codigo():
+    redir = _requiere_cliente()
+    if redir:
+        return jsonify({"error": "No autorizado"}), 401
+
+    codigo = request.form.get("codigo", "").strip()
+    if not codigo:
+        return jsonify({"ok": False, "error": "Ingresa el código."})
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id FROM usuarios
+        WHERE id=? AND verificacion_codigo_hash=? AND verificacion_expira > ?
+    """, (session["user_id"], _hash_valor(codigo), datetime.utcnow()))
+    usuario = cur.fetchone()
+
+    if not usuario:
+        conn.close()
+        return jsonify({"ok": False, "error": "Código inválido o vencido."})
+
+    cur.execute("""
+        UPDATE usuarios
+        SET email_verificado=1, verificacion_token_hash=NULL,
+            verificacion_codigo_hash=NULL, verificacion_expira=NULL,
+            updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+    """, (session["user_id"],))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True})
+
+
+@tienda_bp.route("/verificar-email/reenviar", methods=["POST"])
+def verificar_email_reenviar():
+    redir = _requiere_cliente()
+    if redir:
+        return jsonify({"error": "No autorizado"}), 401
+
+    ok = enviar_verificacion(session["user_id"], session.get("nombre", "Cliente"),
+                              session["usuario"])
+    return jsonify({"ok": bool(ok)})

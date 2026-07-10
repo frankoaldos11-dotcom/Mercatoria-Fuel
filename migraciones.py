@@ -600,6 +600,10 @@ def ejecutar_migraciones(bcrypt):
         "ALTER TABLE usuarios ADD COLUMN gasolinera_id INTEGER REFERENCES gasolineras(id)",
         "ALTER TABLE transferencias ADD COLUMN litros_distribuidos REAL DEFAULT 0",
         "ALTER TABLE tarjetas ADD COLUMN saldo_usd REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE usuarios ADD COLUMN email_verificado INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE usuarios ADD COLUMN verificacion_token_hash TEXT",
+        "ALTER TABLE usuarios ADD COLUMN verificacion_codigo_hash TEXT",
+        "ALTER TABLE usuarios ADD COLUMN verificacion_expira TEXT",
     ]:
         try:
             cur.execute(_sql)

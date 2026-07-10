@@ -300,3 +300,51 @@ Ninguna — no se encontraron bugs. Los hooks de Fase 2 funcionaron según el pl
 1. **Pendiente de Aldo**: verificar la entrega real de correo (SMTP) en producción con datos reales, incluyendo que el QR inline se vea correctamente en distintos clientes de correo (Gmail, Outlook) — Playwright no puede validar esto.
 2. Tras el `git push`, correr una verificación ligera (sin mutar datos) en `fuel.mercatoria.online` per la regla POST-COMMIT del proyecto: cargar `/tienda/admin`, `/turno/escanear`, `/transferencias`, `/conciliacion` como admin y confirmar ausencia de errores de consola/HTTP, ya que ahí sí correrá el código nuevo desplegado.
 3. Considerar en una futura fase permitir reintentos manuales de correos con `estado='fallido'` desde `/mensajes/`.
+
+---
+
+# Mensajes Fase 3 — Verificación de email obligatoria para reservar — 2026-07-10
+
+## Nota sobre el entorno de verificación
+
+Igual que en Fase 2: se verificó **antes del push**, contra una instancia local (`python app.py`, SQLite local `fuel.db` recreada desde cero por las migraciones, puerto 5052 dedicado — sin tocar producción ni datos reales). Se usó una combinación de navegador (Chrome/Playwright) para los pasos visuales clave y `curl` autenticado (con tokens CSRF extraídos de las páginas reales) para cubrir rutas adicionales rápidamente. Ambos métodos ejecutan el mismo código Flask real.
+
+## Flujos probados
+
+| # | Flujo | Método | Resultado |
+|---|-------|--------|-----------|
+| 1 | Registro de cliente nuevo → dispara `bienvenida` + `verificacion_email` | curl | ✅ |
+| 2 | Aprobación admin (`activo=1`, gate preexistente sin tocar) | curl | ✅ |
+| 3 | Cliente sin verificar navega `/tienda/`, `/tienda/mis-vehiculos/`, agrega vehículo | curl | ✅ sin bloqueo |
+| 4 | Intento de confirmar reserva sin verificar → **bloqueado**, 0 filas en `reservas_tienda`, datos del formulario preservados (litros, gasolinera, combustible, vehículo) | Navegador + curl | ✅ |
+| 5 | Aviso de bloqueo con botón "Reenviar" + input de código visibles | Navegador | ✅ (screenshot) |
+| 6 | Verificación por **código** (AJAX, sin recargar página) | Navegador | ✅ (screenshot — banner cambia a verde, formulario intacto) |
+| 7 | Confirmar la misma reserva tras verificar → **reserva #1 creada** con los mismos datos | Navegador | ✅ (screenshot) |
+| 8 | Verificación por **enlace** (segundo cliente de prueba, token real extraído del cuerpo del correo) → redirige a `/tienda/reservar?verificado=1` | curl | ✅ |
+| 9 | Token de enlace inválido/inexistente → redirige a `/login?verif_error=1` sin romper nada | curl | ✅ |
+| 10 | Reenvío de verificación (tercer cliente de prueba) → nuevo token/código generado y trazado en `mensajes`, respuesta JSON honesta (`ok:false` por SMTP no configurado en local, igual que el resto de correos en este entorno) | curl | ✅ |
+
+## Errores encontrados
+
+- **Ninguno en el código de la aplicación.** Log completo del servidor de prueba: **0 errores 500** (41× 200, 16× 302, 2× 400, 1× 404 favicon). Los dos 400 fueron errores de mi propio script de prueba (variables de shell que no persisten entre invocaciones de la herramienta Bash, causando un CSRF token vacío en la petición) — no reproducibles desde la UI real, confirmado al repetir la misma llamada correctamente.
+- La captura de pantalla vía Chrome tuvo 2 timeouts transitorios de `Page.captureScreenshot` (herramienta de automatización, no la app) — se reintentó y funcionó al segundo intento en ambos casos.
+
+## Verificación en base de datos (extremo a extremo)
+
+```
+usuario #3 (fase3qa@example.com):     email_verificado 0→1 vía código; hashes y vencimiento quedaron NULL tras verificar
+usuario #4 (fase3link@example.com):   email_verificado 0→1 vía enlace; hashes y vencimiento quedaron NULL tras verificar
+reservas_tienda #1: estado='pendiente', 600.00 L — creada solo después de verificar, no antes
+```
+
+Confirma: el hash (no el valor plano) es lo único que se guarda mientras el token/código está pendiente; ambos caminos (enlace y código) validan el mismo correo; verificar limpia los campos de verificación (no quedan reutilizables); y el bloqueo es real de backend — la reserva #1 no existía en la tabla hasta después de que `email_verificado=1`.
+
+## Correcciones aplicadas
+
+Ninguna — no se encontraron bugs en el código de Fase 3. Los hallazgos de la sección "Errores encontrados" fueron artefactos del propio script/herramienta de prueba, no del código entregado.
+
+## Recomendaciones
+
+1. **Pendiente de Aldo**: verificar en producción que el correo de verificación (enlace + código) llega correctamente y que el enlace `https://mercatoria-fuel.onrender.com/tienda/verificar-email/<token>` resuelve bien sobre HTTPS real.
+2. Igual que en Fase 2, correr una verificación ligera post-deploy en `fuel.mercatoria.online` (carga de `/tienda/reservar`, sin mutar datos reales) para confirmar que el código desplegado no tiene errores de consola/HTTP.
+3. Considerar, en una fase futura, mostrar un recordatorio no bloqueante de "correo sin verificar" en el dashboard del cliente, para que no se entere solo hasta el momento de reservar (no se implementó ahora por estar fuera del alcance pedido: el bloqueo debía ser únicamente al confirmar).
