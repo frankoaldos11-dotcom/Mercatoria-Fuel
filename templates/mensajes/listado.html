@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block titulo %}Mensajes enviados — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Sistema / Mensajes</span>
+        <h1>Registro de mensajes</h1>
+        <p>Últimos 200 intentos de envío de email.</p>
+    </div>
+</div>
+
+<div class="panel">
+    {% if not lista %}
+    <div style="padding:2rem;text-align:center;color:var(--muted);">
+        No hay mensajes registrados aún.
+    </div>
+    {% else %}
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Fecha</th>
+                <th>Destinatario</th>
+                <th>Asunto</th>
+                <th>Tipo</th>
+                <th>Estado</th>
+                <th>Error</th>
+                <th>Usuario</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for m in lista %}
+        <tr>
+            <td style="color:var(--muted);font-size:13px;">{{ m.id }}</td>
+            <td style="white-space:nowrap;font-size:13px;">{{ m.created_at | string | truncate(16, killwords=True, end='') }}</td>
+            <td style="font-size:13px;">{{ m.destinatario }}</td>
+            <td style="font-size:13px;">{{ m.asunto | truncate(50) }}</td>
+            <td><span class="badge badge-info" style="font-size:11px;">{{ m.tipo }}</span></td>
+            <td>
+                {% if m.estado == 'enviado' %}
+                <span class="badge badge-ok">✓ enviado</span>
+                {% else %}
+                <span class="badge badge-danger">✗ fallido</span>
+                {% endif %}
+            </td>
+            <td style="font-size:12px;color:var(--danger);max-width:260px;word-break:break-word;">
+                {{ m.error or '—' }}
+            </td>
+            <td style="font-size:13px;">{{ m.usuario_nombre or '—' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,4 +1,6 @@
 import re
+
+from utils.mailer import bienvenida
 from flask import Blueprint, render_template, request, redirect
 from database import conectar
 from extensions import bcrypt
@@ -44,8 +46,10 @@ def index():
                     INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
                     VALUES (?, ?, ?, 'cliente', 0)
                 """, (nombre_completo, email, hash_pw))
+                nuevo_id = cur.lastrowid
                 conn.commit()
                 conn.close()
+                bienvenida(nombre_completo, email, nuevo_id)
                 return redirect("/registro/ok")
 
     return render_template("registro.html", error=error, form=form)

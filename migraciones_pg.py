@@ -466,6 +466,22 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS mensajes (
+        id           SERIAL PRIMARY KEY,
+        destinatario TEXT NOT NULL,
+        asunto       TEXT NOT NULL,
+        cuerpo       TEXT NOT NULL,
+        tipo         TEXT NOT NULL DEFAULT 'general',
+        estado       TEXT NOT NULL DEFAULT 'enviado',
+        error        TEXT,
+        usuario_id   INTEGER REFERENCES usuarios(id),
+        cliente_id   INTEGER REFERENCES clientes(id),
+        created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     # Esquema completo garantizado antes de cualquier seed
     conn.commit()
     print("[migraciones_pg] Fase 1 (schema) completada y commitada.")

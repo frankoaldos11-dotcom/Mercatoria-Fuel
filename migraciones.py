@@ -422,6 +422,23 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+
+    # ── mensajes ─────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS mensajes (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        destinatario TEXT NOT NULL,
+        asunto       TEXT NOT NULL,
+        cuerpo       TEXT NOT NULL,
+        tipo         TEXT NOT NULL DEFAULT 'general',
+        estado       TEXT NOT NULL DEFAULT 'enviado',
+        error        TEXT,
+        usuario_id   INTEGER REFERENCES usuarios(id),
+        cliente_id   INTEGER REFERENCES clientes(id),
+        created_at   TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+
     # ── seed: admin ───────────────────────────────────────────────────────────
     cur.execute("SELECT id FROM usuarios WHERE email = ?", ("admin@mercatoria.com",))
     if not cur.fetchone():
