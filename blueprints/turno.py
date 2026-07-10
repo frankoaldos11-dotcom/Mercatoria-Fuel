@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 from datetime import date
@@ -8,6 +9,9 @@ from werkzeug.utils import secure_filename
 from database import conectar
 from utils.auth import requiere_login, requiere_staff
 from utils.constants import ROLES_ADMIN_PM, TURNOS_CONCILIACION, TURNOS_CONCILIACION_LABELS, ROLES_OPERARIO_GAS
+from utils import mailer
+
+logger = logging.getLogger(__name__)
 
 turno_bp = Blueprint("turno", __name__, url_prefix="/turno")
 
@@ -493,7 +497,13 @@ def api_reserva_completar(token):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, estado, tarjeta_id, litros_solicitados, gasolinera_id FROM reservas_tienda WHERE qr_token = ?
+        SELECT r.id, r.estado, r.tarjeta_id, r.litros_solicitados, r.gasolinera_id,
+               r.tipo_combustible, u.id AS cliente_id, u.nombre AS cliente_nombre,
+               u.email AS cliente_email, g.nombre AS gasolinera_nombre
+        FROM reservas_tienda r
+        JOIN usuarios u ON u.id = r.usuario_id
+        JOIN gasolineras g ON g.id = r.gasolinera_id
+        WHERE r.qr_token = ?
     """, (token,))
     row = cur.fetchone()
 
@@ -526,10 +536,20 @@ def api_reserva_completar(token):
             conn.close()
             return jsonify({"error": "Tarjeta asignada no encontrada"}), 400
         if float(t["saldo_usd"] or 0) < monto_usd - 0.001:
+            detalle = (
+                f"Disponible: ${float(t['saldo_usd'] or 0):,.2f} USD, "
+                f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
+            )
             conn.close()
+            try:
+                mailer.staff_sin_cobertura_saldo(
+                    row["gasolinera_nombre"], row["tipo_combustible"], detalle
+                )
+            except Exception:
+                logger.error("Error notificando staff de saldo insuficiente (tarjeta #%s)",
+                             row["tarjeta_id"], exc_info=True)
             return jsonify({
-                "error": f"Saldo Fincimex insuficiente. Disponible: ${float(t['saldo_usd'] or 0):,.2f} USD, "
-                         f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
+                "error": f"Saldo Fincimex insuficiente. {detalle}"
             }), 400
 
     cur.execute("""
@@ -554,4 +574,13 @@ def api_reserva_completar(token):
 
     conn.commit()
     conn.close()
+
+    try:
+        mailer.despacho_completado(
+            row["cliente_nombre"], row["cliente_email"], row["cliente_id"],
+            row["gasolinera_nombre"], row["tipo_combustible"], litros,
+        )
+    except Exception:
+        logger.error("Error notificando despacho completado (reserva #%s)", row["id"], exc_info=True)
+
     return jsonify({"ok": True})

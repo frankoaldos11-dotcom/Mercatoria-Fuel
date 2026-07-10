@@ -238,3 +238,65 @@ Ninguna post-commit. El rediseño funcionó correctamente en primer despliegue.
 1. **Crear un usuario de prueba con rol cliente** y verificar el flujo completo de creación desde el form embebido.
 2. **El buscador filtra solo por email** — considerar ampliar a nombre en una iteración futura.
 3. Los screenshots de sesiones anteriores (`sprint8_*.png`, `fincimex_*.png`) quedaron sin trackear en git — considerar limpiarlos o añadirlos a `.gitignore`.
+
+---
+
+# Mensajes Fase 2 — Avisos automáticos (cliente y staff) — 2026-07-10
+
+## Nota sobre el entorno de verificación
+
+Esta verificación se hizo **antes del commit/push**, tal como pidió Aldo explícitamente para esta fase. Como el código nuevo aún no está desplegado, probar contra `fuel.mercatoria.online` habría ejercitado la versión **anterior** del código (sin los avisos de Fase 2), lo cual no verifica nada real. En su lugar se levantó la app localmente (`python app.py`, SQLite local `fuel.db`, puerto 5051, sin tocar producción ni datos reales) y se ejercitaron los 8 puntos de disparo con Playwright/Chrome (navegador) para los flujos de cliente, y `curl` autenticado (con tokens CSRF extraídos de las páginas reales) para los flujos de staff que requerían datos operativos sintéticos (transferencias, conciliación). Ambos métodos ejecutan el mismo código Flask real, con la misma base de datos.
+
+Detalle no relacionado con este cambio: al iniciar el servidor en el puerto 5000 por defecto, una sesión de Claude Code distinta ya tenía un servidor de **mercatoria-trucks** escuchando ahí, lo que causó una colisión de puerto y errores 400 confusos al principio. Se resolvió usando el puerto 5051, sin tocar el proceso ajeno.
+
+## Páginas y flujos probados
+
+| # | Flujo | Método | Resultado |
+|---|-------|--------|-----------|
+| 1 | Login admin / cliente (`/login`) | Navegador | ✅ |
+| 2 | Configurar precio Diésel — La Shell (`/configuracion/`) | Navegador | ✅ |
+| 3 | Agregar vehículo cliente (`/tienda/mis-vehiculos/`) | Navegador | ✅ |
+| 4 | Crear reserva #1 (600L) → dispara **staff: reserva_pendiente** | Navegador | ✅ |
+| 5 | Crear reserva #2 (500L) → dispara **staff: reserva_pendiente** | Navegador | ✅ |
+| 6 | Aprobar reserva #1 (`/tienda/api/1/aprobar`) → dispara **reserva_aprobada** (QR inline) | Navegador | ✅ |
+| 7 | Rechazar reserva #2 con motivo (`/tienda/api/2/cancelar`) → dispara **reserva_rechazada** | curl autenticado* | ✅ |
+| 8 | Completar despacho con saldo insuficiente (`/turno/api/reserva-completar/<token>`) → dispara **staff: sin_cobertura_saldo** (variante saldo) | curl autenticado | ✅ |
+| 9 | Completar despacho con saldo suficiente → dispara **despacho_completado** | curl autenticado | ✅ |
+| 10 | Confirmar llegada de transferencia sin tarjetas activas → dispara **staff: sin_cobertura_saldo** (variante sin tarjeta) | curl autenticado | ✅ |
+| 11 | Confirmar llegada con `sin_tarjeta_ok=1` (estado→recibida) → dispara **staff: combustible_sin_distribuir** | curl autenticado | ✅ |
+| 12 | Crear conciliación con diferencia >0.5% (estado→con_alerta) → dispara **staff: conciliacion_diferencia** | curl autenticado | ✅ |
+
+\* El paso 7 se probó primero desde el navegador; el clic sobre "Confirmar rechazo" falló en la UI por un token CSRF obsoleto **de la propia sesión de automatización del navegador** (no del código: se reprodujo el mismo endpoint con `curl` usando un token fresco extraído de la página recién cargada y respondió `{"ok":true}` en el primer intento). No se detectó ningún problema en el código de la aplicación por este motivo.
+
+## Errores encontrados
+
+- **Ninguno en el código de la aplicación.** `grep " 500 "` sobre el log completo del servidor de prueba: **0 resultados** en toda la sesión (67× 200, 16× 302, 2× 308, 5× 400 —todos validaciones de negocio esperadas—, 1× 404 favicon, 1× 405 —artefacto de un `curl -L` propio, no de la app—).
+- Consola del navegador: 2 excepciones JS (`SyntaxError: Unexpected token '<'`) al intentar parsear como JSON la página de error 400 de CSRF durante el intento fallido descrito arriba (paso 7). No relacionado con la lógica de Fase 2.
+
+## Trazas registradas en tabla `mensajes` (verificación de extremo a extremo)
+
+| id | tipo | destinatario | estado |
+|----|------|--------------|--------|
+| 1, 2 | reserva_pendiente | admin@mercatoria.com | fallido (SMTP no configurado en local) |
+| 3 | reserva_aprobada | cliente_pma@mercatoria.com | fallido (ídem) |
+| 4 | reserva_rechazada | cliente_pma@mercatoria.com | fallido (ídem) |
+| 5, 7 | sin_cobertura_saldo | admin@mercatoria.com | fallido (ídem) |
+| 6 | despacho_completado | cliente_pma@mercatoria.com | fallido (ídem) |
+| 8 | combustible_sin_distribuir | admin@mercatoria.com | fallido (ídem) |
+| 9 | conciliacion_diferencia | admin@mercatoria.com | fallido (ídem) |
+
+Los 9 registros confirman: (a) el punto de disparo se ejecuta exactamente donde cambia el estado o en la rama de error ya existente, (b) el destinatario se resuelve correctamente por rol o por cliente, (c) el fallo de envío (esperado en local, sin `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD`) queda registrado con su motivo y **no interrumpe la operación de negocio** — todas las reservas, despachos, transferencias y conciliaciones completaron su flujo normalmente pese al fallo de correo. La entrega real por SMTP no se valida aquí — la confirma Aldo en producción con las credenciales reales.
+
+## Screenshots
+
+Tomados y revisados en pantalla durante la sesión (login admin/cliente, dashboard, configuración de precios, alta de vehículo, formulario de reserva, panel de reservas con aprobar/rechazar). No se guardaron a disco como archivos porque el flujo de verificación fue local/interno — no se subieron a ningún reporte visual externo.
+
+## Correcciones aplicadas
+
+Ninguna — no se encontraron bugs. Los hooks de Fase 2 funcionaron según el plan aprobado en el primer intento.
+
+## Recomendaciones
+
+1. **Pendiente de Aldo**: verificar la entrega real de correo (SMTP) en producción con datos reales, incluyendo que el QR inline se vea correctamente en distintos clientes de correo (Gmail, Outlook) — Playwright no puede validar esto.
+2. Tras el `git push`, correr una verificación ligera (sin mutar datos) en `fuel.mercatoria.online` per la regla POST-COMMIT del proyecto: cargar `/tienda/admin`, `/turno/escanear`, `/transferencias`, `/conciliacion` como admin y confirmar ausencia de errores de consola/HTTP, ya que ahí sí correrá el código nuevo desplegado.
+3. Considerar en una futura fase permitir reintentos manuales de correos con `estado='fallido'` desde `/mensajes/`.

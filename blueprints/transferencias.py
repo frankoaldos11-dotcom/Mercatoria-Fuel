@@ -1,8 +1,13 @@
+import logging
+
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS
 from utils.auth import requiere_login, requiere_staff
 from utils.stock import stock_deposito
+from utils import mailer
+
+logger = logging.getLogger(__name__)
 
 transferencias_bp = Blueprint("transferencias", __name__, url_prefix="/transferencias")
 
@@ -412,6 +417,14 @@ def confirmar_llegada(id):
                         f"El combustible llegará al stock, pero no se podrá despachar hasta que se asigne saldo a una tarjeta."
                     )
                     conn.close()
+                    try:
+                        mailer.staff_sin_cobertura_saldo(
+                            transferencia["gasolinera_nombre"], tc_label,
+                            "No hay tarjetas Fincimex activas para recibir el saldo de esta transferencia.",
+                        )
+                    except Exception:
+                        logger.error("Error notificando staff de sin cobertura (transferencia #%s)",
+                                     id, exc_info=True)
                     from datetime import date as _d2
                     return render_template(
                         "transferencias/confirmar_llegada.html",
@@ -445,6 +458,16 @@ def confirmar_llegada(id):
             ))
             conn.commit()
             conn.close()
+
+            try:
+                mailer.staff_combustible_sin_distribuir(
+                    transferencia["gasolinera_nombre"], transferencia["tipo_combustible"],
+                    litros_recibidos, id,
+                )
+            except Exception:
+                logger.error("Error notificando staff de combustible sin distribuir (transferencia #%s)",
+                             id, exc_info=True)
+
             return redirect(f"/transferencias/{id}/gestionar?ok=1")
 
     from datetime import date

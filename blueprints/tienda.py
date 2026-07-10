@@ -1,9 +1,13 @@
+import logging
 import uuid
 import base64
 import io
 
 from flask import Blueprint, render_template, request, redirect, session, jsonify
 from database import conectar
+from utils import mailer
+
+logger = logging.getLogger(__name__)
 
 tienda_bp = Blueprint("tienda", __name__, url_prefix="/tienda")
 
@@ -162,6 +166,18 @@ def reservar():
             nueva_id = cur.lastrowid
             conn.commit()
             conn.close()
+
+            gasolinera_nombre = next(
+                (g["nombre"] for g in gasolineras if g["id"] == int(gid)), gid
+            )
+            try:
+                mailer.staff_reserva_pendiente(
+                    session.get("nombre", "Cliente"), gasolinera_nombre, tc, litros, nueva_id
+                )
+            except Exception:
+                logger.error("Error notificando staff de nueva reserva pendiente #%s",
+                             nueva_id, exc_info=True)
+
             return redirect(f"/tienda/confirmacion/{nueva_id}")
 
     conn.close()
@@ -353,6 +369,28 @@ def api_aprobar(rid):
     """, (token, qr_b64, session["user_id"], tarjeta_id, rid))
     conn.commit()
     conn.close()
+
+    try:
+        conn2 = conectar()
+        cur2 = conn2.cursor()
+        cur2.execute("""
+            SELECT u.id AS cliente_id, u.nombre AS cliente_nombre, u.email AS cliente_email,
+                   g.nombre AS gasolinera_nombre
+            FROM reservas_tienda r
+            JOIN usuarios u ON u.id = r.usuario_id
+            JOIN gasolineras g ON g.id = r.gasolinera_id
+            WHERE r.id = ?
+        """, (rid,))
+        info = cur2.fetchone()
+        conn2.close()
+        if info:
+            mailer.reserva_aprobada(
+                info["cliente_nombre"], info["cliente_email"], info["cliente_id"],
+                info["gasolinera_nombre"], tipo_combustible, litros, token, qr_b64,
+            )
+    except Exception:
+        logger.error("Error notificando reserva aprobada #%s", rid, exc_info=True)
+
     return jsonify({"ok": True, "token": token})
 
 
@@ -366,12 +404,29 @@ def api_cancelar(rid):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
+        SELECT u.id AS cliente_id, u.nombre AS cliente_nombre, u.email AS cliente_email
+        FROM reservas_tienda r
+        JOIN usuarios u ON u.id = r.usuario_id
+        WHERE r.id = ? AND r.estado IN ('pendiente', 'aprobada')
+    """, (rid,))
+    info = cur.fetchone()
+
+    cur.execute("""
         UPDATE reservas_tienda
         SET estado='cancelada', motivo_cancelacion=?, updated_at=CURRENT_TIMESTAMP
         WHERE id=? AND estado IN ('pendiente', 'aprobada')
     """, (motivo, rid))
     conn.commit()
     conn.close()
+
+    if info:
+        try:
+            mailer.reserva_rechazada(
+                info["cliente_nombre"], info["cliente_email"], info["cliente_id"], motivo
+            )
+        except Exception:
+            logger.error("Error notificando reserva rechazada #%s", rid, exc_info=True)
+
     return jsonify({"ok": True})
 
 

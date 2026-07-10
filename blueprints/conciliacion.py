@@ -1,3 +1,4 @@
+import logging
 from datetime import date, timedelta
 
 from flask import Blueprint, render_template, request, redirect, session
@@ -7,6 +8,9 @@ from utils.constants import (
     TIPOS_COMBUSTIBLE_LABELS,
 )
 from utils.auth import requiere_login, requiere_staff
+from utils import mailer
+
+logger = logging.getLogger(__name__)
 
 conciliacion_bp = Blueprint("conciliacion", __name__, url_prefix="/conciliacion")
 
@@ -250,7 +254,22 @@ def crear():
                   estado, observaciones or None, session.get("user_id")))
             nuevo_id = cur.lastrowid
             conn.commit()
-            conn.close()
+
+            if estado == "con_alerta":
+                cur.execute("SELECT nombre FROM gasolineras WHERE id = ?", (gasolinera_id,))
+                grow = cur.fetchone()
+                conn.close()
+                try:
+                    mailer.staff_conciliacion_diferencia(
+                        grow["nombre"] if grow else gasolinera_id, fecha,
+                        diferencia_l, diferencia_pct, nuevo_id,
+                    )
+                except Exception:
+                    logger.error("Error notificando staff de conciliación con diferencias #%s",
+                                 nuevo_id, exc_info=True)
+            else:
+                conn.close()
+
             return redirect(f"/conciliacion/{nuevo_id}?ok=1")
 
     return render_template(
