@@ -468,3 +468,56 @@ Las dos descritas arriba, en `utils/mailer.py`. Ningún otro archivo ni ningún 
 ## Recomendaciones
 
 Ninguna pendiente sobre este punto específico. Quedan abiertos (sin tocar, fuera de este alcance) los demás hallazgos de la auditoría de seguridad previa: rotación de la contraseña de admin sembrada, rate limiting en registro/verificación/masivos, y headers CSP/HSTS.
+
+---
+
+# Seguridad: rate limiting en rutas sensibles + HSTS y Referrer-Policy — 2026-07-10
+
+## Cambio
+
+Todo en `app.py`, sin tocar ningún blueprint:
+
+- **Headers** (mismo `@app.after_request` existente, línea ~78-85): se agregan `Strict-Transport-Security: max-age=31536000; includeSubDomains` y `Referrer-Policy: strict-origin-when-cross-origin`.
+- **Rate limiting**: como los blueprints se importan (línea 12-35) antes de que `limiter` exista (línea 53), no es posible usar `@limiter.limit(...)` como decorador dentro de `blueprints/registro.py`, `tienda.py` o `usuarios.py` sin import circular. Se optó por aplicar el límite **después** de `app.register_blueprint(...)`, reasignando `app.view_functions["<endpoint>"]` a la versión envuelta por `limiter.limit(...)`. Límites aplicados (los aprobados en el plan):
+
+| Ruta | Límite |
+|---|---|
+| `POST /registro/` (`registro.index`, escopado con `methods=["POST"]`) | `5 per hour` |
+| `POST /tienda/verificar-email/codigo` | `5 per minute` |
+| `POST /tienda/verificar-email/reenviar` | `3 per minute` |
+| `POST /usuarios/<uid>/reset-password` | `10 per minute` |
+
+No se tocó `storage_uri="memory://"` ni el `@limiter.limit("10 per minute")` existente de `/login` — confirmado por `git diff` (cero cambios en esa línea).
+
+**Nota para después (sin resolver aquí):** con `storage_uri="memory://"`, si Render corre más de un worker, cada proceso lleva su propio contador — el límite real efectivo sería `N × workers`, no `N` global. Evaluar respaldo con Redis/Postgres en una tarea aparte si aplica.
+
+## Bug propio detectado y corregido durante la verificación (dentro de este mismo alcance)
+
+Mi primer intento aplicó los límites así: `limiter.limit(...)( app.view_functions["endpoint"] )`, **descartando el valor de retorno**. `limiter.limit()` es un decorador — envuelve la función y devuelve una *nueva* función; no muta la original in-place. Al no reasignar `app.view_functions["endpoint"] = ...`, el límite quedaba definido pero nunca conectado al enrutamiento real de Flask. Lo detecté en la propia verificación (7 intentos seguidos a `/registro/` devolvieron 302, ninguno 429) antes de dar el commit por bueno, y lo corregí reasignando explícitamente cada entrada de `app.view_functions`. Ya verificado correcto tras el fix (ver tabla abajo).
+
+## Verificación (local, SQLite, puerto 5056 — no producción)
+
+| Ruta | Prueba | Resultado |
+|---|---|---|
+| `GET /login` | Cualquier respuesta | ✅ Headers `Strict-Transport-Security` y `Referrer-Policy` presentes |
+| `POST /registro/` | 7 intentos seguidos | ✅ 1-5 → 302 (éxito), 6-7 → 429 |
+| `GET /registro/` | 8 intentos seguidos | ✅ Todos 200 — el GET no está limitado (solo el POST, por diseño) |
+| `POST /tienda/verificar-email/codigo` (sesión cliente real) | 7 intentos seguidos | ✅ 1-5 → 200, 6-7 → 429 |
+| `POST /tienda/verificar-email/reenviar` (sesión cliente real) | 5 intentos seguidos | ✅ 1-3 → 200, 4-5 → 429 |
+| `POST /usuarios/<uid>/reset-password` (sesión admin real) | 12 intentos seguidos | ✅ 1-10 → 302, 11-12 → 429 |
+| `POST /login` | login real con admin y cliente | ✅ Ambos exitosos (302) — sin regresión. No se re-verificó el límite original de `/login` con un 429 limpio (no se tocó esa línea; `git diff` lo confirma, y de hecho ese límite interfirió con mi metodología de prueba en un intento inicial, lo que en sí confirma que sigue activo) |
+
+**0 errores 500** en toda la sesión de verificación (61× 200, 17× 302, 16× 429 esperados, 18× 400 — estos últimos son CSRF de mi propio script al reintentar contra `/login`, que hace `session.clear()` en cada POST y por tanto invalida el token CSRF para reintentos con la misma sesión; no relacionado con este cambio).
+
+## Errores encontrados
+
+Ninguno en el código final entregado (el bug de `view_functions` descrito arriba se detectó y corrigió antes del commit, no llegó a integrarse).
+
+## Correcciones aplicadas
+
+Las descritas arriba, todas en `app.py`.
+
+## Recomendaciones
+
+1. Evaluar respaldar `storage_uri` con Redis/Postgres si Render corre múltiples workers (ver nota arriba).
+2. Quedan abiertos de la auditoría previa: rotación de contraseña de admin sembrada, y `Content-Security-Policy` (tarea aparte, requiere probar contra los CDN externos ya en uso).

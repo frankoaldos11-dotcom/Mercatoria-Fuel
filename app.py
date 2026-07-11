@@ -80,6 +80,8 @@ def set_security_headers(response):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     return response
@@ -215,6 +217,19 @@ app.register_blueprint(puertos_bp)
 app.register_blueprint(registro_bp)
 app.register_blueprint(tienda_bp)
 app.register_blueprint(mensajes_bp)
+
+# Rate limiting en rutas sensibles adicionales (login ya lo tiene arriba).
+# Se aplica aquí sobre la función vista ya registrada, en vez de con
+# @limiter.limit en el propio blueprint, porque los blueprints se importan
+# antes de que `limiter` exista en este módulo.
+app.view_functions["registro.index"] = limiter.limit(
+    "5 per hour", methods=["POST"])(app.view_functions["registro.index"])
+app.view_functions["tienda.verificar_email_codigo"] = limiter.limit(
+    "5 per minute")(app.view_functions["tienda.verificar_email_codigo"])
+app.view_functions["tienda.verificar_email_reenviar"] = limiter.limit(
+    "3 per minute")(app.view_functions["tienda.verificar_email_reenviar"])
+app.view_functions["usuarios.reset_password"] = limiter.limit(
+    "10 per minute")(app.view_functions["usuarios.reset_password"])
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
