@@ -54,7 +54,8 @@ def enviar_email(destinatario, asunto, cuerpo_html, tipo="general",
     if cfg is None:
         estado = "fallido"
         error_text = "SMTP no configurado (SMTP_HOST, SMTP_USER o SMTP_PASSWORD faltantes)"
-        logger.warning("Email no enviado — SMTP no configurado. dest=%s", destinatario)
+        logger.warning("Email no enviado — SMTP no configurado. usuario_id=%s cliente_id=%s",
+                       usuario_id, cliente_id)
     else:
         try:
             if imagen_inline_b64 and imagen_cid:
@@ -81,7 +82,8 @@ def enviar_email(destinatario, asunto, cuerpo_html, tipo="general",
         except Exception as exc:
             estado = "fallido"
             error_text = str(exc)
-            logger.error("Error enviando email a %s: %s", destinatario, exc, exc_info=True)
+            logger.error("Error enviando email (usuario_id=%s cliente_id=%s): %s",
+                         usuario_id, cliente_id, exc, exc_info=True)
 
     try:
         conn = conectar()
