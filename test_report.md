@@ -398,3 +398,35 @@ Ninguna en el alcance de Fase 4 — no se encontraron bugs en el código entrega
 1. **Pendiente de Aldo**: decidir si corregir el bug preexistente de `app.py::login()` (línea 129, `.get()` sobre `sqlite3.Row`) en un commit aparte — no afecta producción (Postgres) pero bloquea pruebas locales de `operador_gasolinera`.
 2. Verificar en producción que los correos masivos lleguen bien formateados (el cuerpo permite HTML simple tecleado por el staff — sin sanitización adicional más allá de lo que ya hace el cliente de correo del destinatario).
 3. Considerar en una fase futura un límite de tamaño de lote o un job asíncrono si el número de clientes crece mucho — hoy el envío ocurre síncronamente dentro de la misma request de aprobar/enviar.
+
+---
+
+# Fix: acceso a gasolinera_id en login (SQLite/PG) — 2026-07-10
+
+## Cambio
+
+`app.py::login()` línea 129: `fila.get("gasolinera_id")` → `fila["gasolinera_id"]`. Único cambio — mismo patrón de acceso por nombre que ya usa el resto de la función (`fila["nombre"]`, `fila["rol"]`, `fila["id"]`, `fila["activo"]`). Bracket access funciona igual en `sqlite3.Row` (SQLite) y en `RealDictCursor` (PostgreSQL/producción); si el valor SQL es `NULL`, devuelve `None` sin excepción — no se agregó ningún chequeo extra porque no hace falta.
+
+## Verificación (local, SQLite, puerto 5054 — no producción)
+
+| Rol | Cuenta de prueba | `gasolinera_id` | Resultado |
+|---|---|---|---|
+| admin | admin@mercatoria.com | n/a | ✅ 302 → /dashboard |
+| puesto_de_mando | pm_qa@example.com | n/a | ✅ 302 → /dashboard |
+| operador_gasolinera | opgas_qa@example.com | **NULL** | ✅ 302 → /dashboard (antes: 500) |
+| operador_gasolinera | opgas_qa@example.com | **con valor** (id real) | ✅ 302 → /dashboard |
+| cliente | masivo_verif1@example.com | n/a | ✅ 302 → /tienda/ |
+
+Se probó explícitamente el caso `gasolinera_id IS NULL` (el usuario de prueba lo tenía así) y el caso con valor asignado — ambos sin error. Login de `operador_gasolinera` confirmado también por navegador: renderiza "Dashboard Operario" completo, badge de rol "OP-GAS", sidebar correcta — no solo el redirect HTTP. Screenshot capturado.
+
+## Errores encontrados
+
+Ninguno. **0 errores 500** en todo el log del servidor de prueba (11× 200, 6× 302, 1× 404 favicon) — el 500 original ya no ocurre.
+
+## Correcciones aplicadas
+
+La descrita arriba — una sola línea, sin tocar `session.clear()`, verificación de credenciales, ni guards, tal como se pidió.
+
+## Recomendaciones
+
+Ninguna pendiente — el hallazgo documentado en la sección de Fase 4 queda resuelto con este commit.

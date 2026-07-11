@@ -126,7 +126,7 @@ def login():
 
             # Para operador_gasolinera: cargar gasolinera_id
             if fila["rol"] == "operador_gasolinera":
-                session["gasolinera_id"] = fila.get("gasolinera_id")
+                session["gasolinera_id"] = fila["gasolinera_id"]
 
             conn.close()
 
