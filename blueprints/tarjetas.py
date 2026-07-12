@@ -218,7 +218,6 @@ def crear():
         pin = request.form.get("pin", "").strip()
         gasolinera_id = request.form.get("gasolinera_id", "").strip()
         tipo_combustible = request.form.get("tipo_combustible", "").strip()
-        saldo_str = request.form.get("saldo_usable_l", "0").strip()
         estado = request.form.get("estado", "activa").strip()
         notas = request.form.get("notas", "").strip()
 
@@ -233,11 +232,6 @@ def crear():
         elif estado not in ESTADOS_TARJETA:
             error = "Estado no válido."
         else:
-            try:
-                saldo_usable = float(saldo_str)
-            except ValueError:
-                saldo_usable = 0.0
-
             conn = conectar()
             cur = conn.cursor()
             cur.execute("SELECT id FROM tarjetas WHERE numero_completo = ?", (numero_completo,))
@@ -251,9 +245,9 @@ def crear():
                     INSERT INTO tarjetas
                         (numero_completo, numero_parcial, pin_hash, gasolinera_id,
                          tipo_combustible, saldo_usable_l, estado, notas)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, 0, ?, ?)
                 """, (numero_completo, numero_parcial, pin_hash, gasolinera_id,
-                      tipo_combustible, saldo_usable, estado, notas or None))
+                      tipo_combustible, estado, notas or None))
                 conn.commit()
                 conn.close()
                 return redirect("/tarjetas?ok=1")
