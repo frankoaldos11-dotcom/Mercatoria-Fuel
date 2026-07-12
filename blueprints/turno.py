@@ -287,10 +287,12 @@ def api_despachar(hab_id):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        SELECT h.*, v.id AS vid, t.id AS tid, t.saldo_usable_l, t.saldo_usd
+        SELECT h.*, v.id AS vid, t.id AS tid, t.saldo_usable_l, t.saldo_usd,
+               s.litros_reservados AS sub_litros
         FROM habilitaciones h
         JOIN vehiculos v ON v.id = h.unidad_id
         JOIN tarjetas t ON t.id = h.tarjeta_id
+        LEFT JOIN subinventarios s ON s.id = h.subinventario_id
         WHERE h.id = ?
     """, (hab_id,))
     hab = cur.fetchone()
@@ -350,11 +352,13 @@ def api_despachar(hab_id):
         updated_at=CURRENT_TIMESTAMP WHERE id=?
     """, (litros, hab_id))
 
-    nuevo_saldo = float(hab["saldo_usable_l"]) - litros
     cur.execute("""
-        UPDATE tarjetas SET saldo_usable_l=?, saldo_usd=saldo_usd-?,
-        updated_at=CURRENT_TIMESTAMP WHERE id=?
-    """, (max(0, nuevo_saldo), monto_usd, hab["tarjeta_id"]))
+        UPDATE tarjetas
+        SET saldo_usable_l = saldo_usable_l - ?,
+            saldo_usd = saldo_usd - ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, (litros, monto_usd, hab["tarjeta_id"]))
     cur.execute("""
         INSERT INTO movimientos_saldo_fincimex
             (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
@@ -365,14 +369,23 @@ def api_despachar(hab_id):
         f"Despacho habilitación #{hab_id} — turno — {litros:,.2f} L × {factor}",
     ))
 
+    if hab["subinventario_id"] and hab["sub_litros"] is not None:
+        cur.execute("""
+            UPDATE subinventarios
+            SET litros_reservados = litros_reservados - ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (litros, hab["subinventario_id"]))
+
     cur.execute("""
         INSERT INTO movimientos (tipo, fecha, gasolinera_id, tarjeta_id, cliente_id,
-            vehiculo_id, litros, tipo_combustible, responsable_id)
+            vehiculo_id, litros, tipo_combustible, responsable_id, observaciones)
         SELECT 'despacho', ?, h.gasolinera_id, h.tarjeta_id, h.cliente_id,
-               h.unidad_id, ?, v.tipo_combustible, ?
+               h.unidad_id, ?, v.tipo_combustible, ?, ?
         FROM habilitaciones h JOIN vehiculos v ON v.id = h.unidad_id
         WHERE h.id = ?
-    """, (hoy_str, litros, session.get("user_id"), hab_id))
+    """, (hoy_str, litros, session.get("user_id"),
+          f"Despacho QR — Habilitación #{hab_id}", hab_id))
 
     conn.commit()
     conn.close()
