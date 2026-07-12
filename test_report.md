@@ -521,3 +521,49 @@ Las descritas arriba, todas en `app.py`.
 
 1. Evaluar respaldar `storage_uri` con Redis/Postgres si Render corre múltiples workers (ver nota arriba).
 2. Quedan abiertos de la auditoría previa: rotación de contraseña de admin sembrada, y `Content-Security-Policy` (tarea aparte, requiere probar contra los CDN externos ya en uso).
+
+---
+
+# Fix: confirmar llegada de transferencia no guardaba stock (fallo silencioso) — 2026-07-12
+
+## Causa raíz confirmada
+
+Mismatch de nombre de variable entre backend y template:
+
+- `blueprints/transferencias.py:478` — `render_template(..., advertencia=advertencia, ...)`.
+- `templates/transferencias/confirmar_llegada.html:24` y `:104` (antes del fix) — `{% if advertencia_tarjeta %}`, variable que **nunca se pasaba** desde Python.
+
+Confirmado con `git blame`/`git show` que el mismatch viene del commit `df9ec655` ("Nuevo modelo saldo Fincimex...", 2026-07-10 12:08:53), hecho por **otra sesión de Claude Code** (Co-Authored-By: Claude Sonnet 4.6), anterior a mis Fases de Mensajes — no lo introduje yo.
+
+**Efecto:** cuando la gasolinera destino no tiene ninguna tarjeta Fincimex activa para el combustible de la transferencia, el backend arma un aviso descartable y re-renderiza el formulario **sin guardar** (a propósito, esperando que el usuario marque un checkbox y reenvíe). Como el template nunca mostraba ni el aviso ni el checkbox (nombre de variable equivocado), el usuario veía el mismo formulario "recargado" sin ningún indicio de qué pasó, y no había forma de marcar el checkbox para continuar — cada reintento caía en el mismo callejón sin salida silencioso. No era una excepción no manejada (no había ningún 500 ni traceback) ni un rollback silencioso — el código funcionaba exactamente como se diseñó tras el commit del 10 de julio, solo que la condición de éxito (mostrar el checkbox) era visualmente inalcanzable.
+
+## Corrección aplicada
+
+Renombrar `advertencia_tarjeta` → `advertencia` en las 3 ocurrencias del template (2× `{% if %}`, 1× `{{ }}` de salida) — cero cambios en `blueprints/transferencias.py`, que ya hacía lo correcto.
+
+## Verificación (local, SQLite, puerto 5057 — no producción)
+
+Se sembraron 2 transferencias `en_transito` de prueba: una hacia "La Shell" (con 5 tarjetas Diésel activas — caso feliz) y otra hacia una gasolinera nueva "Santiago Paseo Marti" sin ninguna tarjeta (reproduce exactamente el escenario de la transferencia #9 real).
+
+| Caso | Resultado |
+|---|---|
+| Caso feliz (destino con tarjeta) | ✅ `POST` → 302, `estado='recibida'`, `litros_recibidos=5000.0`, stock de La Shell (calculado vía `utils/stock.py::stock_gasolinera`, suma de `movimientos` tipo `transferencia_entrada`) = 5000 L. Screenshot: "Llegada confirmada — 2026-07-12". |
+| Caso sin tarjeta, primer submit (sin marcar checkbox) | ✅ `POST` → 200 (no redirect), nada guardado (`estado` sigue `en_transito`) — **ahora sí visible**: banner amarillo "⚠️ Aviso: sin tarjeta Fincimex — Santiago Paseo Marti no tiene tarjetas Fincimex activas de Diésel..." y el checkbox "Entendido — confirmar llegada..." Screenshot de ambos. |
+| Caso sin tarjeta, segundo submit (con checkbox marcado) | ✅ `POST` → 302, `estado='recibida'`, `litros_recibidos=8000.0`, stock de Santiago Paseo Martí = 8000 L |
+
+**0 errores 500** en toda la sesión (28× 200, 7× 302, 1× 404 favicon). Hubo 2× 400 por CSRF, ambos artefactos de mi propia automatización del navegador (token reutilizado tras un `form.submit()` vía JS en una página que ya había cambiado de sesión) — reproducibles y explicados, no relacionados con el fix; confirmados como no-bugs repitiendo la misma acción con `curl` y un token CSRF recién extraído, que funcionó al primer intento.
+
+También noté, y dejo documentado como hallazgo aparte (no corregido aquí, fuera de este alcance): al hacer clic físico en el botón "Confirmar llegada" desde la vista `/transferencias/<id>/gestionar` con la herramienta de automatización del navegador, el clic no siempre disparó el submit del formulario (confirmado revisando que no llegaba ningún POST al log del servidor). No até cabos de una causa de producto — es consistente con el mismo tipo de flakiness de clics ya visto en fases anteriores con esta herramienta de automatización, no con el código de la app.
+
+## Errores encontrados
+
+Ninguno nuevo — la causa raíz era la única anomalía real, ya corregida.
+
+## Correcciones aplicadas
+
+La descrita arriba, en `templates/transferencias/confirmar_llegada.html` únicamente.
+
+## Recomendaciones
+
+1. Confirmar en producción, contra la tabla `tarjetas` real, que "Santiago Paseo Martí" efectivamente no tenía tarjetas Diésel activas al momento del intento de Aldo con la transferencia #9 — esto terminaría de cerrar la causa raíz con evidencia de producción (el diagnóstico de código ya es concluyente por sí solo, pero esto lo confirmaría con el dato real).
+2. Dado que este bug viene de un commit de otra sesión, sería valioso revisar el resto de cambios de `df9ec655` (bloqueo duro de saldo en despachos, generación de bolsón en recepciones) por posibles mismatches de variable similares — no lo hice aquí porque está fuera del alcance de este commit (exclusivamente el fix de `confirmar_llegada`).

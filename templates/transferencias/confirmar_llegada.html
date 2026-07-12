@@ -21,10 +21,10 @@
 </div>
 {% endif %}
 
-{% if advertencia_tarjeta %}
+{% if advertencia %}
 <div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
     <div style="font-weight:600;margin-bottom:6px;"><i class="bi bi-exclamation-triangle-fill"></i> Aviso: sin tarjeta Fincimex</div>
-    <div>{{ advertencia_tarjeta }}</div>
+    <div>{{ advertencia }}</div>
     <div style="margin-top:10px;font-size:13px;color:#92400E;">
         Para confirmar la llegada sin cobertura Fincimex, marca la casilla de confirmación en el formulario de abajo.
     </div>
@@ -101,7 +101,7 @@
 
         </div>
 
-        {% if advertencia_tarjeta %}
+        {% if advertencia %}
         <div class="mb-3" style="grid-column:1/-1;">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;background:#FEF9C3;border-radius:8px;border:1px solid #FDE68A;">
                 <input type="checkbox" name="sin_tarjeta_ok" value="1" style="width:16px;height:16px;cursor:pointer;">
