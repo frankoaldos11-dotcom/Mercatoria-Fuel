@@ -41,10 +41,9 @@
         {% set _rol = session.get('rol', '') %}
         {% set _es_dep = _rol in ['admin', 'pm', 'supervisor', 'puesto_de_mando'] %}
         {% set _es_gas = _rol in ['admin', 'pm', 'supervisor', 'puesto_de_mando', 'operador_gasolinera'] %}
-        {% set _es_adm = _rol in ['admin', 'pm', 'supervisor'] %}
+        {% set _es_adm = _rol in ['admin', 'pm', 'supervisor', 'puesto_de_mando'] %}
         {% set _es_pm = _rol == 'puesto_de_mando' %}
         {% set _es_opgas = _rol == 'operador_gasolinera' %}
-        {% set _es_og = _rol in ['admin', 'pm', 'operador_gasolinera'] %}
 
         <nav class="sidebar-nav">
 
@@ -77,7 +76,7 @@
                 <span>Gasolineras</span>
             </a>
 
-            {% if _rol in ['admin', 'pm'] %}
+            {% if _rol in ['admin', 'pm', 'puesto_de_mando'] %}
             <a href="/tienda/admin" class="nav-item {{ 'nav-item-active' if request.path.startswith('/tienda') else '' }}">
                 <i class="bi bi-shop"></i>
                 <span>Tienda</span>
