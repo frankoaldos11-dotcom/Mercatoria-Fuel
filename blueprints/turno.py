@@ -570,11 +570,13 @@ def api_reserva_completar(token):
     """, (row["id"],))
 
     if row["tarjeta_id"]:
-        nuevo_saldo = max(0.0, float(t["saldo_usable_l"]) - litros)
         cur.execute("""
-            UPDATE tarjetas SET saldo_usable_l=?, saldo_usd=saldo_usd-?,
-            updated_at=CURRENT_TIMESTAMP WHERE id=?
-        """, (nuevo_saldo, monto_usd, row["tarjeta_id"]))
+            UPDATE tarjetas
+            SET saldo_usable_l = saldo_usable_l - ?,
+                saldo_usd = saldo_usd - ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (litros, monto_usd, row["tarjeta_id"]))
         cur.execute("""
             INSERT INTO movimientos_saldo_fincimex
                 (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
@@ -584,6 +586,16 @@ def api_reserva_completar(token):
             session.get("user_id"),
             f"Despacho tienda reserva #{row['id']} — QR — {litros:,.2f} L × {factor}",
         ))
+
+    cur.execute("""
+        INSERT INTO movimientos
+            (tipo, fecha, gasolinera_id, tarjeta_id, cliente_id, litros, tipo_combustible, responsable_id, observaciones)
+        VALUES ('despacho', ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        date.today().isoformat(), row["gasolinera_id"], row["tarjeta_id"], row["cliente_id"],
+        litros, row["tipo_combustible"], session.get("user_id"),
+        f"Despacho QR Tienda — Reserva #{row['id']}",
+    ))
 
     conn.commit()
     conn.close()
