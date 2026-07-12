@@ -245,6 +245,21 @@ def crear():
                     if litros < minimo:
                         error = f"El mínimo de litros por habilitación es {minimo:,.0f} L (configurado en el sistema)."
 
+            if not error:
+                conn2 = conectar()
+                cur2 = conn2.cursor()
+                cur2.execute("SELECT gasolinera_id, tipo_combustible FROM tarjetas WHERE id = ?", (tarjeta_id,))
+                tarjeta_check = cur2.fetchone()
+                cur2.execute("SELECT tipo_combustible FROM vehiculos WHERE id = ?", (unidad_id,))
+                unidad_check = cur2.fetchone()
+                conn2.close()
+                if not tarjeta_check or not unidad_check:
+                    error = "La tarjeta o la unidad seleccionada no es válida."
+                elif str(tarjeta_check["gasolinera_id"]) != str(gasolinera_id):
+                    error = "La tarjeta seleccionada no corresponde a la gasolinera elegida."
+                elif tarjeta_check["tipo_combustible"] != unidad_check["tipo_combustible"]:
+                    error = "La tarjeta seleccionada no corresponde al tipo de combustible de la unidad."
+
         if not error:
             conn = conectar()
             cur = conn.cursor()

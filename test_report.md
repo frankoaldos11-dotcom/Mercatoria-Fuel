@@ -604,3 +604,47 @@ La descrita arriba, en `blueprints/habilitaciones.py::aprobar()` únicamente.
 ## Recomendaciones
 
 Ninguna pendiente sobre este punto — coexisten correctamente las dos líneas de defensa, tal como se pidió.
+
+---
+
+# Habilitaciones: validar en servidor que la tarjeta corresponde a gasolinera y combustible — 2026-07-12
+
+## Diagnóstico (Fase 1)
+
+Confirmado que el dato existe en el modelo, en ambos motores (evidencia completa en la respuesta de esta tarea): `tarjetas.gasolinera_id` y `tarjetas.tipo_combustible` son `NOT NULL`; `habilitaciones.gasolinera_id` es `NOT NULL` (columna directa); el combustible de la habilitación es indirecto vía `habilitaciones.unidad_id → vehiculos.tipo_combustible` (`NOT NULL`). No hubo ningún hueco de modelo — se procedió directo a la Fase 2 tras la aprobación.
+
+Hallazgo adicional: el filtro de UI existente en `templates/habilitaciones/crear.html` ya filtraba tarjetas por gasolinera, pero **nunca por combustible** (el array JS de tarjetas ni siquiera incluía ese campo).
+
+## Cambio
+
+- `blueprints/habilitaciones.py::crear()` — nueva validación de servidor justo antes del `INSERT`, en el mismo bloque `else:` donde ya vive el chequeo de mínimo de litros: consulta `gasolinera_id`/`tipo_combustible` de la tarjeta y `tipo_combustible` de la unidad, y bloquea con `error` (mismo mecanismo que el resto de la función — re-render preservando `request.form`, CSRF se regenera solo) si no coinciden.
+- `templates/habilitaciones/crear.html` — se agregó `combustible` al objeto JS de tarjetas y de unidades; nueva función global `filterTarjetas()` que filtra por gasolinera **y** por el combustible de la unidad seleccionada, disparada tanto al cambiar gasolinera como al cambiar unidad/cliente.
+
+No se tocaron los chequeos de saldo (litros ni USD) en `aprobar()` ni en `despachos.py`.
+
+## Verificación (local, SQLite, puerto 5059 — no producción)
+
+Se sembraron 2 gasolineras, 1 vehículo Diésel, y 3 tarjetas: una correcta (misma gasolinera + mismo combustible), una de gasolinera distinta, una de combustible distinto.
+
+| Caso | Método | Resultado |
+|---|---|---|
+| Filtro de UI: cliente → unidad Diésel → gasolinera La Shell | Navegador | ✅ El selector de tarjetas mostró solo las 8 tarjetas Diésel de La Shell — ninguna de gasolinera distinta ni de combustible distinto. Screenshot. |
+| Tarjeta de gasolinera distinta (enviada directamente por fuera del filtro de UI, simulando una petición manipulada) | `curl` + Navegador (POST directo) | ✅ Bloqueada: `"La tarjeta seleccionada no corresponde a la gasolinera elegida."` — HTTP 200 (re-render, no redirect), datos del formulario preservados. 0 filas nuevas en BD. Screenshot. |
+| Tarjeta de combustible distinto (misma gasolinera, combustible distinto, enviada por fuera del filtro) | `curl` + Navegador (POST directo) | ✅ Bloqueada: `"La tarjeta seleccionada no corresponde al tipo de combustible de la unidad."` — mismo mecanismo. Screenshot. |
+| Caso feliz: tarjeta correcta, elegida desde el propio selector ya filtrado | Navegador | ✅ Habilitación creada (`estado='pendiente'`), datos correctos (Diésel, La Shell, tarjeta ****3333). Screenshot. |
+
+Confirmado en BD que los dos intentos bloqueados no crearon ninguna fila; solo el caso feliz generó una habilitación nueva.
+
+**0 errores 500** en toda la sesión (29× 200, 4× 302, 1× 404 favicon).
+
+## Errores encontrados
+
+Ninguno.
+
+## Correcciones aplicadas
+
+Las descritas arriba, en `blueprints/habilitaciones.py::crear()` y `templates/habilitaciones/crear.html`.
+
+## Recomendaciones
+
+Ninguna pendiente sobre este punto.

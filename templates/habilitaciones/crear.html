@@ -134,12 +134,12 @@
 <script>
 const unidades = [
     {% for u in unidades %}
-    {id: "{{ u.id }}", cliente: "{{ u.cliente_id }}", label: "{{ u.chapa }}{% if u.chofer_nombre %} — {{ u.chofer_nombre }}{% endif %} ({{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }})"},
+    {id: "{{ u.id }}", cliente: "{{ u.cliente_id }}", combustible: "{{ u.tipo_combustible }}", label: "{{ u.chapa }}{% if u.chofer_nombre %} — {{ u.chofer_nombre }}{% endif %} ({{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }})"},
     {% endfor %}
 ];
 const tarjetas = [
     {% for t in tarjetas %}
-    {id: "{{ t.id }}", gasolinera: "{{ t.gasolinera_id }}", saldo: {{ t.saldo_usable_l }}, label: "**** {{ t.numero_parcial }} — {{ '{:,.2f}'.format(t.saldo_usable_l) }} L"},
+    {id: "{{ t.id }}", gasolinera: "{{ t.gasolinera_id }}", combustible: "{{ t.tipo_combustible }}", saldo: {{ t.saldo_usable_l }}, label: "**** {{ t.numero_parcial }} — {{ '{:,.2f}'.format(t.saldo_usable_l) }} L"},
     {% endfor %}
 ];
 const subinventarios = [
@@ -170,14 +170,27 @@ function filterSelect(sel, items, filterFn, emptyLabel) {
 selCliente.addEventListener('change', function() {
     const cid = this.value;
     filterSelect(selUnidad, unidades, u => !cid || u.cliente === cid, 'Seleccionar unidad...');
+    filterTarjetas();
 });
+
+function filterTarjetas() {
+    const gid = selGasolinera.value;
+    const uid = selUnidad.value;
+    const unidad = unidades.find(u => u.id === uid);
+    const combustible = unidad ? unidad.combustible : null;
+    filterSelect(selTarjeta, tarjetas,
+        t => (!gid || t.gasolinera === gid) && (!combustible || t.combustible === combustible),
+        'Seleccionar tarjeta...');
+    updateSaldoInfo();
+}
 
 selGasolinera.addEventListener('change', function() {
     const gid = this.value;
-    filterSelect(selTarjeta, tarjetas, t => !gid || t.gasolinera === gid, 'Seleccionar tarjeta...');
+    filterTarjetas();
     filterSelect(selSub, subinventarios, s => !gid || s.gasolinera === gid, 'Sin subinventario específico');
-    updateSaldoInfo();
 });
+
+selUnidad.addEventListener('change', filterTarjetas);
 
 selTarjeta.addEventListener('change', updateSaldoInfo);
 
