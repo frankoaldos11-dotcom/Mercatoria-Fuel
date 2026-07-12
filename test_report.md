@@ -567,3 +567,40 @@ La descrita arriba, en `templates/transferencias/confirmar_llegada.html` únicam
 
 1. Confirmar en producción, contra la tabla `tarjetas` real, que "Santiago Paseo Martí" efectivamente no tenía tarjetas Diésel activas al momento del intento de Aldo con la transferencia #9 — esto terminaría de cerrar la causa raíz con evidencia de producción (el diagnóstico de código ya es concluyente por sí solo, pero esto lo confirmaría con el dato real).
 2. Dado que este bug viene de un commit de otra sesión, sería valioso revisar el resto de cambios de `df9ec655` (bloqueo duro de saldo en despachos, generación de bolsón en recepciones) por posibles mismatches de variable similares — no lo hice aquí porque está fuera del alcance de este commit (exclusivamente el fix de `confirmar_llegada`).
+
+---
+
+# Saldo Fincimex: bloqueo por saldo USD también en habilitar (filtro temprano) — 2026-07-12
+
+## Cambio
+
+`blueprints/habilitaciones.py::aprobar()` — tres adiciones, sin tocar `blueprints/despachos.py`:
+1. El `SELECT` (línea ~294) ahora trae también `t.saldo_usd` (antes solo `t.saldo_usable_l`).
+2. Tras calcular `litros` (línea ~315), se lee `factor_litro_usd` de `configuracion` y se calcula `monto_usd = litros * factor` — mismo mecanismo y mismo default (0.90) que ya usa `despachos.py::crear()`.
+3. Nuevo `elif float(hab["saldo_usd"] or 0) < monto_usd - 0.001:` insertado en la cadena existente, justo después del `elif` de `saldo_usable_l` — mismo mecanismo de bloqueo (`error` + redirect con `access_error`, `tarjeta_link` para el enlace "Recargar tarjeta"), mensaje en el mismo formato que `despachos.py` (disponible/requerido en USD, con el desglose litros × factor).
+
+`despachos.py` queda intacto — coexisten dos líneas de defensa: habilitar (filtro temprano) y despachar (revalidación justo antes de descontar el saldo real).
+
+## Verificación (local, SQLite, puerto 5058 — no producción)
+
+Se sembraron 2 tarjetas de prueba sobre "La Shell": tarjeta A (`saldo_usable_l=3200`, `saldo_usd=100`) y tarjeta B (`saldo_usable_l=3200`, `saldo_usd=5000`), y 2 habilitaciones pendientes de 1000 L cada una (requieren 900 USD al factor default 0.90) — una por cada tarjeta.
+
+| Caso | Resultado |
+|---|---|
+| Aprobar habilitación con tarjeta A (litros ok, USD insuficiente) | ✅ **Bloqueada** — `access_error=Saldo+Fincimex+insuficiente.+Disponible:+$100.00+USD,+requerido:+$900.00+USD+(1,000.00+L+×+0.9).&tarjeta_link=6`. `estado` permaneció `pendiente` en BD. Screenshot del banner rojo con el mensaje y el link "Recargar tarjeta →". |
+| Aprobar habilitación con tarjeta B (ambos saldos suficientes) | ✅ `POST` → 302, `estado='aprobada'`, `aprobado_por` seteado. Screenshot: "Aprobada", botón "Registrar despacho" habilitado. |
+| `despachos.py` sigue bloqueando (no se rompió) | ✅ Se aprobó la habilitación con tarjeta B y **después** se redujo manualmente `saldo_usd` de esa tarjeta a $50 (simula que el saldo cambió entre aprobar y despachar, el escenario real que justifica tener el chequeo en ambos puntos) → al intentar despachar, `despachos.py` bloqueó con `"Saldo Fincimex insuficiente. Disponible: $50.00 USD, requerido: $900.00 USD (1,000.00 L × 0.9)."`, HTTP 200 (re-render, no redirect). Confirmado en BD: `habilitaciones.estado` siguió `'aprobada'` (no pasó a `'despachada'`), 0 filas nuevas en `despachos`, saldo de la tarjeta sin cambios (`3200.0 L`, `$50.0`). |
+
+**0 errores 500** en toda la sesión (21× 200, 4× 302, 1× 404 favicon).
+
+## Errores encontrados
+
+Ninguno.
+
+## Correcciones aplicadas
+
+La descrita arriba, en `blueprints/habilitaciones.py::aprobar()` únicamente.
+
+## Recomendaciones
+
+Ninguna pendiente sobre este punto — coexisten correctamente las dos líneas de defensa, tal como se pidió.
