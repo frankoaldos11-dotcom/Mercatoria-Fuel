@@ -47,7 +47,7 @@
                 <i class="bi bi-box-arrow-right"></i> Registrar despacho
             </a>
             {% endif %}
-            {% if session.get('rol') in ('admin', 'pm') %}
+            {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
             {% if hab.estado == 'pendiente' %}
             <form method="POST" action="/habilitaciones/{{ hab.id }}/aprobar" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -65,7 +65,7 @@
         </div>
     </div>
 
-    {% if session.get('rol') in ('admin', 'pm') and hab.estado in ('pendiente', 'aprobada') %}
+    {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') and hab.estado in ('pendiente', 'aprobada') %}
     <div id="form-cancelar" class="collapse" style="padding:16px 24px;border-top:1px solid var(--border);">
         <form method="POST" action="/habilitaciones/{{ hab.id }}/cancelar">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

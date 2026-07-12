@@ -11,7 +11,7 @@
         <p>{{ tarjeta.gasolinera_nombre }} · {{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}</p>
     </div>
     <div class="d-flex gap-2">
-        {% if session.get('rol') in ('admin', 'pm') %}
+        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <a href="/tarjetas/{{ tarjeta.id }}/recargar" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Recargar
         </a>
@@ -21,7 +21,7 @@
             <i class="bi bi-pencil"></i> Editar
         </a>
         {% endif %}
-        {% if session.get('rol') in ('admin', 'pm') %}
+        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <a href="/tarjetas/{{ tarjeta.id }}/asignar-saldo" class="btn btn-success">
             <i class="bi bi-currency-dollar"></i> Asignar saldo USD
         </a>
@@ -71,7 +71,7 @@
             ≈ {{ "{:,.2f}".format((tarjeta.saldo_usd | float) / factor if factor else 0) }} L equiv.
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Factor: {{ factor }} $/L</div>
-        {% if session.get('rol') in ('admin', 'pm') and bolson_disponible > 0 %}
+        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') and bolson_disponible > 0 %}
         <div style="margin-top:10px;">
             <a href="/tarjetas/{{ tarjeta.id }}/asignar-saldo" class="btn btn-success btn-sm">
                 <i class="bi bi-plus-lg"></i> Asignar desde bolsón
@@ -101,7 +101,7 @@
             <span class="badge badge-neutral" style="font-size:14px;padding:6px 16px;">Inactiva</span>
             {% endif %}
         </div>
-        {% if session.get('rol') in ('admin', 'pm') %}
+        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <div style="margin-top:12px;">
             <form method="POST" action="/tarjetas/{{ tarjeta.id }}/toggle" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -188,7 +188,7 @@
         <h2 style="font-size:16px;font-weight:600;margin:0;">
             <i class="bi bi-plus-circle"></i> Recargas
         </h2>
-        {% if session.get('rol') in ('admin', 'pm') %}
+        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <a href="/tarjetas/{{ tarjeta.id }}/recargar" class="btn btn-primary btn-sm">
             <i class="bi bi-plus-lg"></i> Nueva recarga
         </a>

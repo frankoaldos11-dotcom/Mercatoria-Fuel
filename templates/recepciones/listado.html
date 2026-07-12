@@ -10,7 +10,7 @@
         <h1>Recepciones</h1>
         <p>Registro de entregas de combustible en depósitos.</p>
     </div>
-    {% if session.get('rol') in ('admin', 'pm') %}
+    {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
     <a href="/recepciones/crear" class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> Nueva recepción
     </a>
@@ -115,7 +115,7 @@
                     </td>
                     <td>
                         <div class="d-flex gap-2">
-                            {% if r.estado == 'pendiente' and session.get('rol') in ('admin', 'pm') %}
+                            {% if r.estado == 'pendiente' and session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
                             <form method="POST" action="/recepciones/{{ r.id }}/confirmar" style="display:inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-success btn-sm"
@@ -141,7 +141,7 @@
                     <td colspan="10" class="empty-state">
                         <i class="bi bi-box-arrow-in-down" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay recepciones registradas.
-                        {% if session.get('rol') in ('admin', 'pm') %}
+                        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
                         <br><a href="/recepciones/crear" class="btn btn-primary mt-3">
                             <i class="bi bi-plus-lg"></i> Registrar la primera
                         </a>

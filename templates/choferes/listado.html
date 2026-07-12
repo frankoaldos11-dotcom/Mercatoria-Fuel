@@ -11,7 +11,7 @@
         <p>Conductores habilitados para recibir despachos de combustible.</p>
     </div>
     <div class="d-flex gap-2">
-        {% if session.get('rol') in ('admin', 'pm') %}
+        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <a href="/choferes/importar" class="btn btn-secondary">
             <i class="bi bi-file-earmark-excel"></i> Importar Excel
         </a>
@@ -110,7 +110,7 @@
                     </td>
                     <td>
                         <div class="d-flex gap-2">
-                            {% if session.get('rol') in ('admin', 'pm') %}
+                            {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
                             <a href="/choferes/{{ ch.id }}/editar" class="btn btn-soft btn-sm">
                                 <i class="bi bi-pencil"></i> Editar
                             </a>
@@ -135,7 +135,7 @@
                     <td colspan="8" class="empty-state">
                         <i class="bi bi-person-badge" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay choferes registrados.
-                        {% if session.get('rol') in ('admin', 'pm') %}
+                        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
                         <br><a href="/choferes/crear" class="btn btn-primary mt-3">
                             <i class="bi bi-plus-lg"></i> Crear el primero
                         </a>

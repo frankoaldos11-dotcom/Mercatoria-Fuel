@@ -11,7 +11,7 @@
         <p>{{ deposito.region }} — {{ combustible_labels.get(deposito.tipo_combustible, deposito.tipo_combustible) }}</p>
     </div>
     <div class="d-flex gap-2">
-        {% if session.get('rol') in ('admin', 'pm') %}
+        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <a href="/depositos/{{ deposito.id }}/editar" class="btn btn-secondary">
             <i class="bi bi-pencil"></i> Editar
         </a>
@@ -59,7 +59,7 @@
 </div>
 
 <!-- Acciones rápidas -->
-{% if session.get('rol') in ('admin', 'pm') %}
+{% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
 <div class="d-flex gap-2 mb-4">
     <a href="/transferencias/crear?deposito_id={{ deposito.id }}" class="btn btn-primary">
         <i class="bi bi-arrow-right-circle"></i> Nueva transferencia

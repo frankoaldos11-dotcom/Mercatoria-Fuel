@@ -36,7 +36,7 @@
 {% if gasolinera_id and fecha %}
 
 <!-- Formulario inline para añadir habilitación -->
-{% if rol in ('admin', 'pm') %}
+{% if rol in ('admin', 'pm', 'puesto_de_mando') %}
 <div class="panel mb-4" id="panel-nueva-hab">
     <div class="panel-header">
         <h2><i class="bi bi-plus-circle"></i> Añadir habilitación</h2>
@@ -123,7 +123,7 @@
                     {% if rol in ('admin', 'pm', 'puesto_de_mando', 'operador_gasolinera') %}
                     <td>
                         <div style="display:flex;gap:4px;" id="acciones-{{ h.id }}">
-                            {% if h.estado == 'pendiente' and rol in ('admin', 'pm') %}
+                            {% if h.estado == 'pendiente' and rol in ('admin', 'pm', 'puesto_de_mando') %}
                             <button class="btn btn-sm btn-success" onclick="aprobar({{ h.id }})">
                                 <i class="bi bi-check-lg"></i> Aprobar
                             </button>

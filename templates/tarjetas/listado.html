@@ -10,7 +10,7 @@
         <h1>Tarjetas Fincimex</h1>
         <p>Control de saldos usables y retenciones por devolución.</p>
     </div>
-    {% if session.get('rol') in ('admin', 'pm') %}
+    {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
     <a href="/tarjetas/crear" class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> Nueva tarjeta
     </a>
@@ -58,7 +58,7 @@
     </form>
 </div>
 
-{% if session.get('rol') in ('admin', 'pm') %}
+{% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
 <!-- Bolsón general Fincimex -->
 <div class="panel mb-4" style="border:2px solid #16A34A;">
     <div class="panel-header" style="background:#F0FDF4;">
@@ -100,7 +100,7 @@
                             <a href="/tarjetas/{{ t.id }}" class="btn btn-soft btn-sm">
                                 <i class="bi bi-eye"></i> Ver
                             </a>
-                            {% if session.get('rol') in ('admin', 'pm') %}
+                            {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
                             <a href="/tarjetas/{{ t.id }}/recargar" class="btn btn-secondary btn-sm">
                                 <i class="bi bi-plus-circle"></i> Recargar
                             </a>
@@ -162,7 +162,7 @@
                     <td colspan="9" class="empty-state">
                         <i class="bi bi-credit-card-2-front" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay tarjetas registradas.
-                        {% if session.get('rol') in ('admin', 'pm') %}
+                        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
                         <br><a href="/tarjetas/crear" class="btn btn-primary mt-3">
                             <i class="bi bi-plus-lg"></i> Crear la primera
                         </a>
