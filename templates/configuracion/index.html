@@ -21,6 +21,19 @@
 </div>
 {% endif %}
 
+{% if reseteo_resumen %}
+<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#14532D;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
+    <div style="font-weight:700;margin-bottom:8px;"><i class="bi bi-check-circle"></i> Reseteo de inventario ejecutado correctamente.</div>
+    <div style="margin-bottom:4px;">Tarjetas con saldo reseteado a 0: <strong>{{ reseteo_resumen.tarjetas_reseteadas }}</strong> · Subinventarios reseteados: <strong>{{ reseteo_resumen.subinventarios_reseteados }}</strong></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px;">Filas eliminadas por tabla:</div>
+    <ul style="margin:4px 0 0;padding-left:20px;font-size:12px;">
+        {% for tabla, n in reseteo_resumen.tablas.items() %}
+        <li>{{ tabla }}: {{ n }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
 <!-- Parámetros operativos -->
 <div class="panel" style="margin-bottom:24px;">
     <form method="POST" action="/configuracion/">
@@ -159,6 +172,57 @@
         </table>
     </div>
 </div>
+
+<!-- Modo de reseteo de inventario -->
+<div class="panel" style="margin-top:24px;">
+    <div style="padding:20px 24px;">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 4px;">Modo de reseteo de inventario</h2>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 14px;">
+            Al activarlo aparece una zona de reseteo total del inventario, pensada solo para reconstruir el ciclo
+            durante pruebas. Está apagado por defecto y no es visible para nadie mientras lo esté.
+        </p>
+        <form method="POST" action="/configuracion/reseteo/toggle" onsubmit="return confirm('{{ '¿Desactivar' if reseteo_habilitado else '¿Activar' }} el modo de reseteo de inventario?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm {{ 'btn-secondary' if reseteo_habilitado else 'btn-primary' }}">
+                {% if reseteo_habilitado %}
+                <i class="bi bi-toggle-on"></i> Modo de reseteo activado — clic para desactivar
+                {% else %}
+                <i class="bi bi-toggle-off"></i> Activar modo de reseteo
+                {% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if reseteo_habilitado %}
+<div class="panel" style="margin-top:24px;border:2px solid #DC2626;">
+    <div style="padding:20px 24px;background:#FEF2F2;">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 4px;color:#991B1B;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Zona de peligro — Reseteo de inventario a cero
+        </h2>
+        <p style="font-size:13px;color:#991B1B;margin:0;">
+            Vacía por completo movimientos, recepciones, transferencias, llegadas de puerto, recargas y devoluciones
+            de tarjeta, habilitaciones, despachos, reservas de Tienda, conciliaciones y movimientos TL38. Pone en 0
+            el saldo usable, saldo Fincimex y saldo retenido de todas las tarjetas, y los litros reservados de todos
+            los subinventarios. Conserva gasolineras, clientes, depósitos, puertos, usuarios, tarjetas, precios y
+            configuración. <strong>Esta acción no se puede deshacer.</strong>
+        </p>
+    </div>
+    <div style="padding:20px 24px;">
+        <form method="POST" action="/configuracion/resetear-inventario"
+              onsubmit="return confirm('Esta acción borrará todos los datos transaccionales y reseteará los saldos a 0. ¿Confirmas que quieres continuar?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3" style="max-width:400px;">
+                <label class="form-label">Escribe <strong>RESETEAR</strong> para confirmar</label>
+                <input type="text" name="confirmacion" class="form-control" autocomplete="off" placeholder="RESETEAR" required>
+            </div>
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash3-fill"></i> Ejecutar reseteo de inventario
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 {% endblock %}
 {% block scripts %}

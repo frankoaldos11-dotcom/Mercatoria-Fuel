@@ -7,6 +7,49 @@ configuracion_bp = Blueprint("configuracion", __name__, url_prefix="/configuraci
 
 _ROLES_ADMIN = ["admin"]
 
+_FLAG_RESETEO = "reseteo_inventario_habilitado"
+_PALABRA_CONFIRMACION = "RESETEAR"
+
+# Orden de borrado: primero las tablas referenciadas por otras dentro de este mismo
+# conjunto (despachos -> habilitaciones; movimientos_saldo_fincimex -> recepciones
+# y llegadas_puerto), luego el resto sin dependencias cruzadas entre sí.
+_TABLAS_TRANSACCIONALES = [
+    "despachos",
+    "movimientos_saldo_fincimex",
+    "movimientos",
+    "recepciones",
+    "transferencias",
+    "llegadas_puerto",
+    "recargas_tarjetas",
+    "devoluciones_tarjetas",
+    "habilitaciones",
+    "reservas_tienda",
+    "conciliaciones",
+    "movimientos_tl38",
+]
+
+
+def _registrar_auditoria(usuario_id, accion, tabla, registro_id, valor_anterior=None, valor_nuevo=None):
+    try:
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO auditoria
+                (usuario_id, accion, tabla_afectada, registro_id, valor_anterior, valor_nuevo, ip, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            usuario_id, accion, tabla, registro_id,
+            str(valor_anterior) if valor_anterior else None,
+            str(valor_nuevo) if valor_nuevo else None,
+            request.remote_addr,
+            request.headers.get("User-Agent", "")[:512],
+        ))
+        conn.commit()
+        conn.close()
+    except Exception:
+        from flask import current_app
+        current_app.logger.exception("Error registrando auditoría")
+
 _PARAMS_LABELS = {
     "compra_minima_litros": {
         "label": "Compra mínima por habilitación (litros)",
@@ -63,6 +106,9 @@ def index():
 
     conn.close()
 
+    reseteo_habilitado = config.get(_FLAG_RESETEO, "false") == "true"
+    reseteo_resumen = session.pop("reseteo_resumen", None)
+
     return render_template(
         "configuracion/index.html",
         config=config,
@@ -73,7 +119,104 @@ def index():
         tipos_combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         error=error,
         ok=ok,
+        reseteo_habilitado=reseteo_habilitado,
+        reseteo_resumen=reseteo_resumen,
     )
+
+
+@configuracion_bp.route("/reseteo/toggle", methods=["POST"])
+def reseteo_toggle():
+    redir = requiere_rol(*_ROLES_ADMIN)
+    if redir:
+        return redir
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT valor FROM configuracion WHERE clave = ?", (_FLAG_RESETEO,))
+    row = cur.fetchone()
+    actual = row["valor"] if row else "false"
+    nuevo = "false" if actual == "true" else "true"
+
+    cur.execute("""
+        INSERT INTO configuracion (clave, valor)
+        VALUES (?, ?)
+        ON CONFLICT(clave)
+        DO UPDATE SET valor = excluded.valor, updated_at = CURRENT_TIMESTAMP
+    """, (_FLAG_RESETEO, nuevo))
+    conn.commit()
+    conn.close()
+
+    _registrar_auditoria(
+        session.get("user_id"),
+        f"{'Activó' if nuevo == 'true' else 'Desactivó'} el modo de reseteo de inventario",
+        "configuracion", 0,
+        valor_anterior={_FLAG_RESETEO: actual},
+        valor_nuevo={_FLAG_RESETEO: nuevo},
+    )
+    return redirect("/configuracion/?ok=1")
+
+
+@configuracion_bp.route("/resetear-inventario", methods=["POST"])
+def resetear_inventario():
+    redir = requiere_rol(*_ROLES_ADMIN)
+    if redir:
+        return redir
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    # Barrera 2: releer el flag de la base de datos, nunca confiar en la UI.
+    cur.execute("SELECT valor FROM configuracion WHERE clave = ?", (_FLAG_RESETEO,))
+    row = cur.fetchone()
+    if not row or row["valor"] != "true":
+        conn.close()
+        return redirect("/configuracion/?error=El+reseteo+de+inventario+no+está+habilitado")
+
+    # Barrera 3: palabra de confirmación exacta.
+    confirmacion = request.form.get("confirmacion", "").strip()
+    if confirmacion != _PALABRA_CONFIRMACION:
+        conn.close()
+        return redirect("/configuracion/?error=Confirmación+incorrecta.+Debes+escribir+RESETEAR")
+
+    # Conteos previos, para el resumen posterior.
+    conteos = {}
+    for tabla in _TABLAS_TRANSACCIONALES:
+        cur.execute(f"SELECT COUNT(*) AS n FROM {tabla}")
+        conteos[tabla] = cur.fetchone()["n"]
+
+    cur.execute("SELECT COUNT(*) AS n FROM tarjetas")
+    n_tarjetas = cur.fetchone()["n"]
+    cur.execute("SELECT COUNT(*) AS n FROM subinventarios")
+    n_subinventarios = cur.fetchone()["n"]
+
+    # Vaciado en el orden que respeta las FK internas del conjunto transaccional.
+    for tabla in _TABLAS_TRANSACCIONALES:
+        cur.execute(f"DELETE FROM {tabla}")
+
+    # Saldos a 0 — se conservan las filas de configuración/maestros.
+    cur.execute("""
+        UPDATE tarjetas
+        SET saldo_usable_l = 0, saldo_usd = 0, saldo_retenido_l = 0, updated_at = CURRENT_TIMESTAMP
+    """)
+    cur.execute("""
+        UPDATE subinventarios
+        SET litros_reservados = 0, updated_at = CURRENT_TIMESTAMP
+    """)
+
+    conn.commit()
+    conn.close()
+
+    resumen = {"tablas": conteos, "tarjetas_reseteadas": n_tarjetas, "subinventarios_reseteados": n_subinventarios}
+
+    _registrar_auditoria(
+        session.get("user_id"),
+        "Reseteo de inventario a cero",
+        "sistema", 0,
+        valor_nuevo=resumen,
+    )
+
+    session["reseteo_resumen"] = resumen
+    return redirect("/configuracion/?ok=1")
 
 
 @configuracion_bp.route("/precios/guardar", methods=["POST"])
