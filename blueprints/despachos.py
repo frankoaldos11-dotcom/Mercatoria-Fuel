@@ -276,6 +276,9 @@ def crear():
             if not hab:
                 error = "La habilitación no está disponible para despacho."
                 conn.close()
+            elif hab["tarjeta_estado"] != "activa":
+                error = "La tarjeta no está activa."
+                conn.close()
             elif float(hab["saldo_usable_l"]) < litros - 0.001:
                 error = (
                     f"Saldo insuficiente en la tarjeta. Disponible: "

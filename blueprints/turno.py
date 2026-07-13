@@ -288,7 +288,7 @@ def api_despachar(hab_id):
     cur = conn.cursor()
     cur.execute("""
         SELECT h.*, v.id AS vid, t.id AS tid, t.saldo_usable_l, t.saldo_usd,
-               s.litros_reservados AS sub_litros
+               t.estado AS tarjeta_estado, s.litros_reservados AS sub_litros
         FROM habilitaciones h
         JOIN vehiculos v ON v.id = h.unidad_id
         JOIN tarjetas t ON t.id = h.tarjeta_id
@@ -310,6 +310,11 @@ def api_despachar(hab_id):
         if not gid_sesion or int(hab["gasolinera_id"]) != int(gid_sesion):
             conn.close()
             return jsonify({"error": "No autorizado: esta habilitación no corresponde a tu gasolinera"}), 403
+
+    # Validar estado de la tarjeta
+    if hab["tarjeta_estado"] != "activa":
+        conn.close()
+        return jsonify({"error": "La tarjeta no está activa"}), 400
 
     # Validar saldo_usable_l (litros)
     if float(hab["saldo_usable_l"]) < litros - 0.001:
@@ -543,11 +548,14 @@ def api_reserva_completar(token):
         factor = float(_frow["valor"]) if _frow else 0.90
         monto_usd = round(litros * factor, 2)
 
-        cur.execute("SELECT saldo_usable_l, saldo_usd FROM tarjetas WHERE id=?", (row["tarjeta_id"],))
+        cur.execute("SELECT saldo_usable_l, saldo_usd, estado FROM tarjetas WHERE id=?", (row["tarjeta_id"],))
         t = cur.fetchone()
         if not t:
             conn.close()
             return jsonify({"error": "Tarjeta asignada no encontrada"}), 400
+        if t["estado"] != "activa":
+            conn.close()
+            return jsonify({"error": "La tarjeta no está activa"}), 400
         if float(t["saldo_usd"] or 0) < monto_usd - 0.001:
             detalle = (
                 f"Disponible: ${float(t['saldo_usd'] or 0):,.2f} USD, "

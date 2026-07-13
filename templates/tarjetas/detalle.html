@@ -102,15 +102,43 @@
             {% endif %}
         </div>
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
-        <div style="margin-top:12px;">
-            <form method="POST" action="/tarjetas/{{ tarjeta.id }}/toggle" style="display:inline;">
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            {% if tarjeta.estado == 'activa' %}
+            <form method="POST" action="/tarjetas/{{ tarjeta.id }}/cambiar-estado" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="destino" value="inactiva">
                 <button type="submit" class="btn btn-sm btn-secondary"
                         onclick="return confirm('¿Confirmar cambio de estado?')">
-                    {% if tarjeta.estado == 'activa' %}<i class="bi bi-toggle-off"></i> Desactivar
-                    {% else %}<i class="bi bi-toggle-on"></i> Activar{% endif %}
+                    <i class="bi bi-toggle-off"></i> Desactivar
                 </button>
             </form>
+            <form method="POST" action="/tarjetas/{{ tarjeta.id }}/cambiar-estado" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="destino" value="bloqueada">
+                <button type="submit" class="btn btn-sm btn-danger"
+                        onclick="return confirm('¿Confirmar bloqueo de la tarjeta?')">
+                    <i class="bi bi-lock"></i> Bloquear
+                </button>
+            </form>
+            {% elif tarjeta.estado == 'inactiva' %}
+            <form method="POST" action="/tarjetas/{{ tarjeta.id }}/cambiar-estado" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="destino" value="activa">
+                <button type="submit" class="btn btn-sm btn-secondary"
+                        onclick="return confirm('¿Confirmar cambio de estado?')">
+                    <i class="bi bi-toggle-on"></i> Activar
+                </button>
+            </form>
+            {% elif tarjeta.estado == 'bloqueada' %}
+            <form method="POST" action="/tarjetas/{{ tarjeta.id }}/cambiar-estado" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="destino" value="activa">
+                <button type="submit" class="btn btn-sm btn-success"
+                        onclick="return confirm('¿Confirmar desbloqueo de la tarjeta?')">
+                    <i class="bi bi-unlock"></i> Desbloquear
+                </button>
+            </form>
+            {% endif %}
         </div>
         {% endif %}
     </div>

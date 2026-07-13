@@ -11,6 +11,12 @@ tarjetas_bp = Blueprint("tarjetas", __name__, url_prefix="/tarjetas")
 
 _ROLES_EDITAR_TARJETA = ["admin", "puesto_de_mando"]
 
+_TRANSICIONES_VALIDAS = {
+    "activa": ["inactiva", "bloqueada"],
+    "inactiva": ["activa"],
+    "bloqueada": ["activa"],
+}
+
 
 def _get_factor(cur):
     cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
@@ -337,28 +343,53 @@ def editar(id):
     )
 
 
-# ── Toggle estado ─────────────────────────────────────────────────────────────
+# ── Cambiar estado (activa / inactiva / bloqueada) ─────────────────────────────
 
-@tarjetas_bp.route("/<int:id>/toggle", methods=["POST"])
-def toggle_estado(id):
+@tarjetas_bp.route("/<int:id>/cambiar-estado", methods=["POST"])
+def cambiar_estado(id):
     redir = requiere_login()
     if redir:
         return redir
     if _requiere_admin_pm():
         return redirect("/tarjetas?access_error=Sin+permisos")
 
+    destino = request.form.get("destino", "").strip()
+
     conn = conectar()
     cur = conn.cursor()
     cur.execute("SELECT estado FROM tarjetas WHERE id = ?", (id,))
     row = cur.fetchone()
-    if row:
-        nuevo = "inactiva" if row["estado"] == "activa" else "activa"
-        cur.execute(
-            "UPDATE tarjetas SET estado = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (nuevo, id)
+
+    if not row:
+        conn.close()
+        return redirect("/tarjetas")
+
+    actual = row["estado"]
+
+    if destino not in ESTADOS_TARJETA or destino not in _TRANSICIONES_VALIDAS.get(actual, []):
+        conn.close()
+        return redirect(
+            f"/tarjetas/{id}?access_error=Transición+de+estado+no+permitida+"
+            f"({actual}+→+{destino or '?'})"
         )
-        conn.commit()
+
+    cur.execute(
+        "UPDATE tarjetas SET estado = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (destino, id)
+    )
+    conn.commit()
     conn.close()
+
+    if destino == "bloqueada" or actual == "bloqueada":
+        accion = "Bloqueó tarjeta" if destino == "bloqueada" else "Desbloqueó tarjeta"
+        _registrar_auditoria(
+            session.get("user_id"),
+            accion,
+            "tarjetas", id,
+            valor_anterior={"estado": actual},
+            valor_nuevo={"estado": destino},
+        )
+
     return redirect(f"/tarjetas/{id}?ok=1")
 
 
