@@ -76,6 +76,15 @@
         </div>
     </div>
     <div class="kpi-card">
+        <div class="kpi-icon {{ 'warning' if pendientes_imagen > 0 else 'neutral' }}">
+            <i class="bi bi-camera"></i>
+        </div>
+        <div>
+            <span>Despachos pendientes de imagen</span>
+            <strong>{{ pendientes_imagen }}</strong>
+        </div>
+    </div>
+    <div class="kpi-card">
         <div class="kpi-icon {{ 'warning' if conciliaciones_pendientes > 0 else 'neutral' }}">
             <i class="bi bi-check2-square"></i>
         </div>

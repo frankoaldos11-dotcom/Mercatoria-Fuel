@@ -268,9 +268,7 @@ def api_despachar(hab_id):
     litros_str = request.form.get("litros_despachados", "0").replace(",", ".")
     foto = request.files.get("foto_ticket")
 
-    if not foto or not foto.filename:
-        return jsonify({"error": "La foto del ticket es obligatoria"}), 400
-    if not foto_valida(foto):
+    if foto and foto.filename and not foto_valida(foto):
         return jsonify({"error": "Formato de foto no válido. Use JPG, PNG o WEBP."}), 400
 
     try:
@@ -506,6 +504,96 @@ def api_reserva_info(token):
     })
 
 
+@turno_bp.route("/api/reserva-info-por-numero/<int:reserva_id>")
+def api_reserva_info_por_numero(reserva_id):
+    """Igual que api_reserva_info, pero busca por el número (id) de la reserva
+    en vez de por el token del QR — para despachar sin QR/cámara disponible.
+    Devuelve además el token real, para reutilizar el mismo flujo de completar()."""
+    redir = requiere_staff()
+    if redir:
+        return jsonify({"error": "No autorizado"}), 401
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT r.id, r.estado, r.tipo_combustible, r.litros_solicitados,
+               r.precio_usd_por_litro, r.precio_total_usd,
+               r.descripcion_vehiculo, r.observaciones, r.qr_token,
+               g.nombre AS gasolinera_nombre,
+               u.nombre AS cliente_nombre, u.email AS cliente_email
+        FROM reservas_tienda r
+        JOIN gasolineras g ON g.id = r.gasolinera_id
+        JOIN usuarios u ON u.id = r.usuario_id
+        WHERE r.id = ?
+    """, (reserva_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "No existe una reserva con ese número"}), 404
+
+    return jsonify({
+        "id": row["id"],
+        "token": row["qr_token"],
+        "estado": row["estado"],
+        "tipo_combustible": row["tipo_combustible"],
+        "litros": float(row["litros_solicitados"]),
+        "precio_unitario": float(row["precio_usd_por_litro"]),
+        "precio_total": float(row["precio_total_usd"]),
+        "vehiculo": row["descripcion_vehiculo"] or "—",
+        "observaciones": row["observaciones"] or "—",
+        "gasolinera": row["gasolinera_nombre"],
+        "cliente": row["cliente_nombre"],
+        "cliente_email": row["cliente_email"],
+    })
+
+
+@turno_bp.route("/api/habilitacion-info/<int:hab_id>")
+def api_habilitacion_info(hab_id):
+    """Consulta de solo lectura de una habilitación por su número — para
+    despachar sin QR/cámara disponible. El despacho en sí sigue haciéndose
+    con api_despachar(hab_id), sin cambios."""
+    redir = requiere_staff()
+    if redir:
+        return jsonify({"error": "No autorizado"}), 401
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT h.id, h.estado, h.litros_autorizados, h.gasolinera_id,
+               cli.nombre AS cliente_nombre,
+               v.chapa AS unidad_chapa, v.tipo_combustible,
+               ch.nombre AS chofer_nombre,
+               g.nombre AS gasolinera_nombre,
+               t.numero_parcial AS tarjeta_parcial
+        FROM habilitaciones h
+        JOIN clientes cli ON cli.id = h.cliente_id
+        JOIN vehiculos v ON v.id = h.unidad_id
+        LEFT JOIN choferes ch ON ch.id = v.chofer_id
+        JOIN gasolineras g ON g.id = h.gasolinera_id
+        JOIN tarjetas t ON t.id = h.tarjeta_id
+        WHERE h.id = ?
+    """, (hab_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "No existe una habilitación con ese número"}), 404
+
+    return jsonify({
+        "id": row["id"],
+        "estado": row["estado"],
+        "litros_autorizados": float(row["litros_autorizados"]),
+        "gasolinera_id": row["gasolinera_id"],
+        "gasolinera": row["gasolinera_nombre"],
+        "cliente": row["cliente_nombre"],
+        "unidad": row["unidad_chapa"],
+        "chofer": row["chofer_nombre"] or "—",
+        "tipo_combustible": row["tipo_combustible"],
+        "tarjeta": row["tarjeta_parcial"],
+    })
+
+
 @turno_bp.route("/api/reserva-completar/<token>", methods=["POST"])
 def api_reserva_completar(token):
     redir = requiere_staff()
@@ -515,9 +603,7 @@ def api_reserva_completar(token):
         return jsonify({"error": "Sin permiso"}), 403
 
     foto = request.files.get("foto_ticket")
-    if not foto or not foto.filename:
-        return jsonify({"error": "La foto del ticket es obligatoria"}), 400
-    if not foto_valida(foto):
+    if foto and foto.filename and not foto_valida(foto):
         return jsonify({"error": "Formato de foto no válido. Use JPG, PNG o WEBP."}), 400
 
     conn = conectar()

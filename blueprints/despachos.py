@@ -166,6 +166,44 @@ def detalle(id):
     )
 
 
+# ── Subir foto diferida ──────────────────────────────────────────────────────
+
+@despachos_bp.route("/<int:id>/subir-foto", methods=["POST"])
+def subir_foto(id):
+    redir = requiere_staff()
+    if redir:
+        return redir
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT id, gasolinera_id, foto_ticket_url FROM despachos WHERE id = ?", (id,))
+    despacho = cur.fetchone()
+
+    if not despacho:
+        conn.close()
+        return redirect("/despachos")
+
+    if session.get("rol") == "operador_gasolinera":
+        gid_sesion = session.get("gasolinera_id")
+        if not gid_sesion or int(despacho["gasolinera_id"]) != int(gid_sesion):
+            conn.close()
+            return redirect(f"/despachos/{id}?access_error=No+autorizado:+este+despacho+no+corresponde+a+tu+gasolinera")
+
+    foto_ticket = request.files.get("foto_ticket")
+    if not foto_ticket or not foto_ticket.filename:
+        conn.close()
+        return redirect(f"/despachos/{id}?access_error=Debe+seleccionar+una+foto")
+    if not foto_valida(foto_ticket):
+        conn.close()
+        return redirect(f"/despachos/{id}?access_error=Formato+de+foto+no+válido.+Use+JPG,+PNG+o+WEBP")
+
+    foto_ticket_url = guardar_adjunto(cur, "despacho", id, "ticket", foto_ticket)
+    cur.execute("UPDATE despachos SET foto_ticket_url = ? WHERE id = ?", (foto_ticket_url, id))
+    conn.commit()
+    conn.close()
+    return redirect(f"/despachos/{id}?ok=1")
+
+
 # ── Crear ─────────────────────────────────────────────────────────────────────
 
 @despachos_bp.route("/crear", methods=["GET", "POST"])
@@ -223,9 +261,7 @@ def crear():
 
         if not habilitacion_id:
             error = "Debe seleccionar una habilitación aprobada."
-        elif not foto_ticket or not foto_ticket.filename:
-            error = "La foto del ticket es obligatoria."
-        elif not foto_valida(foto_ticket):
+        elif foto_ticket and foto_ticket.filename and not foto_valida(foto_ticket):
             error = "Formato de foto no válido. Use JPG, PNG o WEBP."
         elif foto_vehiculo and foto_vehiculo.filename and not foto_valida(foto_vehiculo):
             error = "Formato de foto de vehículo no válido. Use JPG, PNG o WEBP."

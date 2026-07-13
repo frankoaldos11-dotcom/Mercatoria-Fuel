@@ -49,15 +49,53 @@
         </div>
     </div>
 
+    <!-- Búsqueda por número (sin QR) -->
+    <div class="panel" style="grid-column:1/-1;">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+            <strong><i class="bi bi-hash"></i> Buscar por número (sin QR)</strong>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Para cuando el cliente no trae el QR, no hay cámara disponible, o falla la conexión del escáner.</div>
+        </div>
+        <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="scan-grid">
+            <div>
+                <label class="form-label">Nº de reserva de Tienda</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="number" id="inp-num-reserva" class="form-control" placeholder="Ej. 42" min="1">
+                    <button onclick="buscarReservaPorNumero(document.getElementById('inp-num-reserva').value)" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Nº de habilitación</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="number" id="inp-num-hab" class="form-control" placeholder="Ej. 108" min="1">
+                    <button onclick="buscarHabilitacionPorNumero(document.getElementById('inp-num-hab').value)" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<!-- Resultado -->
+<!-- Resultado: reserva de Tienda -->
 <div id="resultado" style="display:none;margin-top:24px;max-width:860px;">
     <div class="panel">
         <div style="padding:20px 24px;border-bottom:1px solid var(--border);" id="res-header">
             <strong>Reserva encontrada</strong>
         </div>
         <div style="padding:20px 24px;" id="res-body"></div>
+    </div>
+</div>
+
+<!-- Resultado: habilitación -->
+<div id="resultado-hab" style="display:none;margin-top:24px;max-width:860px;">
+    <div class="panel">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);" id="res-hab-header">
+            <strong>Habilitación encontrada</strong>
+        </div>
+        <div style="padding:20px 24px;" id="res-hab-body"></div>
     </div>
 </div>
 
@@ -182,6 +220,109 @@ async function completar(token, btn) {
         document.getElementById('res-header').innerHTML += ' — <span style="color:#166534;font-weight:700;">COMPLETADA</span>';
     } else {
         alert(data.error || 'Error al completar');
+        btn.disabled = false;
+    }
+}
+
+// ── Búsqueda por número (sin QR) — reserva de Tienda ────────────────────────
+async function buscarReservaPorNumero(numero) {
+    if (!numero) return;
+    showError('');
+    document.getElementById('resultado-hab').style.display = 'none';
+    document.getElementById('resultado').style.display = 'none';
+
+    const resp = await fetch(`/turno/api/reserva-info-por-numero/${numero}`);
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+        showError(data.error || 'Reserva no encontrada');
+        return;
+    }
+
+    // Reutiliza exactamente el mismo panel/flujo que el escaneo por QR.
+    mostrarResultado(data.token, data);
+}
+
+// ── Búsqueda por número (sin QR) — habilitación ──────────────────────────────
+async function buscarHabilitacionPorNumero(numero) {
+    if (!numero) return;
+    showError('');
+    document.getElementById('resultado').style.display = 'none';
+    document.getElementById('resultado-hab').style.display = 'none';
+
+    const resp = await fetch(`/turno/api/habilitacion-info/${numero}`);
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+        showError(data.error || 'Habilitación no encontrada');
+        return;
+    }
+
+    mostrarResultadoHabilitacion(data);
+}
+
+function mostrarResultadoHabilitacion(d) {
+    const LABELS = { diesel:'Diésel', gasolina_regular:'Gasolina Regular', gasolina_especial:'Gasolina Especial' };
+    const ESTADO_COLOR = { pendiente:'#92400E', aprobada:'#1E40AF', despachada:'#166534', cancelada:'#991B1B' };
+    const estadoColor = ESTADO_COLOR[d.estado] || '#374151';
+
+    document.getElementById('res-hab-header').innerHTML =
+        `<strong>Habilitación #${d.id}</strong> — <span style="color:${estadoColor};font-weight:700;">${d.estado.toUpperCase()}</span>`;
+
+    let formHTML = '';
+    if (d.estado === 'aprobada') {
+        formHTML = `
+            <div class="mb-3" style="margin-top:16px;">
+                <label class="form-label">Litros a despachar</label>
+                <input type="text" id="inp-hab-litros" class="form-control" value="${d.litros_autorizados}" inputmode="decimal" style="max-width:200px;">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Foto del ticket (opcional)</label>
+                <input type="file" id="inp-hab-foto" class="form-control" accept=".jpg,.jpeg,.png,.webp" style="max-width:280px;">
+            </div>
+            <button onclick="despacharHabilitacion(${d.id}, this)" class="btn btn-primary">
+                <i class="bi bi-check2-circle"></i> Despachar
+            </button>`;
+    } else {
+        formHTML = `<div style="margin-top:12px;color:#9CA3AF;font-size:13px;">
+            Esta habilitación no está en estado <strong>aprobada</strong> — no se puede despachar.
+        </div>`;
+    }
+
+    document.getElementById('res-hab-body').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px;">
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Cliente</div><div style="font-weight:600;">${d.cliente}</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Gasolinera</div><div style="font-weight:600;">${d.gasolinera}</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Combustible</div><div style="font-weight:600;">${LABELS[d.tipo_combustible] || d.tipo_combustible}</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Litros autorizados</div><div style="font-weight:700;font-size:1.1rem;">${d.litros_autorizados.toLocaleString('es')} L</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Unidad</div><div>${d.unidad}${d.chofer !== '—' ? ' — ' + d.chofer : ''}</div></div>
+            <div><div style="color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;">Tarjeta</div><div style="font-family:monospace;">**** ${d.tarjeta}</div></div>
+        </div>
+        ${formHTML}
+    `;
+    document.getElementById('resultado-hab').style.display = 'block';
+}
+
+async function despacharHabilitacion(habId, btn) {
+    const litros = document.getElementById('inp-hab-litros').value;
+    const foto = document.getElementById('inp-hab-foto').files[0];
+    if (!confirm('¿Confirmar despacho de combustible para esta habilitación?')) return;
+    btn.disabled = true;
+
+    const fd = new FormData();
+    fd.append('litros_despachados', litros);
+    if (foto) fd.append('foto_ticket', foto);
+    fd.append('csrf_token', '{{ csrf_token() }}');
+
+    const resp = await fetch(`/turno/api/${habId}/despachar`, { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (resp.ok && data.ok) {
+        btn.textContent = '✅ Despachado';
+        btn.className = 'btn btn-success';
+        btn.disabled = true;
+        document.getElementById('res-hab-header').innerHTML += ' — <span style="color:#166534;font-weight:700;">DESPACHADA</span>';
+    } else {
+        alert(data.error || 'Error al despachar');
         btn.disabled = false;
     }
 }

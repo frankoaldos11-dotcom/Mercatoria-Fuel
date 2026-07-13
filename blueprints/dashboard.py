@@ -74,6 +74,22 @@ def dashboard():
     """)
     despachos_pendientes = cur.fetchone()["total"] or 0
 
+    # Pendientes de imagen: despachos de flota + reservas de Tienda ya
+    # completados que no tienen foto de ticket (adjunto categoría 'ticket').
+    cur.execute("""
+        SELECT COUNT(*) AS total FROM despachos
+        WHERE estado = 'completado' AND foto_ticket_url IS NULL
+    """)
+    pendientes_imagen_flota = cur.fetchone()["total"] or 0
+
+    cur.execute("""
+        SELECT COUNT(*) AS total FROM reservas_tienda
+        WHERE estado = 'completada' AND foto_ticket_url IS NULL
+    """)
+    pendientes_imagen_tienda = cur.fetchone()["total"] or 0
+
+    pendientes_imagen = pendientes_imagen_flota + pendientes_imagen_tienda
+
     cur.execute("""
         SELECT COUNT(DISTINCT g.id) AS total FROM gasolineras g
         WHERE g.estado = 'activo'
@@ -194,6 +210,7 @@ def dashboard():
             tarjetas_bajo_saldo=tarjetas_bajo_saldo,
             devoluciones_pendientes=devoluciones_pendientes,
             despachos_pendientes=despachos_pendientes,
+            pendientes_imagen=pendientes_imagen,
             conciliaciones_pendientes=conciliaciones_pendientes,
             licencias_por_vencer=licencias_por_vencer,
             conciliaciones_con_alerta=conciliaciones_con_alerta,
@@ -212,6 +229,7 @@ def dashboard():
         tarjetas_bajo_saldo=tarjetas_bajo_saldo,
         devoluciones_pendientes=devoluciones_pendientes,
         despachos_pendientes=despachos_pendientes,
+        pendientes_imagen=pendientes_imagen,
         conciliaciones_pendientes=conciliaciones_pendientes,
         # Alertas
         licencias_por_vencer=licencias_por_vencer,

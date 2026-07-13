@@ -18,7 +18,12 @@
 
 {% if request.args.get('ok') %}
 <div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
-    <i class="bi bi-check-circle"></i> Despacho registrado correctamente.
+    <i class="bi bi-check-circle"></i> Operación realizada correctamente.
+</div>
+{% endif %}
+{% if request.args.get('access_error') %}
+<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
 
@@ -112,18 +117,23 @@
     <div class="panel">
         <div class="panel-header"><h2>Evidencias fotográficas</h2></div>
         <div style="padding:16px 24px 24px;display:flex;flex-direction:column;gap:20px;">
-            {% if despacho.foto_ticket_url %}
             <div>
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;letter-spacing:0.05em;">Ticket de despacho</div>
-                {% if despacho.foto_ticket_url.startswith('/static/uploads/') %}
+                {% if despacho.foto_ticket_url and despacho.foto_ticket_url.startswith('/static/uploads/') %}
                 <div style="color:var(--muted);font-size:13px;">Sin imagen (archivo no disponible).</div>
-                {% else %}
+                {% elif despacho.foto_ticket_url %}
                 <a href="{{ despacho.foto_ticket_url }}" target="_blank">
                     <img src="{{ despacho.foto_ticket_url }}" style="max-width:100%;max-height:220px;border-radius:8px;border:1px solid var(--border);display:block;">
                 </a>
+                {% else %}
+                <span class="badge" style="background:#fef3c7;color:#92400e;margin-bottom:10px;display:inline-block;">Pendiente de imagen</span>
+                <form method="POST" action="/despachos/{{ despacho.id }}/subir-foto" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="file" name="foto_ticket" accept=".jpg,.jpeg,.png,.webp" required class="form-control" style="max-width:260px;">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload"></i> Subir foto</button>
+                </form>
                 {% endif %}
             </div>
-            {% endif %}
             {% if despacho.foto_vehiculo_url %}
             <div>
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;letter-spacing:0.05em;">Vehículo</div>
@@ -148,10 +158,9 @@
                 {% endif %}
             </div>
             {% endif %}
-            {% if not despacho.foto_ticket_url and not despacho.foto_vehiculo_url and not despacho.foto_odometro_url %}
-            <div style="text-align:center;color:var(--muted);padding:20px 0;">
-                <i class="bi bi-camera" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
-                Sin fotos registradas.
+            {% if not despacho.foto_vehiculo_url and not despacho.foto_odometro_url %}
+            <div style="text-align:center;color:var(--muted);padding:8px 0 0;font-size:12px;">
+                Sin foto de vehículo ni de odómetro registradas.
             </div>
             {% endif %}
         </div>

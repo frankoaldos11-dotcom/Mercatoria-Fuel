@@ -746,3 +746,57 @@ Las descritas arriba.
 
 - Verificación en producción queda a cargo de Aldo, como siempre.
 - El análisis de código no encontró un defecto puntual en el JS del desplegable de subinventario (la lógica de refiltrado en carga/cambio ya era correcta); la percepción de "siempre vacío" era consistente con que la gasolinera probada nunca tuvo subinventarios reales — algo que este cambio resuelve de raíz al conectar el flujo completo.
+
+---
+
+# Despacho: foto opcional-diferida, pendientes de imagen en dashboard, y búsqueda manual sin QR — 2026-07-13
+
+## Contexto
+
+Tres necesidades operativas reales: despachar sin QR (cliente sin QR, sin cámara, sin conexión) y sin foto en el momento (subirla después). Se detectó además, al inspeccionar el código, que el flujo de "Marcar como despachada" en `turno/escanear.html` (reservas de Tienda) **nunca envía foto** — con la validación obligatoria que había, ese botón fallaba siempre en producción. Este cambio confirma y corrige esa causa raíz de paso.
+
+## Cambio
+
+- `despachos.py::crear()`, `turno.py::api_despachar()`, `turno.py::api_reserva_completar()` — se quitó el bloque que exigía `foto_ticket`; la foto sigue validándose en formato solo si viene.
+- `despachos/crear.html` — input de foto ya no `required`, etiqueta y ayuda actualizadas a "(opcional)".
+- "Pendiente de imagen" se deriva de `foto_ticket_url IS NULL` — sin columna nueva, en `despachos` (por despacho) y `reservas_tienda` (por reserva completada), ambas columnas ya se mantenían en sincronía con `adjuntos` en cada flujo de guardado.
+- Nueva ruta `POST /despachos/<id>/subir-foto` — guard `requiere_staff()`, con restricción de gasolinera para `operador_gasolinera` (mismo patrón que `turno.py`). Usa `guardar_adjunto()` existente + `UPDATE despachos.foto_ticket_url` en la misma transacción.
+- `despachos/detalle.html` — cuando no hay foto de ticket: badge "Pendiente de imagen" + formulario de subida inline, visible para cualquier staff.
+- Nuevos endpoints de solo lectura `GET /turno/api/reserva-info-por-numero/<id>` y `GET /turno/api/habilitacion-info/<id>` — buscan por número (id) en vez de por token/QR. El de reserva devuelve el `qr_token` real para reutilizar `mostrarResultado()`/`completar()` **sin cambios**; el despacho de habilitación reutiliza `api_despachar()` **sin cambios** (ya funcionaba por número).
+- `turno/escanear.html` — nuevo panel "Buscar por número (sin QR)" con dos campos (reserva de Tienda / habilitación); se mantiene intacto el escáner de cámara y el token manual.
+- `dashboard.py` — contador `pendientes_imagen` = `COUNT` de `despachos` completados sin foto + `COUNT` de `reservas_tienda` completadas sin foto. Nueva tarjeta KPI en `dashboard.html` y `dashboard_supervisor.html`.
+
+**Alcance confirmado con Aldo:** las reservas de Tienda sin foto **cuentan** en el contador del dashboard, pero no tienen una pantalla de "detalle de reserva" hoy, así que no obtienen un control de "subir después" en este cambio — quedan pendientes visibles pero sin botón de arreglo hasta una tarea futura, si hace falta.
+
+No se tocó ninguna lógica de saldo, stock, subinventario ni el circuito Fincimex.
+
+## Verificación (local, SQLite fresco, puerto 5070 — no producción)
+
+Fixtures: gasolinera La Shell (5000 L de stock), 3 tarjetas con saldo, 4 habilitaciones aprobadas, 1 reserva de Tienda aprobada, usuario de prueba `operador_gasolinera`.
+
+| Caso | Método | Resultado |
+|---|---|---|
+| 1. Despachar SIN foto (`despachos.py::crear()`) | `curl` multipart sin `foto_ticket` | ✅ HTTP 302, despacho creado; detalle muestra badge "Pendiente de imagen" + formulario de subida. Dashboard sube de 0 a 1. |
+| 3. Despachar CON foto en el momento (`turno.py::api_despachar()`) | `curl` multipart con `foto_ticket` | ✅ Despachado; detalle muestra la imagen directamente (`/adjuntos/1`), sin badge de pendiente. Contador no sube por este. |
+| 4a. Buscar reserva por número (sin QR) | `GET /turno/api/reserva-info-por-numero/1` → `POST /turno/api/reserva-completar/<token resuelto>` sin foto | ✅ El lookup devuelve el token real; `completar()` (mismo endpoint de siempre) se ejecuta exitosamente sin foto. |
+| 4b. Buscar habilitación por número (sin QR) | `GET /turno/api/habilitacion-info/3` → `POST /turno/api/3/despachar` sin foto | ✅ Lookup correcto (cliente, gasolinera, litros, tarjeta); despacho completado sin foto vía el mismo `api_despachar` de siempre. |
+| 5. Contador combinado sube | `GET /dashboard` tras los pasos 1 y 4a/4b | ✅ Sube a **3** (2 despachos de flota sin foto + 1 reserva de Tienda sin foto) — confirma que suma ambas fuentes. |
+| 2. Subir foto después — operario | Login como `operador_gasolinera` de la misma gasolinera → `POST /despachos/1/subir-foto` | ✅ Foto guardada vía `guardar_adjunto()`, deja de estar pendiente. |
+| 2. Subir foto después — PM/admin | `POST /despachos/3/subir-foto` como admin | ✅ Igual de exitoso. |
+| 5. Contador combinado baja | `GET /dashboard` tras subir las 2 fotos de flota | ✅ Baja a **1** — queda solo la reserva de Tienda (fuera de alcance de "subir después", como se confirmó con Aldo), confirmando que el contador refleja con precisión ambas fuentes en tiempo real. |
+| Verificación visual | Navegador contra la instancia local — dashboard, `turno/escanear` (panel nuevo), `despachos/<id>` (badge + formulario pendiente) | ✅ Los tres se ven según lo diseñado. Screenshots tomados. |
+
+**0 errores 500** en toda la sesión.
+
+## Errores encontrados
+
+Ninguno. Se confirmó (no se corrigió aparte, ya venía incluido en este cambio) que `turno/escanear.html::completar()` nunca enviaba foto — con la validación previa esa ruta fallaba siempre; con la foto opcional ahora funciona.
+
+## Correcciones aplicadas
+
+Las descritas arriba.
+
+## Recomendaciones
+
+- Verificación en producción queda a cargo de Aldo, como siempre.
+- Si en el futuro se quiere permitir subir la foto después también para reservas de Tienda, hace falta antes una pantalla de detalle de reserva (hoy solo existe el listado en `/tienda/admin`) — quedó fuera de alcance de este cambio por decisión explícita de Aldo.
