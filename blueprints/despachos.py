@@ -314,61 +314,67 @@ def crear():
                     SET saldo_usable_l = saldo_usable_l - ?,
                         saldo_usd = saldo_usd - ?,
                         updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                """, (litros, monto_usd, hab["tarjeta_id"]))
-                cur.execute("""
-                    INSERT INTO movimientos_saldo_fincimex
-                        (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
-                    VALUES ('descuento', ?, ?, ?, ?, ?, ?)
-                """, (
-                    monto_usd, litros, factor, hab["tarjeta_id"],
-                    session.get("user_id"),
-                    f"Despacho habilitación #{habilitacion_id} — {litros:,.2f} L × {factor}",
-                ))
+                    WHERE id = ? AND saldo_usable_l >= ? - 0.001 AND saldo_usd >= ? - 0.001
+                """, (litros, monto_usd, hab["tarjeta_id"], litros, monto_usd))
 
-                if hab["subinventario_id"] and hab["sub_litros"] is not None:
+                if cur.rowcount == 0:
+                    # Carrera: el saldo cambió entre la validación y el UPDATE. Abortar sin comitear.
+                    conn.close()
+                    error = "El saldo de la tarjeta cambió mientras se procesaba el despacho. Intenta de nuevo."
+                else:
                     cur.execute("""
-                        UPDATE subinventarios
-                        SET litros_reservados = litros_reservados - ?,
+                        INSERT INTO movimientos_saldo_fincimex
+                            (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
+                        VALUES ('descuento', ?, ?, ?, ?, ?, ?)
+                    """, (
+                        monto_usd, litros, factor, hab["tarjeta_id"],
+                        session.get("user_id"),
+                        f"Despacho habilitación #{habilitacion_id} — {litros:,.2f} L × {factor}",
+                    ))
+
+                    if hab["subinventario_id"] and hab["sub_litros"] is not None:
+                        cur.execute("""
+                            UPDATE subinventarios
+                            SET litros_reservados = litros_reservados - ?,
+                                updated_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        """, (litros, hab["subinventario_id"]))
+
+                    cur.execute("""
+                        UPDATE habilitaciones
+                        SET litros_despachados = ?, estado = 'despachada',
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = ?
-                    """, (litros, hab["subinventario_id"]))
+                    """, (litros, habilitacion_id))
 
-                cur.execute("""
-                    UPDATE habilitaciones
-                    SET litros_despachados = ?, estado = 'despachada',
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                """, (litros, habilitacion_id))
+                    cur.execute("""
+                        INSERT INTO despachos
+                            (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
+                             litros_despachados, foto_ticket_url, foto_vehiculo_url, foto_odometro_url,
+                             odometro_km, observaciones, fecha_despacho, operario_id, estado)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completado')
+                    """, (habilitacion_id, hab["gasolinera_id"], hab["tarjeta_id"],
+                          hab["cliente_id"], hab["unidad_id"], litros,
+                          foto_ticket_url, foto_vehiculo_url, foto_odometro_url,
+                          odometro_km, observaciones or None, fecha_despacho,
+                          session.get("user_id")))
+                    nuevo_id = cur.lastrowid
 
-                cur.execute("""
-                    INSERT INTO despachos
-                        (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
-                         litros_despachados, foto_ticket_url, foto_vehiculo_url, foto_odometro_url,
-                         odometro_km, observaciones, fecha_despacho, operario_id, estado)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completado')
-                """, (habilitacion_id, hab["gasolinera_id"], hab["tarjeta_id"],
-                      hab["cliente_id"], hab["unidad_id"], litros,
-                      foto_ticket_url, foto_vehiculo_url, foto_odometro_url,
-                      odometro_km, observaciones or None, fecha_despacho,
-                      session.get("user_id")))
-                nuevo_id = cur.lastrowid
+                    cur.execute("""
+                        INSERT INTO movimientos
+                            (tipo, fecha, gasolinera_id, tarjeta_id, cliente_id, vehiculo_id,
+                             litros, tipo_combustible, responsable_id, observaciones)
+                        VALUES ('despacho', ?, ?, ?, ?, ?, ?, (
+                            SELECT tipo_combustible FROM tarjetas WHERE id = ?
+                        ), ?, ?)
+                    """, (fecha_despacho, hab["gasolinera_id"], hab["tarjeta_id"],
+                          hab["cliente_id"], hab["unidad_id"], litros, hab["tarjeta_id"],
+                          session.get("user_id"),
+                          f"Despacho #{nuevo_id} — Habilitación #{habilitacion_id}"))
 
-                cur.execute("""
-                    INSERT INTO movimientos
-                        (tipo, fecha, gasolinera_id, tarjeta_id, cliente_id, vehiculo_id,
-                         litros, tipo_combustible, responsable_id, observaciones)
-                    VALUES ('despacho', ?, ?, ?, ?, ?, ?, (
-                        SELECT tipo_combustible FROM tarjetas WHERE id = ?
-                    ), ?, ?)
-                """, (fecha_despacho, hab["gasolinera_id"], hab["tarjeta_id"],
-                      hab["cliente_id"], hab["unidad_id"], litros, hab["tarjeta_id"],
-                      session.get("user_id"),
-                      f"Despacho #{nuevo_id} — Habilitación #{habilitacion_id}"))
-
-                conn.commit()
-                conn.close()
-                return redirect(f"/despachos/{nuevo_id}?ok=1")
+                    conn.commit()
+                    conn.close()
+                    return redirect(f"/despachos/{nuevo_id}?ok=1")
 
     return render_template(
         "despachos/crear.html",

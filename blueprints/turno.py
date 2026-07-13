@@ -367,8 +367,16 @@ def api_despachar(hab_id):
         SET saldo_usable_l = saldo_usable_l - ?,
             saldo_usd = saldo_usd - ?,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    """, (litros, monto_usd, hab["tarjeta_id"]))
+        WHERE id = ? AND saldo_usable_l >= ? - 0.001 AND saldo_usd >= ? - 0.001
+    """, (litros, monto_usd, hab["tarjeta_id"], litros, monto_usd))
+
+    if cur.rowcount == 0:
+        # Carrera: el saldo cambió entre la validación y el UPDATE. Abortar sin comitear.
+        conn.close()
+        return jsonify({
+            "error": "El saldo de la tarjeta cambió mientras se procesaba el despacho. Intenta de nuevo."
+        }), 400
+
     cur.execute("""
         INSERT INTO movimientos_saldo_fincimex
             (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
@@ -600,8 +608,16 @@ def api_reserva_completar(token):
             SET saldo_usable_l = saldo_usable_l - ?,
                 saldo_usd = saldo_usd - ?,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        """, (litros, monto_usd, row["tarjeta_id"]))
+            WHERE id = ? AND saldo_usable_l >= ? - 0.001 AND saldo_usd >= ? - 0.001
+        """, (litros, monto_usd, row["tarjeta_id"], litros, monto_usd))
+
+        if cur.rowcount == 0:
+            # Carrera: el saldo cambió entre la validación y el UPDATE. Abortar sin comitear.
+            conn.close()
+            return jsonify({
+                "error": "El saldo de la tarjeta cambió mientras se procesaba el despacho. Intenta de nuevo."
+            }), 400
+
         cur.execute("""
             INSERT INTO movimientos_saldo_fincimex
                 (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
