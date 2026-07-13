@@ -276,6 +276,11 @@ def api_despachar(hab_id):
     litros_str = request.form.get("litros_despachados", "0").replace(",", ".")
     foto = request.files.get("foto_ticket")
 
+    if not foto or not foto.filename:
+        return jsonify({"error": "La foto del ticket es obligatoria"}), 400
+    if not _allowed(foto.filename):
+        return jsonify({"error": "Formato de foto no válido. Use JPG, PNG o WEBP."}), 400
+
     try:
         litros = float(litros_str)
     except ValueError:
@@ -512,6 +517,12 @@ def api_reserva_completar(token):
     if session.get("rol") not in ROLES_OPERARIO_GAS:
         return jsonify({"error": "Sin permiso"}), 403
 
+    foto = request.files.get("foto_ticket")
+    if not foto or not foto.filename:
+        return jsonify({"error": "La foto del ticket es obligatoria"}), 400
+    if not _allowed(foto.filename):
+        return jsonify({"error": "Formato de foto no válido. Use JPG, PNG o WEBP."}), 400
+
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
@@ -573,9 +584,15 @@ def api_reserva_completar(token):
                 "error": f"Saldo Fincimex insuficiente. {detalle}"
             }), 400
 
+    ext = os.path.splitext(secure_filename(foto.filename))[1].lower()
+    nombre_foto = f"{uuid.uuid4().hex}{ext}"
+    ruta_foto = os.path.join(current_app.config["UPLOAD_FOLDER"], "tickets", nombre_foto)
+    foto.save(ruta_foto)
+    foto_ticket_url = f"/static/uploads/tickets/{nombre_foto}"
+
     cur.execute("""
-        UPDATE reservas_tienda SET estado='completada', updated_at=CURRENT_TIMESTAMP WHERE id=?
-    """, (row["id"],))
+        UPDATE reservas_tienda SET estado='completada', foto_ticket_url=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+    """, (foto_ticket_url, row["id"]))
 
     if row["tarjeta_id"]:
         cur.execute("""

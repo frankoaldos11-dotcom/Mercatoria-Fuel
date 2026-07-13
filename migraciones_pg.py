@@ -447,6 +447,7 @@ def ejecutar_migraciones_pg(bcrypt):
     cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS tarjeta_id INTEGER REFERENCES tarjetas(id)")
     cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS motivo_cancelacion TEXT")
     cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS vehiculo_id INTEGER REFERENCES vehiculos_tienda(id)")
+    cur.execute("ALTER TABLE reservas_tienda ADD COLUMN IF NOT EXISTS foto_ticket_url TEXT")
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gasolinera_id INTEGER REFERENCES gasolineras(id)")
     cur.execute("ALTER TABLE transferencias ADD COLUMN IF NOT EXISTS litros_distribuidos NUMERIC(14,2) DEFAULT 0")
     cur.execute("ALTER TABLE tarjetas ADD COLUMN IF NOT EXISTS saldo_usd NUMERIC(14,2) NOT NULL DEFAULT 0")
