@@ -98,6 +98,8 @@
                     <td>
                         {% if h.estado == 'pendiente' %}
                         <span class="badge badge-neutral">Pendiente</span>
+                        {% elif h.estado == 'en_reserva' %}
+                        <span class="badge" style="background:#fef3c7;color:#92400e;">En reserva</span>
                         {% elif h.estado == 'aprobada' %}
                         <span class="badge badge-info">Aprobada</span>
                         {% elif h.estado == 'despachada' %}

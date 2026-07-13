@@ -67,10 +67,11 @@ ESTADOS_RECEPCION = ["pendiente", "confirmada", "anulada"]
 
 ESTADOS_TRANSFERENCIA = ["en_transito", "recibida", "anulada"]
 
-ESTADOS_HABILITACION = ["pendiente", "aprobada", "despachada", "cancelada", "conciliada"]
+ESTADOS_HABILITACION = ["pendiente", "en_reserva", "aprobada", "despachada", "cancelada", "conciliada"]
 
 ESTADOS_HABILITACION_LABELS = {
     "pendiente":  "Pendiente",
+    "en_reserva": "En reserva",
     "aprobada":   "Aprobada",
     "despachada": "Despachada",
     "cancelada":  "Cancelada",

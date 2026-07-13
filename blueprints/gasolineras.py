@@ -5,7 +5,7 @@ from utils.constants import (
     TIPOS_SUBINVENTARIO, TIPOS_SUBINVENTARIO_LABELS,
 )
 from utils.auth import requiere_login, requiere_staff
-from utils.stock import stock_gasolinera
+from utils.subinventarios import crear_subinventario, validar_tope_reserva, SubinventarioError
 
 gasolineras_bp = Blueprint("gasolineras", __name__, url_prefix="/gasolineras")
 
@@ -548,30 +548,12 @@ def subinventario_crear(id):
             if not error:
                 conn = conectar()
                 cur = conn.cursor()
-                stock_actual = stock_gasolinera(cur, id)
-                cur.execute("""
-                    SELECT COALESCE(SUM(litros_reservados), 0) AS total
-                    FROM subinventarios WHERE gasolinera_id = ? AND activo = 1
-                """, (id,))
-                suma_actual = float(cur.fetchone()["total"] or 0)
-
-                if suma_actual + litros > stock_actual + 0.001:
-                    error = (
-                        f"La reserva total ({suma_actual + litros:,.2f} L) superaría el stock "
-                        f"físico actual ({stock_actual:,.2f} L)."
-                    )
+                try:
+                    crear_subinventario(cur, id, nombre, tipo, cliente_id, litros)
+                except SubinventarioError as e:
+                    error = str(e)
                     conn.close()
                 else:
-                    cur.execute("""
-                        SELECT COALESCE(MAX(orden_prioridad), -1) + 1 AS siguiente
-                        FROM subinventarios WHERE gasolinera_id = ? AND activo = 1
-                    """, (id,))
-                    orden = cur.fetchone()["siguiente"]
-                    cur.execute("""
-                        INSERT INTO subinventarios
-                            (gasolinera_id, nombre, tipo, orden_prioridad, litros_reservados, cliente_id, activo)
-                        VALUES (?, ?, ?, ?, ?, ?, 1)
-                    """, (id, nombre, tipo, orden, litros, cliente_id or None))
                     conn.commit()
                     conn.close()
                     return redirect(f"/gasolineras/{id}?ok=1")
@@ -635,18 +617,10 @@ def subinventario_editar(id, sub_id):
             if not error:
                 conn = conectar()
                 cur = conn.cursor()
-                stock_actual = stock_gasolinera(cur, id)
-                cur.execute("""
-                    SELECT COALESCE(SUM(litros_reservados), 0) AS total
-                    FROM subinventarios WHERE gasolinera_id = ? AND activo = 1 AND id != ?
-                """, (id, sub_id))
-                suma_otros = float(cur.fetchone()["total"] or 0)
-
-                if suma_otros + litros > stock_actual + 0.001:
-                    error = (
-                        f"La reserva total ({suma_otros + litros:,.2f} L) superaría el stock "
-                        f"físico actual ({stock_actual:,.2f} L)."
-                    )
+                try:
+                    validar_tope_reserva(cur, id, litros, excluir_id=sub_id)
+                except SubinventarioError as e:
+                    error = str(e)
                     conn.close()
                 else:
                     litros_anterior = float(sub["litros_reservados"])

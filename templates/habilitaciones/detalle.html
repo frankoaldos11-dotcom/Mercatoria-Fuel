@@ -31,6 +31,8 @@
         <div style="display:flex;align-items:center;gap:12px;">
             {% if hab.estado == 'pendiente' %}
             <span class="badge badge-neutral" style="font-size:15px;padding:6px 14px;">Pendiente</span>
+            {% elif hab.estado == 'en_reserva' %}
+            <span class="badge" style="background:#fef3c7;color:#92400e;font-size:15px;padding:6px 14px;">En reserva</span>
             {% elif hab.estado == 'aprobada' %}
             <span class="badge badge-info" style="font-size:15px;padding:6px 14px;">Aprobada</span>
             {% elif hab.estado == 'despachada' %}
@@ -56,7 +58,15 @@
                 </button>
             </form>
             {% endif %}
-            {% if hab.estado in ('pendiente', 'aprobada') %}
+            {% if hab.estado == 'en_reserva' %}
+            <form method="POST" action="/habilitaciones/{{ hab.id }}/liberar" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-unlock"></i> Liberar reserva
+                </button>
+            </form>
+            {% endif %}
+            {% if hab.estado in ('pendiente', 'aprobada', 'en_reserva') %}
             <button class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#form-cancelar">
                 <i class="bi bi-x-circle"></i> Cancelar
             </button>
@@ -65,7 +75,7 @@
         </div>
     </div>
 
-    {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') and hab.estado in ('pendiente', 'aprobada') %}
+    {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') and hab.estado in ('pendiente', 'aprobada', 'en_reserva') %}
     <div id="form-cancelar" class="collapse" style="padding:16px 24px;border-top:1px solid var(--border);">
         <form method="POST" action="/habilitaciones/{{ hab.id }}/cancelar">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -229,6 +239,9 @@
             </a>
             {% elif hab.estado == 'pendiente' %}
             <p style="margin:0;">Pendiente de aprobación.</p>
+            {% elif hab.estado == 'en_reserva' %}
+            <p style="margin:0 0 4px;">Litros apartados en subinventario{% if hab.subinventario_nombre %} <strong>{{ hab.subinventario_nombre }}</strong>{% endif %}.</p>
+            <p style="margin:0;font-size:12px;">Al liberar, se valida el saldo de la tarjeta y queda lista para despachar.</p>
             {% else %}
             <p style="margin:0;">Sin despacho registrado.</p>
             {% endif %}

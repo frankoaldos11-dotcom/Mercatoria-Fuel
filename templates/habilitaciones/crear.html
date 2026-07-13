@@ -21,6 +21,26 @@
     <form method="POST" action="/habilitaciones/crear" id="form-hab">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+        <div class="mb-3" style="padding:0 24px;">
+            <label class="form-label">Modo <span style="color:var(--danger)">*</span></label>
+            <div style="display:flex;gap:20px;">
+                <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+                    <input type="radio" name="modo" id="modo-despacho" value="despacho"
+                           {{ 'checked' if request.form.get('modo', 'despacho') == 'despacho' }}>
+                    Despacho directo
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+                    <input type="radio" name="modo" id="modo-reserva" value="reserva"
+                           {{ 'checked' if request.form.get('modo', 'despacho') == 'reserva' }}>
+                    Dejar en reserva en subinventario
+                </label>
+            </div>
+            <small style="color:var(--muted);font-size:12px;">
+                En reserva: se apartan los litros en un subinventario de la gasolinera, sin tocar el saldo de la tarjeta todavía.
+                Se libera y despacha más adelante, cuando el cliente venga a buscar el combustible.
+            </small>
+        </div>
+
         <div class="form-grid">
 
             <div class="mb-3">
@@ -76,18 +96,44 @@
                 </select>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Subinventario (opcional)</label>
-                <select name="subinventario_id" id="sel-sub" class="form-select">
-                    <option value="">Sin subinventario específico</option>
-                    {% for s in subinventarios %}
-                    <option value="{{ s.id }}"
-                            data-gasolinera="{{ s.gasolinera_id }}"
-                            {{ 'selected' if s.id|string == request.form.get('subinventario_id','') }}>
-                        {% if s.tipo == 'cliente' and s.cliente_nombre %}{{ s.cliente_nombre }} — {{ "{:,.0f}".format(s.litros_reservados) }} L{% else %}{{ s.nombre }} ({{ "{:,.0f}".format(s.litros_reservados) }} L reservados){% endif %}
-                    </option>
-                    {% endfor %}
-                </select>
+            <div class="mb-3" id="bloque-sub" style="grid-column:1/-1;">
+                <label class="form-label" id="label-sub">Subinventario (opcional)</label>
+
+                <div id="sub-modo-toggle" style="display:none;gap:20px;margin-bottom:10px;">
+                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+                        <input type="radio" name="sub_modo" id="sub-modo-existente" value="existente"
+                               {{ 'checked' if request.form.get('sub_modo', 'existente') == 'existente' }}>
+                        Usar uno existente
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+                        <input type="radio" name="sub_modo" id="sub-modo-nuevo" value="nuevo"
+                               {{ 'checked' if request.form.get('sub_modo') == 'nuevo' }}>
+                        Crear uno nuevo para este cliente
+                    </label>
+                </div>
+
+                <div id="sub-existente-wrap">
+                    <select name="subinventario_id" id="sel-sub" class="form-select">
+                        <option value="">Sin subinventario específico</option>
+                        {% for s in subinventarios %}
+                        <option value="{{ s.id }}"
+                                data-gasolinera="{{ s.gasolinera_id }}"
+                                {{ 'selected' if s.id|string == request.form.get('subinventario_id','') }}>
+                            {% if s.tipo == 'cliente' and s.cliente_nombre %}{{ s.cliente_nombre }} — {{ "{:,.0f}".format(s.litros_reservados) }} L{% else %}{{ s.nombre }} ({{ "{:,.0f}".format(s.litros_reservados) }} L reservados){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small id="hint-sub-despacho" style="color:var(--muted);font-size:12px;">Si se elige, esta habilitación consumirá de esa reserva al despacharse.</small>
+                </div>
+
+                <div id="sub-nuevo-wrap" style="display:none;">
+                    <input type="text" name="sub_nombre_nuevo" id="input-sub-nuevo" class="form-control"
+                           placeholder="Ej. Reserva Caritas Cuba — julio"
+                           value="{{ request.form.get('sub_nombre_nuevo', '') }}">
+                    <small style="color:var(--muted);font-size:12px;">
+                        Se crea como subinventario de tipo Cliente, asociado al cliente elegido arriba, en la gasolinera elegida abajo.
+                    </small>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -187,7 +233,7 @@ function filterTarjetas() {
 selGasolinera.addEventListener('change', function() {
     const gid = this.value;
     filterTarjetas();
-    filterSelect(selSub, subinventarios, s => !gid || s.gasolinera === gid, 'Sin subinventario específico');
+    filterSelect(selSub, subinventarios, s => !gid || s.gasolinera === gid, subEmptyLabel());
 });
 
 selUnidad.addEventListener('change', filterTarjetas);
@@ -200,6 +246,54 @@ function updateSaldoInfo() {
     const t = tarjetas.find(x => x.id === tid);
     if (t) saldoInfo.textContent = `Saldo disponible en tarjeta: ${t.saldo.toLocaleString('es', {minimumFractionDigits:2})} L`;
 }
+
+// ── Modo despacho / en reserva ──────────────────────────────────────────────
+const modoDespacho = document.getElementById('modo-despacho');
+const modoReserva = document.getElementById('modo-reserva');
+const subModoExistente = document.getElementById('sub-modo-existente');
+const subModoNuevo = document.getElementById('sub-modo-nuevo');
+const subModoToggle = document.getElementById('sub-modo-toggle');
+const subExistenteWrap = document.getElementById('sub-existente-wrap');
+const subNuevoWrap = document.getElementById('sub-nuevo-wrap');
+const labelSub = document.getElementById('label-sub');
+const inputSubNuevo = document.getElementById('input-sub-nuevo');
+
+function subEmptyLabel() {
+    return modoReserva.checked ? 'Seleccionar subinventario...' : 'Sin subinventario específico';
+}
+
+function actualizarModo() {
+    const esReserva = modoReserva.checked;
+    subModoToggle.style.display = esReserva ? 'flex' : 'none';
+    labelSub.innerHTML = esReserva
+        ? 'Subinventario donde apartar <span style="color:var(--danger)">*</span>'
+        : 'Subinventario (opcional)';
+
+    if (esReserva) {
+        actualizarSubModo();
+    } else {
+        subExistenteWrap.style.display = '';
+        subNuevoWrap.style.display = 'none';
+        selSub.required = false;
+        inputSubNuevo.required = false;
+    }
+}
+
+function actualizarSubModo() {
+    if (!modoReserva.checked) return;
+    const esNuevo = subModoNuevo.checked;
+    subExistenteWrap.style.display = esNuevo ? 'none' : '';
+    subNuevoWrap.style.display = esNuevo ? '' : 'none';
+    selSub.required = !esNuevo;
+    inputSubNuevo.required = esNuevo;
+}
+
+modoDespacho.addEventListener('change', actualizarModo);
+modoReserva.addEventListener('change', actualizarModo);
+subModoExistente.addEventListener('change', actualizarSubModo);
+subModoNuevo.addEventListener('change', actualizarSubModo);
+
+actualizarModo();
 
 // Fire on page load if client is pre-selected
 if (selCliente.value) selCliente.dispatchEvent(new Event('change'));

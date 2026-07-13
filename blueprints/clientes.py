@@ -99,7 +99,6 @@ def crear():
         contacto_nombre = request.form.get("contacto_nombre", "").strip()
         contacto_telefono = request.form.get("contacto_telefono", "").strip()
         contacto_email = request.form.get("contacto_email", "").strip().lower()
-        subinventario_str = request.form.get("subinventario_reservado_l", "0").strip()
         notas = request.form.get("notas", "").strip()
         activo = 1 if request.form.get("activo") == "1" else 0
 
@@ -110,11 +109,6 @@ def crear():
         elif tipo not in TIPOS_CLIENTE:
             error = "Tipo de cliente no válido."
         else:
-            try:
-                reservado = float(subinventario_str)
-            except ValueError:
-                reservado = 0.0
-
             conn = conectar()
             cur = conn.cursor()
             cur.execute("SELECT id FROM clientes WHERE codigo = ?", (codigo,))
@@ -125,10 +119,10 @@ def crear():
                 cur.execute("""
                     INSERT INTO clientes
                         (nombre, codigo, tipo, contacto_nombre, contacto_telefono,
-                         contacto_email, subinventario_reservado_l, notas, activo)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                         contacto_email, notas, activo)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (nombre, codigo, tipo, contacto_nombre, contacto_telefono,
-                      contacto_email, reservado, notas, activo))
+                      contacto_email, notas, activo))
                 nuevo_id = cur.lastrowid
                 conn.commit()
                 conn.close()
@@ -210,7 +204,6 @@ def editar(id):
         contacto_nombre = request.form.get("contacto_nombre", "").strip()
         contacto_telefono = request.form.get("contacto_telefono", "").strip()
         contacto_email = request.form.get("contacto_email", "").strip().lower()
-        subinventario_str = request.form.get("subinventario_reservado_l", "0").strip()
         notas = request.form.get("notas", "").strip()
         activo = 1 if request.form.get("activo") == "1" else 0
 
@@ -221,11 +214,6 @@ def editar(id):
         elif tipo not in TIPOS_CLIENTE:
             error = "Tipo de cliente no válido."
         else:
-            try:
-                reservado = float(subinventario_str)
-            except ValueError:
-                reservado = 0.0
-
             cur.execute("SELECT id FROM clientes WHERE codigo = ? AND id != ?", (codigo, id))
             if cur.fetchone():
                 error = f"Ya existe otro cliente con el código {codigo}."
@@ -237,11 +225,11 @@ def editar(id):
                     UPDATE clientes
                     SET nombre = ?, codigo = ?, tipo = ?, contacto_nombre = ?,
                         contacto_telefono = ?, contacto_email = ?,
-                        subinventario_reservado_l = ?, notas = ?, activo = ?,
+                        notas = ?, activo = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                 """, (nombre, codigo, tipo, contacto_nombre, contacto_telefono,
-                      contacto_email, reservado, notas, activo, id))
+                      contacto_email, notas, activo, id))
                 conn.commit()
                 conn.close()
                 _registrar_auditoria(

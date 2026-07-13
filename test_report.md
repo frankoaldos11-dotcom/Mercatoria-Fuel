@@ -648,3 +648,101 @@ Las descritas arriba, en `blueprints/habilitaciones.py::crear()` y `templates/ha
 ## Recomendaciones
 
 Ninguna pendiente sobre este punto.
+
+---
+
+# Fotos: almacenamiento en PostgreSQL en vez de disco efímero de Render — 2026-07-13
+
+## Diagnóstico previo
+
+`diagnostico_fotos.md` (no commiteado) confirmó la causa raíz de los 404 de fotos de ticket: `render.yaml` no define `disk:` para el servicio web, las fotos se guardaban con `foto.save()` en `static/uploads/` del disco local, y ese disco es efímero (se borra en cada deploy/reinicio de Render).
+
+## Cambio
+
+- Tabla nueva `adjuntos` (`CREATE TABLE IF NOT EXISTS`, ambos motores) — guarda el binario (`BYTEA`/`BLOB`), `origen_tipo`/`origen_id`, `categoria`, `mime_type`.
+- `utils/adjuntos.py` — helper único `guardar_adjunto()` (+`foto_valida()`), reemplaza `_save_photo()` de `despachos.py` y las 2 duplicaciones inline de `turno.py`.
+- 3 call sites migrados a guardar el binario en la misma transacción del despacho/reserva que lo origina: `despachos.py::crear()`, `turno.py::api_despachar()`, `turno.py::api_reserva_completar()`.
+- Ruta nueva `GET /adjuntos/<id>` (`blueprints/adjuntos.py`) — sirve el binario con guard: staff sin restricción, cliente solo si es dueño del despacho/reserva (join a `despachos.cliente_id` o `reservas_tienda.usuario_id`), 403 si no, 302 si no hay sesión.
+- 4 templates (`despachos/detalle.html`, `despachos/listado.html`, `habilitaciones/detalle.html`, `portal/despachos.html`) — URLs viejas bajo `/static/uploads/` (archivo ya perdido) degradan a placeholder "Sin imagen" en vez de `<img>` roto.
+- `app.py` — se quitó el bloque `UPLOAD_FOLDER`/`os.makedirs` sin uso.
+
+No se tocó lógica de saldo/stock/habilitaciones — solo dónde y cómo se guarda/sirve la foto.
+
+## Verificación (local, SQLite fresco, puerto 5050 — no producción)
+
+| Caso | Método | Resultado |
+|---|---|---|
+| Subir 3 fotos (ticket/vehículo/odómetro) en `despachos/crear` | Navegador (inyección de `File` vía JS + `form.requestSubmit()`, el `file_upload` de paths de disco dejó de estar soportado por el MCP) | ✅ Despacho creado, 3 filas en `adjuntos` con `origen_tipo='despacho'`, cero archivos nuevos en `static/uploads/`. Imágenes visibles en el detalle vía `/adjuntos/<id>` (200, `image/jpeg`). |
+| Despacho abortado por carrera de saldo (2 requests concurrentes a `/turno/api/<id>/despachar` sobre la misma tarjeta, litros que exceden el saldo combinado) | `curl` concurrente | ✅ El ganador se despachó normalmente; el perdedor devolvió el error de carrera esperado y **no dejó fila huérfana en `adjuntos`** ni despacho a medias — confirmado en BD. |
+| Despacho viejo con `foto_ticket_url='/static/uploads/tickets/perdido123.png'` (archivo inexistente) | Fila insertada directo en BD + navegador | ✅ `despachos/detalle.html` y `despachos/listado.html` muestran "Sin imagen (archivo no disponible)" / "Sin imagen", no un `<img>` roto ni 404 de página. |
+| Completar reserva de Tienda vía QR (`/turno/api/reserva-completar/<token>`) con foto | `curl` (la UI de escaneo con cámara quedó con el renderer bloqueado — probable prompt de permiso de cámara sin resolver; se abandonó esa pestaña y se verificó la ruta real por API) | ✅ Reserva marcada `completada`, adjunto en BD con `origen_tipo='reserva_tienda'`, imagen servida en 200 desde `/adjuntos/<id>`. |
+| Guard de acceso: cliente ajeno a un despacho/reserva | `curl` autenticado como `cliente_otro@mercatoria.com` (usuario de prueba, sin relación con los registros) | ✅ 403 en ambos adjuntos ajenos. |
+| Guard de acceso: cliente dueño del registro | `curl` autenticado como `cliente_pma@mercatoria.com` (dueño real de los registros de prueba) | ✅ 200 en su propio despacho y su propia reserva. |
+| Guard de acceso: sin sesión | `curl` sin cookies | ✅ 302 a `/login`. |
+
+**0 errores 500** en la sesión.
+
+## Errores encontrados
+
+Ninguno funcional. Nota operativa: el `file_upload` del MCP de Chrome dejó de aceptar rutas de disco directamente (requiere que el controlador MCP lea el archivo) — se resolvió inyectando los archivos vía `DataTransfer`/`File` con JavaScript. La pestaña de "Escanear QR" del turno quedó con el renderer bloqueado tras click en "Marcar como despachada" (posible prompt de cámara pendiente sin resolver) — no se forzó interacción con el diálogo; se verificó el mismo endpoint por API directamente.
+
+## Correcciones aplicadas
+
+Las descritas arriba.
+
+## Recomendaciones
+
+- Verificación en producción (https://mercatoria-fuel.onrender.com) queda a cargo de Aldo, como es el procedimiento habitual — Claude Code no inicia sesión en producción.
+- Sería válido, en otra sesión, investigar por qué la pestaña de escaneo QR del turno bloqueó el renderer del navegador de pruebas (posible prompt de cámara nativo) si se quiere automatizar esa pantalla específica con Playwright a futuro.
+
+---
+
+# Habilitaciones: modo "en reserva" en subinventario, liberar, y limpieza de campo muerto — 2026-07-13
+
+## Diagnóstico previo
+
+`diagnostico_subinventarios.md` (no commiteado) mapeó el modelo completo: `clientes.subinventario_reservado_l` era un número muerto desconectado de la tabla real `subinventarios`; los subinventarios reales solo se creaban/editaban desde `/gasolineras/<id>/subinventarios`; las habilitaciones solo podían *consumir* una reserva existente (nunca crearla), y el desplegable de subinventario en Crear Habilitación no tenía ningún dato real con el que probarse en el entorno de Aldo.
+
+## Cambio
+
+- `clientes.py`/`clientes/crear.html`/`clientes/editar.html` — quitado el campo "Litros reservados en subinventario" de ambos formularios y de los `INSERT`/`UPDATE`. La columna de la tabla no se tocó (sin `DROP`).
+- `utils/subinventarios.py` (nuevo) — `crear_subinventario()` y `ajustar_reserva()` (+ `validar_tope_reserva()` interno), con el mismo tope de stock físico que ya existía en `gasolineras.py`. `gasolineras.py::subinventario_crear()` y `subinventario_editar()` refactorizados para reutilizar este helper en vez de duplicar la lógica.
+- `utils/constants.py` — nuevo estado `en_reserva` en `ESTADOS_HABILITACION` (columna `TEXT` libre, sin `ALTER TABLE`).
+- `habilitaciones/crear.html` — toggle Despacho/En reserva; dentro de En reserva, elegir un subinventario existente (desplegable, ahora poblado y filtrado correctamente por gasolinera) o crear uno nuevo inline (tipo `cliente`, cliente autocompletado).
+- `habilitaciones.py::crear()` — en modo reserva: subinventario obligatorio, se omite la validación de saldo Fincimex, se mantiene la validación estructural tarjeta/gasolinera/combustible, `INSERT` con `estado='en_reserva'`, y en la misma transacción `ajustar_reserva(+litros_autorizados)` más un movimiento de auditoría `tipo='habilitacion'` (constante ya definida, sin uso previo, no afecta el cálculo de stock físico).
+- `habilitaciones.py::liberar()` (nueva ruta `POST /habilitaciones/<id>/liberar`) — solo desde `en_reserva`; reutiliza exactamente las validaciones de `aprobar()` (tarjeta activa, saldo litros, saldo USD, subinventario suficiente); no toca `litros_reservados` ni `movimientos`.
+- `habilitaciones.py::cancelar()` — acepta también `en_reserva`; en ese caso devuelve los litros al subinventario vía `ajustar_reserva(-litros_autorizados)`, acotado a lo que realmente quede reservado (nunca negativo), con nota de discrepancia en observaciones si se acotó.
+- `habilitaciones/listado.html` y `detalle.html` — badge "En reserva", botón "Liberar reserva" (solo Admin/PM, solo en ese estado).
+
+No se tocó ningún código de `despachos.py`/`turno.py` — el despacho real, que ya decrementaba `litros_reservados` correctamente cuando había `subinventario_id`, se reutiliza sin cambios.
+
+## Verificación (local, SQLite fresco, puerto 5060 — no producción)
+
+Fixtures: gasolinera La Shell con 5,000 L de stock físico (vía movimiento `transferencia_entrada` sembrado), tarjeta ****8777 con saldo inicial 3,200 L / $1,000 USD, cliente PMA, vehículo de prueba.
+
+| Paso | Método | Resultado |
+|---|---|---|
+| Apartar 1,200 L en modo reserva (subinventario nuevo, tipo cliente autocompletado) | `curl` autenticado, `POST /habilitaciones/crear` | ✅ Habilitación `estado='en_reserva'`; subinventario creado con `litros_reservados=1200`; **tarjeta sin cambios** (3200 L / 1000 USD intactos); movimiento de auditoría `tipo='habilitacion'` registrado; **sin** movimiento `tipo='despacho'`. |
+| Efecto en gasolinera tras apartar | `GET /gasolineras/1` | ✅ Stock físico sigue en 5,000.00 L; reservado sube a 1,200.00 L (24.0%); **Disponible para venta baja a 3,800.00 L**. |
+| Liberar con saldo insuficiente | `POST /habilitaciones/1/liberar` (saldo_usd=1000, requerido=1080) | ✅ Bloqueado: "Saldo Fincimex insuficiente... requerido: $1,080.00 USD" — mismo mensaje/mecanismo que `aprobar()`. |
+| Liberar con saldo suficiente (tras subir saldo_usd a 2000) | `POST /habilitaciones/1/liberar` | ✅ `estado` pasa a `aprobada`; `litros_reservados` del subinventario **sin cambios** (sigue en 1200); cero movimientos `despacho` todavía. |
+| Despachar los 1,200 L (con foto de ticket) | `POST /despachos/crear` (multipart) | ✅ Habilitación `despachada`; `litros_reservados` del subinventario baja a **0**; tarjeta baja a 2,000 L / 920 USD; movimiento `despacho` de 1,200 L registrado. |
+| **Verificación crítica: sin doble descuento** | `GET /gasolineras/1` tras el despacho | ✅ Reservado vuelve a 0.00 L; **Disponible para venta sigue en 3,800.00 L** — exactamente el mismo valor que tras apartar. El stock físico bajó a 3,800 (5000−1200) y la reserva bajó a 0 en el mismo movimiento, así que el disponible no se mueve dos veces. |
+| Segunda reserva (500 L, subinventario existente) + Cancelar | `POST /habilitaciones/crear` (sub_modo=existente) → `POST /habilitaciones/2/cancelar` | ✅ Subinventario sube a 500 L al apartar, vuelve a 0 al cancelar; habilitación queda `cancelada`; sin discrepancia (se devolvió el 100%). |
+| Desplegable de subinventario en Crear Habilitación | HTML renderizado (`GET /habilitaciones/crear`) | ✅ El array JS `subinventarios` trae la fila real (`id:"1", gasolinera:"1", label:"Programa Mundial de Alimentos — 0 L"`) — ya no vacío. |
+| Campo muerto fuera de Crear/Editar cliente | HTML renderizado (`GET /clientes/crear`, `GET /clientes/1/editar`) | ✅ Cero apariciones de `subinventario_reservado_l` en ambos formularios. |
+
+**0 errores 500** en toda la sesión.
+
+## Errores encontrados
+
+Ninguno funcional. Nota operativa: la pestaña del navegador de pruebas no logró conectar a `127.0.0.1`/`localhost` en el puerto local (error de red del propio entorno de automatización, confirmado que no era el servidor — `curl` respondía 200 en paralelo) — la verificación visual del desplegable y de los formularios de cliente se hizo igualmente, vía inspección del HTML renderizado por `curl` en vez de captura de pantalla.
+
+## Correcciones aplicadas
+
+Las descritas arriba.
+
+## Recomendaciones
+
+- Verificación en producción queda a cargo de Aldo, como siempre.
+- El análisis de código no encontró un defecto puntual en el JS del desplegable de subinventario (la lógica de refiltrado en carga/cambio ya era correcta); la percepción de "siempre vacío" era consistente con que la gasolinera probada nunca tuvo subinventarios reales — algo que este cambio resuelve de raíz al conectar el flujo completo.

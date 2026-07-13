@@ -7,6 +7,7 @@ from utils.constants import (
     ESTADOS_HABILITACION, ESTADOS_HABILITACION_LABELS,
 )
 from utils.auth import requiere_login, requiere_staff
+from utils.subinventarios import crear_subinventario, ajustar_reserva, SubinventarioError
 
 habilitaciones_bp = Blueprint("habilitaciones", __name__, url_prefix="/habilitaciones")
 
@@ -210,7 +211,12 @@ def crear():
         unidad_id = request.form.get("unidad_id", "").strip()
         gasolinera_id = request.form.get("gasolinera_id", "").strip()
         tarjeta_id = request.form.get("tarjeta_id", "").strip()
+        modo = request.form.get("modo", "despacho").strip()
+        if modo not in ("despacho", "reserva"):
+            modo = "despacho"
+        sub_modo = request.form.get("sub_modo", "existente").strip()
         subinventario_id = request.form.get("subinventario_id", "").strip() or None
+        sub_nombre_nuevo = request.form.get("sub_nombre_nuevo", "").strip()
         litros_str = request.form.get("litros_autorizados", "0").strip()
         fecha_hab = request.form.get("fecha_habilitacion", "").strip()
         fecha_venc = request.form.get("fecha_vencimiento", "").strip() or None
@@ -226,6 +232,10 @@ def crear():
             error = "Debe seleccionar una tarjeta."
         elif not fecha_hab:
             error = "La fecha de habilitación es obligatoria."
+        elif modo == "reserva" and sub_modo == "existente" and not subinventario_id:
+            error = "Debe seleccionar un subinventario existente, o elegir crear uno nuevo."
+        elif modo == "reserva" and sub_modo == "nuevo" and not sub_nombre_nuevo:
+            error = "Debe indicar el nombre del subinventario nuevo."
         else:
             try:
                 litros = float(litros_str.replace(",", "."))
@@ -234,7 +244,7 @@ def crear():
                 error = "Los litros deben ser un número válido."
             if not error and litros <= 0:
                 error = "Los litros autorizados deben ser mayores a cero."
-            if not error and not subinventario_id:
+            if not error and modo == "despacho" and not subinventario_id:
                 conn2 = conectar()
                 cur2 = conn2.cursor()
                 cur2.execute("SELECT valor FROM configuracion WHERE clave = 'compra_minima_litros'")
@@ -252,6 +262,14 @@ def crear():
                 tarjeta_check = cur2.fetchone()
                 cur2.execute("SELECT tipo_combustible FROM vehiculos WHERE id = ?", (unidad_id,))
                 unidad_check = cur2.fetchone()
+                if modo == "reserva" and sub_modo == "existente" and subinventario_id:
+                    cur2.execute(
+                        "SELECT gasolinera_id FROM subinventarios WHERE id = ? AND activo = 1",
+                        (subinventario_id,),
+                    )
+                    sub_check = cur2.fetchone()
+                else:
+                    sub_check = None
                 conn2.close()
                 if not tarjeta_check or not unidad_check:
                     error = "La tarjeta o la unidad seleccionada no es válida."
@@ -259,22 +277,61 @@ def crear():
                     error = "La tarjeta seleccionada no corresponde a la gasolinera elegida."
                 elif tarjeta_check["tipo_combustible"] != unidad_check["tipo_combustible"]:
                     error = "La tarjeta seleccionada no corresponde al tipo de combustible de la unidad."
+                elif modo == "reserva" and sub_modo == "existente":
+                    if not sub_check:
+                        error = "El subinventario seleccionado no es válido."
+                    elif str(sub_check["gasolinera_id"]) != str(gasolinera_id):
+                        error = "El subinventario seleccionado no pertenece a la gasolinera elegida."
 
         if not error:
             conn = conectar()
             cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO habilitaciones
-                    (cliente_id, unidad_id, gasolinera_id, tarjeta_id, subinventario_id,
-                     litros_autorizados, fecha_habilitacion, fecha_vencimiento,
-                     estado, observaciones, creado_por)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?, ?)
-            """, (cliente_id, unidad_id, gasolinera_id, tarjeta_id, subinventario_id,
-                  litros, fecha_hab, fecha_venc, observaciones or None, session.get("user_id")))
-            nuevo_id = cur.lastrowid
-            conn.commit()
-            conn.close()
-            return redirect(f"/habilitaciones/{nuevo_id}?ok=1")
+            try:
+                if modo == "reserva":
+                    if sub_modo == "nuevo":
+                        resolved_sub_id = crear_subinventario(
+                            cur, gasolinera_id, sub_nombre_nuevo, "cliente", cliente_id, 0
+                        )
+                    else:
+                        resolved_sub_id = int(subinventario_id)
+
+                    cur.execute("""
+                        INSERT INTO habilitaciones
+                            (cliente_id, unidad_id, gasolinera_id, tarjeta_id, subinventario_id,
+                             litros_autorizados, fecha_habilitacion, fecha_vencimiento,
+                             estado, observaciones, creado_por)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_reserva', ?, ?)
+                    """, (cliente_id, unidad_id, gasolinera_id, tarjeta_id, resolved_sub_id,
+                          litros, fecha_hab, fecha_venc, observaciones or None, session.get("user_id")))
+                    nuevo_id = cur.lastrowid
+
+                    ajustar_reserva(cur, gasolinera_id, resolved_sub_id, litros)
+
+                    cur.execute("""
+                        INSERT INTO movimientos
+                            (tipo, fecha, gasolinera_id, cliente_id, vehiculo_id,
+                             subinventario_destino_id, litros, responsable_id, observaciones)
+                        VALUES ('habilitacion', ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (fecha_hab, gasolinera_id, cliente_id, unidad_id, resolved_sub_id,
+                          litros, session.get("user_id"),
+                          f"Habilitación #{nuevo_id} — apartada en reserva de subinventario"))
+                else:
+                    cur.execute("""
+                        INSERT INTO habilitaciones
+                            (cliente_id, unidad_id, gasolinera_id, tarjeta_id, subinventario_id,
+                             litros_autorizados, fecha_habilitacion, fecha_vencimiento,
+                             estado, observaciones, creado_por)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?, ?)
+                    """, (cliente_id, unidad_id, gasolinera_id, tarjeta_id, subinventario_id,
+                          litros, fecha_hab, fecha_venc, observaciones or None, session.get("user_id")))
+                    nuevo_id = cur.lastrowid
+            except SubinventarioError as e:
+                error = str(e)
+                conn.close()
+            else:
+                conn.commit()
+                conn.close()
+                return redirect(f"/habilitaciones/{nuevo_id}?ok=1")
 
     return render_template(
         "habilitaciones/crear.html",
@@ -375,6 +432,94 @@ def aprobar(id):
     return redirect(f"/habilitaciones/{id}?ok=1")
 
 
+# ── Liberar (de en_reserva a aprobada) ──────────────────────────────────────────
+
+@habilitaciones_bp.route("/<int:id>/liberar", methods=["POST"])
+def liberar(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/habilitaciones/{id}?access_error=Solo+Admin+y+PM+pueden+liberar")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT h.*,
+               v.estado AS unidad_estado, v.chofer_id,
+               ch.licencia_vencimiento,
+               t.estado AS tarjeta_estado, t.saldo_usable_l, t.saldo_usd,
+               s.litros_reservados AS sub_litros
+        FROM habilitaciones h
+        JOIN vehiculos v ON v.id = h.unidad_id
+        LEFT JOIN choferes ch ON ch.id = v.chofer_id
+        JOIN tarjetas t ON t.id = h.tarjeta_id
+        LEFT JOIN subinventarios s ON s.id = h.subinventario_id
+        WHERE h.id = ?
+    """, (id,))
+    hab = cur.fetchone()
+
+    if not hab:
+        conn.close()
+        return redirect("/habilitaciones?access_error=Habilitación+no+encontrada")
+
+    if hab["estado"] != "en_reserva":
+        conn.close()
+        return redirect(f"/habilitaciones/{id}?access_error=Solo+se+pueden+liberar+habilitaciones+en+reserva")
+
+    error = None
+    tarjeta_link = None
+    litros = float(hab["litros_autorizados"])
+
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    _frow = cur.fetchone()
+    factor = float(_frow["valor"]) if _frow else 0.90
+    monto_usd = round(litros * factor, 2)
+
+    if hab["unidad_estado"] != "activo":
+        error = "La unidad no está activa."
+    elif hab["chofer_id"] and hab["licencia_vencimiento"] and hab["licencia_vencimiento"] < date.today().isoformat():
+        error = f"El chofer tiene la licencia vencida ({hab['licencia_vencimiento']})."
+    elif hab["tarjeta_estado"] != "activa":
+        error = "La tarjeta no está activa."
+    elif float(hab["saldo_usable_l"]) < litros - 0.001:
+        error = (
+            f"Saldo insuficiente en la tarjeta. Disponible: {float(hab['saldo_usable_l']):,.2f} L, "
+            f"requerido: {litros:,.2f} L."
+        )
+        tarjeta_link = hab["tarjeta_id"]
+    elif float(hab["saldo_usd"] or 0) < monto_usd - 0.001:
+        error = (
+            f"Saldo Fincimex insuficiente. Disponible: "
+            f"${float(hab['saldo_usd'] or 0):,.2f} USD, "
+            f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
+        )
+        tarjeta_link = hab["tarjeta_id"]
+    elif hab["subinventario_id"] and hab["sub_litros"] is not None:
+        if float(hab["sub_litros"]) < litros - 0.001:
+            error = (
+                f"El subinventario tiene {float(hab['sub_litros']):,.2f} L reservados, "
+                f"insuficiente para {litros:,.2f} L."
+            )
+
+    if error:
+        conn.close()
+        link_param = f"&tarjeta_link={tarjeta_link}" if tarjeta_link else ""
+        return redirect(f"/habilitaciones/{id}?access_error={error.replace(' ', '+')}{link_param}")
+
+    # No se toca litros_reservados ni movimientos aquí: la reserva ya se descontó
+    # del disponible al apartar (crear en modo reserva). El consumo real del
+    # subinventario ocurre al despachar, con el código ya existente, sin cambios.
+    cur.execute("""
+        UPDATE habilitaciones
+        SET estado = 'aprobada', aprobado_por = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, (session.get("user_id"), id))
+    conn.commit()
+    conn.close()
+    return redirect(f"/habilitaciones/{id}?ok=1")
+
+
 # ── Cancelar ──────────────────────────────────────────────────────────────────
 
 @habilitaciones_bp.route("/<int:id>/cancelar", methods=["POST"])
@@ -391,18 +536,36 @@ def cancelar(id):
 
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("SELECT estado FROM habilitaciones WHERE id = ?", (id,))
+    cur.execute("""
+        SELECT estado, gasolinera_id, subinventario_id, litros_autorizados
+        FROM habilitaciones WHERE id = ?
+    """, (id,))
     row = cur.fetchone()
 
-    if not row or row["estado"] not in ("pendiente", "aprobada"):
+    if not row or row["estado"] not in ("pendiente", "aprobada", "en_reserva"):
         conn.close()
         return redirect(f"/habilitaciones/{id}?access_error=No+se+puede+cancelar+en+estado+actual")
+
+    observaciones_final = observaciones
+
+    if row["estado"] == "en_reserva" and row["subinventario_id"]:
+        litros_autorizados = float(row["litros_autorizados"])
+        anterior, nuevo = ajustar_reserva(
+            cur, row["gasolinera_id"], row["subinventario_id"], -litros_autorizados
+        )
+        litros_devueltos = anterior - nuevo
+        if litros_devueltos + 0.001 < litros_autorizados:
+            observaciones_final = (
+                f"{observaciones} — Nota: se devolvieron {litros_devueltos:,.2f} L al disponible "
+                f"(de {litros_autorizados:,.2f} L apartados); el subinventario ya tenía menos "
+                f"reservado de lo esperado, posiblemente por un ajuste manual posterior."
+            )
 
     cur.execute("""
         UPDATE habilitaciones
         SET estado = 'cancelada', observaciones = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-    """, (observaciones, id))
+    """, (observaciones_final, id))
     conn.commit()
     conn.close()
     return redirect(f"/habilitaciones/{id}?ok=1")
