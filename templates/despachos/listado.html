@@ -133,10 +133,12 @@
                     <td><strong style="color:var(--success);">{{ "{:,.2f}".format(d.litros_despachados) }} L</strong></td>
                     <td style="font-size:13px;">{{ (d.fecha_despacho | string)[:16] if d.fecha_despacho else '—' }}</td>
                     <td>
-                        {% if d.foto_ticket_url %}
+                        {% if d.foto_ticket_url and not d.foto_ticket_url.startswith('/static/uploads/') %}
                         <a href="{{ d.foto_ticket_url }}" target="_blank">
                             <img src="{{ d.foto_ticket_url }}" style="height:36px;border-radius:4px;border:1px solid var(--border);">
                         </a>
+                        {% elif d.foto_ticket_url %}
+                        <span style="color:var(--muted);">Sin imagen</span>
                         {% else %}
                         <span style="color:var(--muted);">—</span>
                         {% endif %}

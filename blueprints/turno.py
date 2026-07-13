@@ -1,21 +1,17 @@
 import logging
-import os
-import uuid
 from datetime import date
 
-from flask import Blueprint, render_template, request, redirect, session, jsonify, current_app
-from werkzeug.utils import secure_filename
+from flask import Blueprint, render_template, request, redirect, session, jsonify
 
 from database import conectar
 from utils.auth import requiere_login, requiere_staff
 from utils.constants import ROLES_ADMIN_PM, TURNOS_CONCILIACION, TURNOS_CONCILIACION_LABELS, ROLES_OPERARIO_GAS
 from utils import mailer
+from utils.adjuntos import foto_valida, guardar_adjunto
 
 logger = logging.getLogger(__name__)
 
 turno_bp = Blueprint("turno", __name__, url_prefix="/turno")
-
-_ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 
 def _requiere_operario_gas():
@@ -24,10 +20,6 @@ def _requiere_operario_gas():
     if session.get("rol") not in ROLES_OPERARIO_GAS:
         return redirect("/dashboard")
     return None
-
-
-def _allowed(filename):
-    return os.path.splitext(filename.lower())[1] in _ALLOWED_EXT
 
 
 # ── Página principal ──────────────────────────────────────────────────────────
@@ -278,7 +270,7 @@ def api_despachar(hab_id):
 
     if not foto or not foto.filename:
         return jsonify({"error": "La foto del ticket es obligatoria"}), 400
-    if not _allowed(foto.filename):
+    if not foto_valida(foto):
         return jsonify({"error": "Formato de foto no válido. Use JPG, PNG o WEBP."}), 400
 
     try:
@@ -338,24 +330,21 @@ def api_despachar(hab_id):
                      f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
         }), 400
 
-    # Guardar foto si viene
-    foto_url = None
-    if foto and foto.filename and _allowed(foto.filename):
-        ext = os.path.splitext(secure_filename(foto.filename))[1].lower()
-        nombre = f"{uuid.uuid4().hex}{ext}"
-        ruta = os.path.join(current_app.config["UPLOAD_FOLDER"], "tickets", nombre)
-        foto.save(ruta)
-        foto_url = f"/static/uploads/tickets/{nombre}"
-
     hoy_str = date.today().isoformat()
 
     cur.execute("""
         INSERT INTO despachos
             (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
-             litros_despachados, foto_ticket_url, fecha_despacho, operario_id, estado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completado')
+             litros_despachados, fecha_despacho, operario_id, estado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completado')
     """, (hab_id, hab["gasolinera_id"], hab["tarjeta_id"], hab["cliente_id"],
-          hab["unidad_id"], litros, foto_url, hoy_str, session.get("user_id")))
+          hab["unidad_id"], litros, hoy_str, session.get("user_id")))
+    nuevo_despacho_id = cur.lastrowid
+
+    foto_url = guardar_adjunto(cur, "despacho", nuevo_despacho_id, "ticket", foto)
+    cur.execute("""
+        UPDATE despachos SET foto_ticket_url = ? WHERE id = ?
+    """, (foto_url, nuevo_despacho_id))
 
     cur.execute("""
         UPDATE habilitaciones SET estado='despachada', litros_despachados=?,
@@ -528,7 +517,7 @@ def api_reserva_completar(token):
     foto = request.files.get("foto_ticket")
     if not foto or not foto.filename:
         return jsonify({"error": "La foto del ticket es obligatoria"}), 400
-    if not _allowed(foto.filename):
+    if not foto_valida(foto):
         return jsonify({"error": "Formato de foto no válido. Use JPG, PNG o WEBP."}), 400
 
     conn = conectar()
@@ -592,11 +581,7 @@ def api_reserva_completar(token):
                 "error": f"Saldo Fincimex insuficiente. {detalle}"
             }), 400
 
-    ext = os.path.splitext(secure_filename(foto.filename))[1].lower()
-    nombre_foto = f"{uuid.uuid4().hex}{ext}"
-    ruta_foto = os.path.join(current_app.config["UPLOAD_FOLDER"], "tickets", nombre_foto)
-    foto.save(ruta_foto)
-    foto_ticket_url = f"/static/uploads/tickets/{nombre_foto}"
+    foto_ticket_url = guardar_adjunto(cur, "reserva_tienda", row["id"], "ticket", foto)
 
     cur.execute("""
         UPDATE reservas_tienda SET estado='completada', foto_ticket_url=?, updated_at=CURRENT_TIMESTAMP WHERE id=?

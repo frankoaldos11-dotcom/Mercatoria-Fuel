@@ -33,6 +33,7 @@ from blueprints.puertos import puertos_bp
 from blueprints.registro import registro_bp
 from blueprints.tienda import tienda_bp
 from blueprints.mensajes import mensajes_bp
+from blueprints.adjuntos import adjuntos_bp
 
 
 app = Flask(__name__)
@@ -218,6 +219,7 @@ app.register_blueprint(puertos_bp)
 app.register_blueprint(registro_bp)
 app.register_blueprint(tienda_bp)
 app.register_blueprint(mensajes_bp)
+app.register_blueprint(adjuntos_bp)
 
 # Rate limiting en rutas sensibles adicionales (login ya lo tiene arriba).
 # Se aplica aquí sobre la función vista ya registrada, en vez de con
@@ -232,11 +234,7 @@ app.view_functions["tienda.verificar_email_reenviar"] = limiter.limit(
 app.view_functions["usuarios.reset_password"] = limiter.limit(
     "10 per minute")(app.view_functions["usuarios.reset_password"])
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
-for _sub in ["tickets", "vehiculos", "odometros"]:
-    os.makedirs(os.path.join(UPLOAD_FOLDER, _sub), exist_ok=True)
 
 # Inicializar base de datos y migraciones
 if USE_POSTGRES:

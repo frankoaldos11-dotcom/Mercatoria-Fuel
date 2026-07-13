@@ -115,25 +115,37 @@
             {% if despacho.foto_ticket_url %}
             <div>
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;letter-spacing:0.05em;">Ticket de despacho</div>
+                {% if despacho.foto_ticket_url.startswith('/static/uploads/') %}
+                <div style="color:var(--muted);font-size:13px;">Sin imagen (archivo no disponible).</div>
+                {% else %}
                 <a href="{{ despacho.foto_ticket_url }}" target="_blank">
                     <img src="{{ despacho.foto_ticket_url }}" style="max-width:100%;max-height:220px;border-radius:8px;border:1px solid var(--border);display:block;">
                 </a>
+                {% endif %}
             </div>
             {% endif %}
             {% if despacho.foto_vehiculo_url %}
             <div>
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;letter-spacing:0.05em;">Vehículo</div>
+                {% if despacho.foto_vehiculo_url.startswith('/static/uploads/') %}
+                <div style="color:var(--muted);font-size:13px;">Sin imagen (archivo no disponible).</div>
+                {% else %}
                 <a href="{{ despacho.foto_vehiculo_url }}" target="_blank">
                     <img src="{{ despacho.foto_vehiculo_url }}" style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--border);display:block;">
                 </a>
+                {% endif %}
             </div>
             {% endif %}
             {% if despacho.foto_odometro_url %}
             <div>
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;letter-spacing:0.05em;">Odómetro</div>
+                {% if despacho.foto_odometro_url.startswith('/static/uploads/') %}
+                <div style="color:var(--muted);font-size:13px;">Sin imagen (archivo no disponible).</div>
+                {% else %}
                 <a href="{{ despacho.foto_odometro_url }}" target="_blank">
                     <img src="{{ despacho.foto_odometro_url }}" style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--border);display:block;">
                 </a>
+                {% endif %}
             </div>
             {% endif %}
             {% if not despacho.foto_ticket_url and not despacho.foto_vehiculo_url and not despacho.foto_odometro_url %}

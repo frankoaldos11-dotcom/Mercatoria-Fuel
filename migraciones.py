@@ -333,6 +333,23 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    # ── adjuntos ──────────────────────────────────────────────────────────────────
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS adjuntos (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        origen_tipo      TEXT NOT NULL,
+        origen_id        INTEGER NOT NULL,
+        categoria        TEXT NOT NULL,
+        nombre_original  TEXT,
+        mime_type        TEXT NOT NULL,
+        contenido        BLOB NOT NULL,
+        created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+    )
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_adjuntos_origen ON adjuntos (origen_tipo, origen_id)
+    """)
+
     # ── conciliaciones ────────────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS conciliaciones (

@@ -1,33 +1,13 @@
-import os
-import uuid
 from datetime import date, datetime
 
-from flask import Blueprint, render_template, request, redirect, session, current_app
-from werkzeug.utils import secure_filename
+from flask import Blueprint, render_template, request, redirect, session
 
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE_LABELS, ESTADOS_HABILITACION_LABELS
 from utils.auth import requiere_login, requiere_staff
+from utils.adjuntos import foto_valida, guardar_adjunto
 
 despachos_bp = Blueprint("despachos", __name__, url_prefix="/despachos")
-
-_ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-
-
-def _save_photo(file, subfolder):
-    if not file or not file.filename:
-        return None
-    ext = os.path.splitext(secure_filename(file.filename))[1].lower()
-    if ext not in _ALLOWED_EXT:
-        return None
-    filename = f"{uuid.uuid4().hex}{ext}"
-    upload_root = current_app.config.get("UPLOAD_FOLDER",
-                                         os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                       "..", "static", "uploads"))
-    dest = os.path.join(upload_root, subfolder, filename)
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    file.save(dest)
-    return f"/static/uploads/{subfolder}/{filename}"
 
 
 # ── Listado ───────────────────────────────────────────────────────────────────
@@ -245,6 +225,12 @@ def crear():
             error = "Debe seleccionar una habilitación aprobada."
         elif not foto_ticket or not foto_ticket.filename:
             error = "La foto del ticket es obligatoria."
+        elif not foto_valida(foto_ticket):
+            error = "Formato de foto no válido. Use JPG, PNG o WEBP."
+        elif foto_vehiculo and foto_vehiculo.filename and not foto_valida(foto_vehiculo):
+            error = "Formato de foto de vehículo no válido. Use JPG, PNG o WEBP."
+        elif foto_odometro and foto_odometro.filename and not foto_valida(foto_odometro):
+            error = "Formato de foto de odómetro no válido. Use JPG, PNG o WEBP."
         else:
             try:
                 litros = float(litros_str)
@@ -292,16 +278,7 @@ def crear():
                     f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
                 )
                 conn.close()
-            else:
-                foto_ticket_url = _save_photo(foto_ticket, "tickets")
-                if not foto_ticket_url:
-                    error = "Formato de foto no válido. Use JPG, PNG o WEBP."
-                    conn.close()
-
             if not error:
-                foto_vehiculo_url = _save_photo(foto_vehiculo, "vehiculos")
-                foto_odometro_url = _save_photo(foto_odometro, "odometros")
-
                 try:
                     odometro_km = int(odometro_str) if odometro_str else None
                 except ValueError:
@@ -350,15 +327,23 @@ def crear():
                     cur.execute("""
                         INSERT INTO despachos
                             (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
-                             litros_despachados, foto_ticket_url, foto_vehiculo_url, foto_odometro_url,
-                             odometro_km, observaciones, fecha_despacho, operario_id, estado)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completado')
+                             litros_despachados, odometro_km, observaciones, fecha_despacho,
+                             operario_id, estado)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completado')
                     """, (habilitacion_id, hab["gasolinera_id"], hab["tarjeta_id"],
                           hab["cliente_id"], hab["unidad_id"], litros,
-                          foto_ticket_url, foto_vehiculo_url, foto_odometro_url,
                           odometro_km, observaciones or None, fecha_despacho,
                           session.get("user_id")))
                     nuevo_id = cur.lastrowid
+
+                    foto_ticket_url = guardar_adjunto(cur, "despacho", nuevo_id, "ticket", foto_ticket)
+                    foto_vehiculo_url = guardar_adjunto(cur, "despacho", nuevo_id, "vehiculo", foto_vehiculo)
+                    foto_odometro_url = guardar_adjunto(cur, "despacho", nuevo_id, "odometro", foto_odometro)
+                    cur.execute("""
+                        UPDATE despachos
+                        SET foto_ticket_url = ?, foto_vehiculo_url = ?, foto_odometro_url = ?
+                        WHERE id = ?
+                    """, (foto_ticket_url, foto_vehiculo_url, foto_odometro_url, nuevo_id))
 
                     cur.execute("""
                         INSERT INTO movimientos

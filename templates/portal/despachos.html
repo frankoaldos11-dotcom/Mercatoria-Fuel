@@ -46,10 +46,12 @@
                     <td>{{ f.gasolinera }}</td>
                     <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(f.litros_despachados) }} L</td>
                     <td>
-                        {% if f.foto_ticket_url %}
+                        {% if f.foto_ticket_url and not f.foto_ticket_url.startswith('/static/uploads/') %}
                         <a href="{{ f.foto_ticket_url }}" target="_blank" class="btn btn-soft btn-sm">
                             <i class="bi bi-image"></i> Ver
                         </a>
+                        {% elif f.foto_ticket_url %}
+                        <span style="color:var(--muted);">Sin imagen</span>
                         {% else %}—{% endif %}
                     </td>
                 </tr>

@@ -451,6 +451,22 @@ def ejecutar_migraciones_pg(bcrypt):
     )
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS adjuntos (
+        id               SERIAL PRIMARY KEY,
+        origen_tipo      TEXT NOT NULL,
+        origen_id        INTEGER NOT NULL,
+        categoria        TEXT NOT NULL,
+        nombre_original  TEXT,
+        mime_type        TEXT NOT NULL,
+        contenido        BYTEA NOT NULL,
+        created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_adjuntos_origen ON adjuntos (origen_tipo, origen_id)
+    """)
+
     # ── ALTER TABLE: safety net para DBs existentes con esquema parcial ───────
     cur.execute("ALTER TABLE gasolineras ADD COLUMN IF NOT EXISTS provincia TEXT")
     cur.execute("ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS tipo_combustible TEXT")
