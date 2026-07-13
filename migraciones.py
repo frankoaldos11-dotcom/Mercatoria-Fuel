@@ -584,6 +584,17 @@ def ejecutar_migraciones(bcrypt):
     )
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS capacidades_gasolinera (
+        id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+        gasolinera_id          INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible       TEXT NOT NULL,
+        capacidad_referencia_l REAL NOT NULL DEFAULT 0,
+        updated_at             TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        UNIQUE(gasolinera_id, tipo_combustible)
+    )
+    """)
+
     # ── reservas_tienda ───────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS reservas_tienda (

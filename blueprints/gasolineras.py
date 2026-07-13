@@ -101,6 +101,15 @@ def listado():
             stock_gasolineras[_gid] = {}
         stock_gasolineras[_gid][_r["tipo_combustible"]] = float(_r["stock"] or 0)
 
+    # Capacidades de referencia por gasolinera/combustible
+    cur.execute("SELECT gasolinera_id, tipo_combustible, capacidad_referencia_l FROM capacidades_gasolinera")
+    capacidades_gasolineras = {}
+    for _r in cur.fetchall():
+        _gid = _r["gasolinera_id"]
+        if _gid not in capacidades_gasolineras:
+            capacidades_gasolineras[_gid] = {}
+        capacidades_gasolineras[_gid][_r["tipo_combustible"]] = float(_r["capacidad_referencia_l"] or 0)
+
     # Saldo USD en tarjetas activas por gasolinera
     cur.execute("""
         SELECT gasolinera_id, COALESCE(SUM(saldo_usd), 0) AS saldo_usd_total
@@ -125,6 +134,7 @@ def listado():
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         combustibles_list=_combustibles_list,
         stock_gasolineras=stock_gasolineras,
+        capacidades_gasolineras=capacidades_gasolineras,
         saldo_tarjetas_gas=saldo_tarjetas_gas,
         factor=factor,
     )
@@ -160,6 +170,15 @@ def detalle(id):
     """, (id,))
     stock_rows = cur.fetchall()
     stock_por_combustible = {r["tipo_combustible"]: float(r["stock"]) for r in stock_rows if r["tipo_combustible"]}
+
+    # Capacidad de referencia por combustible (informativo, nunca bloquea)
+    cur.execute("""
+        SELECT tipo_combustible, capacidad_referencia_l
+        FROM capacidades_gasolinera WHERE gasolinera_id = ?
+    """, (id,))
+    capacidad_por_combustible = {
+        r["tipo_combustible"]: float(r["capacidad_referencia_l"] or 0) for r in cur.fetchall()
+    }
     stock_total = float(sum(stock_por_combustible.values()))
 
     # Historial de transferencias recibidas
@@ -247,6 +266,7 @@ def detalle(id):
         gasolinera=gasolinera,
         stock_total=stock_total,
         stock_por_combustible=stock_por_combustible,
+        capacidad_por_combustible=capacidad_por_combustible,
         combustibles_gasolinera=combustibles_gasolinera,
         transferencias=transferencias,
         subinventarios=subinventarios_display,
@@ -277,7 +297,6 @@ def crear():
         provincia = request.form.get("provincia", "").strip()
         direccion = request.form.get("direccion", "").strip()
         combustibles_sel = request.form.getlist("combustibles")
-        capacidad_str = request.form.get("capacidad_l", "0").strip()
         gestor = request.form.get("gestor_responsable", "").strip()
         estado = request.form.get("estado", "activo").strip()
 
@@ -289,12 +308,15 @@ def crear():
             error = "Región no válida."
         elif not combustibles_validos:
             error = "Debe seleccionar al menos un tipo de combustible."
-        else:
-            try:
-                capacidad = float(capacidad_str)
-            except ValueError:
-                capacidad = 0.0
-                error = "La capacidad debe ser un número."
+
+        capacidades_por_tc = {}
+        if not error:
+            for tc in combustibles_validos:
+                cap_str = request.form.get(f"capacidad_{tc}", "").strip()
+                try:
+                    capacidades_por_tc[tc] = float(cap_str) if cap_str else 0.0
+                except ValueError:
+                    capacidades_por_tc[tc] = 0.0
 
         if not error:
             combustible_str = ",".join(combustibles_validos)
@@ -302,11 +324,18 @@ def crear():
             cur = conn.cursor()
             cur.execute("""
                 INSERT INTO gasolineras
-                    (nombre, region, provincia, direccion, combustible, capacidad_l, gestor_responsable, estado)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (nombre, region, provincia, direccion, combustible, gestor_responsable, estado)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (nombre, region, provincia or None, direccion or None,
-                  combustible_str, capacidad, gestor or None, estado))
+                  combustible_str, gestor or None, estado))
             nuevo_id = cur.lastrowid
+
+            for tc, cap in capacidades_por_tc.items():
+                cur.execute("""
+                    INSERT INTO capacidades_gasolinera (gasolinera_id, tipo_combustible, capacidad_referencia_l)
+                    VALUES (?, ?, ?)
+                """, (nuevo_id, tc, cap))
+
             conn.commit()
             conn.close()
 
@@ -338,7 +367,7 @@ def editar(id):
     cur = conn.cursor()
     cur.execute("""
         SELECT id, nombre, region, provincia, direccion, combustible,
-               capacidad_l, gestor_responsable, estado
+               gestor_responsable, estado
         FROM gasolineras WHERE id = ?
     """, (id,))
     gasolinera = cur.fetchone()
@@ -346,6 +375,12 @@ def editar(id):
     if not gasolinera:
         conn.close()
         return redirect("/gasolineras")
+
+    cur.execute("""
+        SELECT tipo_combustible, capacidad_referencia_l
+        FROM capacidades_gasolinera WHERE gasolinera_id = ?
+    """, (id,))
+    capacidades_actuales = {r["tipo_combustible"]: float(r["capacidad_referencia_l"] or 0) for r in cur.fetchall()}
 
     error = None
     combustibles_sel = _combustibles_list(gasolinera["combustible"])
@@ -356,7 +391,6 @@ def editar(id):
         provincia = request.form.get("provincia", "").strip()
         direccion = request.form.get("direccion", "").strip()
         combustibles_form = request.form.getlist("combustibles")
-        capacidad_str = request.form.get("capacidad_l", "0").strip()
         gestor = request.form.get("gestor_responsable", "").strip()
         estado = request.form.get("estado", "activo").strip()
 
@@ -368,12 +402,15 @@ def editar(id):
             error = "Región no válida."
         elif not combustibles_validos:
             error = "Debe seleccionar al menos un tipo de combustible."
-        else:
-            try:
-                capacidad = float(capacidad_str)
-            except ValueError:
-                capacidad = 0.0
-                error = "La capacidad debe ser un número."
+
+        capacidades_por_tc = {}
+        if not error:
+            for tc in combustibles_validos:
+                cap_str = request.form.get(f"capacidad_{tc}", "").strip()
+                try:
+                    capacidades_por_tc[tc] = float(cap_str) if cap_str else 0.0
+                except ValueError:
+                    capacidades_por_tc[tc] = 0.0
 
         if not error:
             combustible_str = ",".join(combustibles_validos)
@@ -381,11 +418,32 @@ def editar(id):
             cur.execute("""
                 UPDATE gasolineras
                 SET nombre = ?, region = ?, provincia = ?, direccion = ?,
-                    combustible = ?, capacidad_l = ?, gestor_responsable = ?,
+                    combustible = ?, gestor_responsable = ?,
                     estado = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (nombre, region, provincia or None, direccion or None,
-                  combustible_str, capacidad, gestor or None, estado, id))
+                  combustible_str, gestor or None, estado, id))
+
+            # Limpiar capacidades de combustibles que se hayan desmarcado
+            if combustibles_validos:
+                placeholders = ",".join(["?"] * len(combustibles_validos))
+                cur.execute(f"""
+                    DELETE FROM capacidades_gasolinera
+                    WHERE gasolinera_id = ? AND tipo_combustible NOT IN ({placeholders})
+                """, (id, *combustibles_validos))
+            else:
+                cur.execute("DELETE FROM capacidades_gasolinera WHERE gasolinera_id = ?", (id,))
+
+            # Upsert de capacidades para los combustibles seleccionados
+            for tc, cap in capacidades_por_tc.items():
+                cur.execute("""
+                    INSERT INTO capacidades_gasolinera (gasolinera_id, tipo_combustible, capacidad_referencia_l)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT (gasolinera_id, tipo_combustible)
+                    DO UPDATE SET capacidad_referencia_l = excluded.capacidad_referencia_l,
+                                  updated_at = CURRENT_TIMESTAMP
+                """, (id, tc, cap))
+
             conn.commit()
             conn.close()
 
@@ -398,6 +456,7 @@ def editar(id):
             return redirect(f"/gasolineras/{id}?ok=1")
 
         combustibles_sel = combustibles_validos
+        capacidades_actuales = capacidades_por_tc
 
     conn.close()
 
@@ -407,6 +466,7 @@ def editar(id):
         error=error,
         regiones=REGIONES,
         tipos_combustible=TIPOS_COMBUSTIBLE,
+        capacidades_actuales=capacidades_actuales,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         combustibles_sel=combustibles_sel,
     )

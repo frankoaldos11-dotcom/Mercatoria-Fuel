@@ -39,31 +39,42 @@
     <div class="panel" style="padding:20px;text-align:center;">
         <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Stock total</div>
         <div style="font-size:28px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(stock_total) }} <span style="font-size:14px;font-weight:400;">L</span></div>
-        {% if gasolinera.capacidad_l %}
-        {% set pct = (stock_total / (gasolinera.capacidad_l | float) * 100) %}
-        <div style="width:100%;height:8px;background:#E5E7EB;border-radius:4px;margin-top:10px;">
-            <div style="width:{{ [pct,100]|min|int }}%;height:8px;border-radius:4px;background:{{ '#16A34A' if pct >= 50 else ('#F59E0B' if pct >= 20 else '#DC2626') }};"></div>
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">{{ "{:.1f}".format(pct) }}% de capacidad máx.</div>
-        {% endif %}
     </div>
 
     {% if stock_por_combustible %}
-    <div class="panel" style="padding:20px;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Por combustible</div>
-        {% for tc, litros in stock_por_combustible.items() %}
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span class="badge badge-info">{{ combustible_labels.get(tc, tc) }}</span>
-            <strong style="font-size:14px;">{{ "{:,.2f}".format(litros) }} L</strong>
+    <div class="panel" style="padding:20px;grid-column:1/-1;">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Stock vs. capacidad de referencia, por combustible</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+            {% for tc, litros in stock_por_combustible.items() %}
+            {% set cap = capacidad_por_combustible.get(tc, 0) %}
+            <div style="border:1px solid var(--border);border-radius:10px;padding:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <span class="badge badge-info">{{ combustible_labels.get(tc, tc) }}</span>
+                    {% if cap > 0 %}
+                    {% set pct = (litros / cap * 100) %}
+                    <strong style="font-size:15px;color:{{ '#DC2626' if pct >= 150 else ('#F59E0B' if pct >= 100 else '#16A34A') }};">
+                        {{ "{:.1f}".format(pct) }}%
+                    </strong>
+                    {% else %}
+                    <span style="font-size:12px;color:var(--muted);">Capacidad no definida</span>
+                    {% endif %}
+                </div>
+                <div style="font-size:14px;">
+                    <strong>{{ "{:,.2f}".format(litros) }} L</strong>
+                    {% if cap > 0 %}
+                    <span style="color:var(--muted);"> / {{ "{:,.2f}".format(cap) }} L ref.</span>
+                    {% endif %}
+                </div>
+                {% if cap > 0 %}
+                <div style="width:100%;height:6px;background:#E5E7EB;border-radius:3px;margin-top:8px;">
+                    <div style="width:{{ [pct,100]|min|int }}%;height:6px;border-radius:3px;background:{{ '#DC2626' if pct >= 150 else ('#F59E0B' if pct >= 100 else '#16A34A') }};"></div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
     {% endif %}
-
-    <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Cap. máx. operativa</div>
-        <div style="font-size:28px;font-weight:700;">{{ "{:,.0f}".format(gasolinera.capacidad_l or 0) }} <span style="font-size:14px;font-weight:400;">L</span></div>
-    </div>
 
     <div class="panel" style="padding:20px;">
         <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Información</div>

@@ -87,26 +87,32 @@
                 <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">
                     {% for tc in tipos_combustible %}
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;border:2px solid {{ 'var(--primary)' if tc in combustibles_sel else 'var(--border)' }};border-radius:8px;background:var(--surface);">
-                        <input type="checkbox" name="combustibles" value="{{ tc }}"
+                        <input type="checkbox" name="combustibles" value="{{ tc }}" class="chk-combustible"
+                               data-cap-target="cap-{{ tc }}"
                                style="width:16px;height:16px;cursor:pointer;"
-                               {{ 'checked' if tc in combustibles_sel }}>
+                               {{ 'checked' if tc in combustibles_sel }}
+                               onchange="toggleCapacidad(this)">
                         <span style="font-size:14px;">{{ combustible_labels.get(tc, tc) }}</span>
                     </label>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Capacidad -->
+            <!-- Capacidad de referencia -->
             <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Capacidad</label>
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Capacidad de referencia</label>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+                    Valor aproximado por tanque, solo informativo — el PM lo ajusta cuando quiera. Opcional, puede dejarse vacío.
+                </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Capacidad máxima operativa (litros)</label>
-                <input type="number" name="capacidad_l" class="form-control"
-                       value="{{ gasolinera.capacidad_l }}" min="0" step="0.01">
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">Capacidad total inicial. En fases futuras se podrá desglosar por tanque y tipo de combustible.</div>
+            {% for tc in tipos_combustible %}
+            <div class="mb-3 cap-field" id="cap-{{ tc }}" style="display:{{ 'block' if tc in combustibles_sel else 'none' }};">
+                <label class="form-label">Capacidad de referencia — {{ combustible_labels.get(tc, tc) }} (L)</label>
+                <input type="number" name="capacidad_{{ tc }}" class="form-control"
+                       value="{{ capacidades_actuales.get(tc, '') }}" placeholder="Opcional" min="0" step="0.01">
             </div>
+            {% endfor %}
 
             <!-- Gestión -->
             <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
@@ -133,4 +139,13 @@
     </form>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleCapacidad(checkbox) {
+    const campo = document.getElementById(checkbox.dataset.capTarget);
+    if (campo) campo.style.display = checkbox.checked ? 'block' : 'none';
+}
+</script>
 {% endblock %}

@@ -59,8 +59,7 @@
                     <th>ID</th>
                     <th>Nombre</th>
                     <th>Ubicación</th>
-                    <th>Combustibles</th>
-                    <th>Cap. máx. (L)</th>
+                    <th>Combustibles (stock / % ref.)</th>
                     <th>Saldo Fincimex (USD)</th>
                     <th>LITROS equiv.</th>
                     <th>Responsable supervisor</th>
@@ -109,15 +108,22 @@
                     </td>
                     <td>
                         {% set gas_stock = stock_gasolineras.get(g.id, {}) %}
+                        {% set gas_cap = capacidades_gasolineras.get(g.id, {}) %}
                         {% for tc in tipos %}
+                        {% set tc_litros = gas_stock.get(tc, 0) %}
+                        {% set tc_cap = gas_cap.get(tc, 0) %}
                         <span class="badge badge-info" style="margin-bottom:2px;display:inline-block;">
-                            {{ combustible_labels.get(tc, tc) }}: {{ "{:,.0f}".format(gas_stock.get(tc, 0)) }} L
+                            {{ combustible_labels.get(tc, tc) }}: {{ "{:,.0f}".format(tc_litros) }} L
+                            {% if tc_cap > 0 %}
+                            <span style="color:{{ '#DC2626' if (tc_litros / tc_cap * 100) >= 150 else ('#F59E0B' if (tc_litros / tc_cap * 100) >= 100 else 'inherit') }};">
+                                ({{ "{:.0f}".format(tc_litros / tc_cap * 100) }}%)
+                            </span>
+                            {% endif %}
                         </span>
                         {% else %}
                         <span style="color:var(--muted);font-size:12px;">—</span>
                         {% endfor %}
                     </td>
-                    <td>{{ "{:,.0f}".format(g.capacidad_l or 0) }}</td>
                     <td>
                         {% set gas_saldo_usd = saldo_tarjetas_gas.get(g.id, 0) | float %}
                         {% if gas_saldo_usd > 0 %}

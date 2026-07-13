@@ -152,6 +152,17 @@ def ejecutar_migraciones_pg(bcrypt):
     """)
 
     cur.execute("""
+    CREATE TABLE IF NOT EXISTS capacidades_gasolinera (
+        id                     SERIAL PRIMARY KEY,
+        gasolinera_id          INTEGER NOT NULL REFERENCES gasolineras(id),
+        tipo_combustible       TEXT NOT NULL,
+        capacidad_referencia_l NUMERIC(14,2) NOT NULL DEFAULT 0,
+        updated_at             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(gasolinera_id, tipo_combustible)
+    )
+    """)
+
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS vehiculos (
         id               SERIAL PRIMARY KEY,
         cliente_id       INTEGER NOT NULL REFERENCES clientes(id),
