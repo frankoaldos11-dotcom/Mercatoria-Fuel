@@ -239,6 +239,21 @@ def transferir(llegada_id):
           session.get("user_id"),
           f"Llegada puerto #{llegada_id} — isotanque transferido a depósito"))
 
+    # Generar saldo en bolsón general Fincimex
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    _frow = cur.fetchone()
+    factor = float(_frow["valor"]) if _frow else 0.90
+    litros_llegada = float(llegada["litros"])
+    monto_usd = round(litros_llegada * factor, 2)
+    cur.execute("""
+        INSERT INTO movimientos_saldo_fincimex
+            (tipo, monto_usd, litros, factor, llegada_puerto_id, responsable_id, observaciones)
+        VALUES ('generacion', ?, ?, ?, ?, ?, ?)
+    """, (
+        monto_usd, litros_llegada, factor, llegada_id, session.get("user_id"),
+        f"Generación automática — Puerto, llegada #{llegada_id} ({litros_llegada:,.2f} L × {factor})",
+    ))
+
     conn.commit()
     conn.close()
     return redirect(f"/puertos/{llegada_id}?ok=1")
