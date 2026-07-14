@@ -19,6 +19,7 @@
   "fondo-exito-suave": { "$type": "string", "$value": "#F0FDF4" },
   "fondo-aviso-suave": { "$type": "string", "$value": "#FEF9C3" },
   "fondo-info-suave": { "$type": "string", "$value": "#EFF6FF" },
+  "fondo-principal-suave": { "$type": "string", "$value": "#eef4ff" },
 
   "exito-oscuro": { "$type": "string", "$value": "#15803D" },
 

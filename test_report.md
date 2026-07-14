@@ -984,3 +984,84 @@ con `onlyErrors: true`, sin resultados).
 No se ejecutó ninguna acción mutante (asignar saldo, recargar, despachar, aprobar) contra
 producción — solo navegación e inspección visual, conforme a la regla de no verificar con
 mutaciones reales en producción.
+
+---
+
+# Reporte de Pruebas — 2026-07-14 (tarde)
+
+## Migración de colores hardcodeados a tokens — Tanda 1 (infraestructura + admin.css)
+
+Primera tanda del plan de 6 (`tokens.css` enlazado por primera vez, `admin.css` migrado
+completo). Verificación **solo local** (sin producción) — la sesión anterior estableció que el
+chequeo autenticado en producción lo hace Aldo, no Claude Code.
+
+### Cambios
+
+- `templates/base.html`, `templates/404.html`, `templates/500.html`: agregado
+  `<link rel="stylesheet" href="/static/css/tokens.css">`.
+- `static/css/admin.css`: reescrito completo. Su `:root` de color (14 variables) se reemplazó
+  por un bloque de **alias de compatibilidad** (`--primary: var(--principal)`, etc.) — hallazgo
+  clave de esta tanda: había ~207 referencias `var(--nombre-viejo)` ya en uso en templates
+  (68 archivos con `var(--muted)`, 45 con `var(--danger)`, 34 con `var(--primary)`, etc.),
+  algo que la exploración de la tanda de planificación no había detectado (solo se había
+  chequeado el vocabulario *nuevo*, no el sistema de variables *viejo* de `admin.css`, que
+  existía desde antes de este proyecto de tokens). Sin el alias, borrar el `:root` viejo
+  hubiera roto esas ~207 referencias. Con el alias, todas siguen funcionando **y heredan
+  automáticamente el cambio de valor** (azul→naranja en `--primary`) sin tocar un solo
+  template — efecto más amplio de lo planeado originalmente (Cambio A1 ahora alcanza cualquier
+  `var(--primary)` de la app, no solo los 6 selectores propios de `admin.css`).
+- 20 tokens nuevos agregados a `tokens/color.json` (`fondo-principal-suave`, resolviendo el
+  caso dudoso #1 del plan — fondo tenue detrás de íconos/botones "primarios", mismo valor
+  `#eef4ff` de siempre, ahora con nombre) y `tokens/color-sin-mapeo.json` (14 orphans: valores
+  hardcodeados en `admin.css`/`base.html` sin token previo — `color-danger-text-pale`,
+  `color-activo-hover-alt`, `color-success-bg-icon`, `color-info-bg-icon`,
+  `color-panel-header-gradient-end`, `color-danger-hover`, `color-secondary-hover-bg`,
+  `color-secondary-hover-text`, `color-access-error-bg/border/text`,
+  `color-neutral-text-badge`, `color-neutral-bg-badge`, `color-warning-bg-alt-2`,
+  `color-success-border-alt`).
+- Único cálculo manual: `rgba(21, 94, 239, 0.12)` (halo de foco de inputs, azul) recalculado a
+  `rgba(241, 106, 48, 0.12)` (mismo alpha, RGB del naranja nuevo) — es la única rgba cuyo color
+  base cambia de valor esta tanda; el resto de las rgba de `admin.css` (overlays del sidebar,
+  scrim móvil) no dependen de ningún valor que esté cambiando, quedaron sin tocar.
+
+### Bug encontrado durante la implementación (corregido antes de probar)
+
+Al primer intento de reescribir `admin.css` borré directamente su `:root` viejo en vez de
+convertirlo en alias — reventaba las ~207 referencias mencionadas arriba. Detectado con un
+`grep` de `var(--primary)` etc. contra `templates/` antes de probar en navegador, corregido
+antes de cualquier verificación visual.
+
+### Verificación local (SQLite fresco, puerto 5055)
+
+| # | Página | Resultado |
+|---|---|---|
+| 1 | `/dashboard` | ✅ Antes/después comparado: ícono KPI "Inventario total" azul→naranja, eyebrow "PANEL OPERATIVO" azul→naranja, ítem de sidebar activo naranja-viejo→naranja-nuevo. Resto (badges, KPIs) sin cambio. |
+| 2 | `/tarjetas/` (listado) | ✅ Botón "Nueva tarjeta" azul→naranja, números de tarjeta (links) azul→naranja. Bolsón (verde), badges "Bajo"/"Activa" sin cambio. |
+| 3 | `/tarjetas/<id>` (detalle) | ✅ Botones "Recargar"/"Nueva recarga" azul→naranja, texto de saldo azul→naranja. Card verde de saldo Fincimex, botón "Bloquear" rojo sin cambio. |
+| 4 | `/does-not-exist` (404) | ✅ Encabezado "404" y botón "Ir al Dashboard" ahora en naranja unificado — antes usaban dos naranjas distintos (`#E86A2C`/`#155eef`), ahora ambos `#F16A30`. |
+| 5 | `/usuarios/` (badges de rol) | ✅ Badge "Cliente" y "Admin" renderizan con contraste correcto (tokens `color-role-cliente-*`/`color-danger-bg-alt-upper` sin cambio de valor). Botón "Nuevo usuario" azul→naranja. |
+
+**Nota sobre baseline "antes":** se capturó ANTES de tocar ningún archivo (dashboard, listado y
+detalle de tarjetas, desktop 1440px). El viewport móvil no se pudo emular (`resize_window` no
+tuvo efecto en este entorno) — no bloqueante: `admin.css` no tiene ninguna regla de color
+específica de `@media` (confirmado leyendo el archivo completo), solo un `.sidebar-overlay` de
+layout, así que la verificación desktop cubre el 100% de la lógica de color de esta tanda.
+
+**0 errores de consola** (`read_console_messages`, `onlyErrors: true`) en las 5 páginas.
+**0 `var()` sin resolver**: verifiqué programáticamente que las 55 variables usadas en
+`admin.css` (y las de `base.html`/`404.html`/`500.html`) resuelven todas a un token real, sin
+huecos.
+
+### Pendiente detectado durante esta tanda (no corregido, fuera de alcance)
+
+Al arrancar el server local por primera vez con `debug=False`, Jinja cacheó las plantillas y no
+reflejó ediciones posteriores hasta reiniciar el proceso — nota operativa para las tandas 2-6:
+reiniciar el server local después de cada edición de template, no solo la primera vez.
+
+## Recomendaciones
+
+- Tandas 2-6 pendientes (núcleo operativo, admin secundario, CRUD+dashboards, portal cliente,
+  tienda+login+landing), cada una con su propio commit, sin push hasta confirmación explícita.
+- Los ~207 `var(--nombre-viejo)` en templates quedan resueltos vía alias — migrarlos al
+  vocabulario nuevo (`var(--primary)`→`var(--principal)`, etc.) es trabajo opcional de
+  limpieza, no bloqueante, mencionado para que quede documentado junto al resto del catálogo.

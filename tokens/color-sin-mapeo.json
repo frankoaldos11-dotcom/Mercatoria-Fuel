@@ -54,5 +54,21 @@
 
   "color-role-cliente-bg": { "$type": "string", "$value": "#ffedd5" },
   "color-role-cliente-text-upper": { "$type": "string", "$value": "#9A3412" },
-  "color-role-cliente-text-lower": { "$type": "string", "$value": "#9a3412" }
+  "color-role-cliente-text-lower": { "$type": "string", "$value": "#9a3412" },
+
+  "color-danger-text-pale": { "$type": "string", "$value": "#fecaca" },
+  "color-activo-hover-alt": { "$type": "string", "$value": "#cf5a22" },
+  "color-success-bg-icon": { "$type": "string", "$value": "#ecfdf3" },
+  "color-info-bg-icon": { "$type": "string", "$value": "#ecfeff" },
+  "color-panel-header-gradient-end": { "$type": "string", "$value": "#fbfdff" },
+  "color-danger-hover": { "$type": "string", "$value": "#b91c1c" },
+  "color-secondary-hover-bg": { "$type": "string", "$value": "#e2e8f0" },
+  "color-secondary-hover-text": { "$type": "string", "$value": "#1e293b" },
+  "color-access-error-bg": { "$type": "string", "$value": "#fdf0f0" },
+  "color-access-error-border": { "$type": "string", "$value": "#e74c3c" },
+  "color-access-error-text": { "$type": "string", "$value": "#c0392b" },
+  "color-neutral-text-badge": { "$type": "string", "$value": "#6B7280" },
+  "color-neutral-bg-badge": { "$type": "string", "$value": "#F3F4F6" },
+  "color-warning-bg-alt-2": { "$type": "string", "$value": "#FEF3C7" },
+  "color-success-border-alt": { "$type": "string", "$value": "#86efac" }
 }
