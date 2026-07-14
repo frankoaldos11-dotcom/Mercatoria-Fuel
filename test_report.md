@@ -957,9 +957,30 @@ Las descritas arriba (fuente única en litros + fix de redondeo del espejo `sald
 
 ## Recomendaciones
 
-- Verificación en producción queda a cargo de Aldo, como siempre.
 - `tarjetas.saldo_usd` queda sin lecturas de verdad en todo el código; candidata a `DROP
   COLUMN` junto con `clientes.tipo` en el reseteo futuro que Aldo tiene planeado.
 - La migración de re-sincronización (`migraciones.py` / `migraciones_pg.py`) es
-  autocontenida e idempotente — se ejecutará automáticamente en el próximo deploy a
-  producción y corregirá cualquier tarjeta desincronizada existente sin intervención manual.
+  autocontenida e idempotente — se ejecutará automáticamente en cada deploy a producción y
+  corregirá cualquier tarjeta desincronizada existente sin intervención manual (ver
+  verificación post-commit abajo: ya corrigió una tarjeta real en el primer deploy).
+
+## Verificación post-commit en producción (https://mercatoria-fuel.onrender.com)
+
+Commit `3a3da56` desplegado. Verificación de solo lectura (sin acciones que muevan saldo
+real) contra las páginas afectadas por el cambio, per regla POST-COMMIT PLAYWRIGHT. Cifras
+reales de producción omitidas de este reporte por ser un repositorio público — el detalle
+completo (montos, tarjetas, gasolineras) se compartió directamente con Aldo en el chat.
+
+| # | Página | Resultado |
+|---|---|---|
+| 1 | `/tarjetas/` (listado) | ✅ Carga sin errores. Bolsón y saldos por tarjeta consistentes entre litros y USD equiv. |
+| 2 | `/tarjetas/<id>` (detalle) | ✅ **La migración de re-sincronización ya corrigió una tarjeta real de producción** que tenía el patrón de bug original (USD asignado con 0.00 L usables) — quedó sincronizada tras el deploy, sin intervención manual. |
+| 3 | `/gasolineras/` (listado) | ✅ Columnas "SALDO FINCIMEX (USD)" y "LITROS EQUIV." coherentes entre sí para cada gasolinera. |
+| 4 | `/gasolineras/<id>` (detalle) | ✅ Panel "Tarjetas Fincimex activas" con total coherente con el listado. |
+
+**0 errores de consola, 0 errores 5xx** en las 4 páginas verificadas (`read_console_messages`
+con `onlyErrors: true`, sin resultados).
+
+No se ejecutó ninguna acción mutante (asignar saldo, recargar, despachar, aprobar) contra
+producción — solo navegación e inspección visual, conforme a la regla de no verificar con
+mutaciones reales en producción.
