@@ -1,0 +1,17 @@
+{
+  "radio-sm": { "$type": "string", "$value": "6px" },
+  "radio-md": { "$type": "string", "$value": "10px" },
+  "radio-lg": { "$type": "string", "$value": "14px" },
+  "radio-xl": { "$type": "string", "$value": "18px" },
+  "radio-2xl": { "$type": "string", "$value": "20px" },
+  "radio-pill": { "$type": "string", "$value": "999px" },
+
+  "radius-xs": { "$type": "string", "$value": "4px" },
+  "radius-sm-alt": { "$type": "string", "$value": "8px" },
+  "radius-md-alt": { "$type": "string", "$value": "11px" },
+  "radius-lg-alt": { "$type": "string", "$value": "16px" },
+
+  "sombra-sm": { "$type": "string", "$value": "0 4px 20px rgba(0, 0, 0, 0.1)" },
+  "sombra-md": { "$type": "string", "$value": "0 8px 32px rgba(0, 0, 0, 0.18)" },
+  "sombra-lg": { "$type": "string", "$value": "0 14px 35px rgba(15, 23, 42, 0.08)" }
+}

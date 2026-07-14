@@ -1,0 +1,11 @@
+{
+  "fondo-staff": { "$type": "string", "$value": "#f4f6fb" },
+  "texto-staff": { "$type": "string", "$value": "#172033" },
+  "atenuado-staff": { "$type": "string", "$value": "#64748b" },
+  "borde-staff": { "$type": "string", "$value": "#e5e7eb" },
+
+  "fondo-cliente": { "$type": "string", "$value": "#F3F4F6" },
+  "texto-cliente": { "$type": "string", "$value": "#111827" },
+  "atenuado-cliente": { "$type": "string", "$value": "#6B7280" },
+  "borde-cliente": { "$type": "string", "$value": "#E5E7EB" }
+}

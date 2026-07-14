@@ -13,3 +13,4 @@ build/
 .playwright-mcp/
 *.png
 .claude/
+node_modules/

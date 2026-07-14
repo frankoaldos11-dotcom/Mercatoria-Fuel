@@ -1,0 +1,29 @@
+{
+  "principal": { "$type": "string", "$value": "#155eef" },
+  "principal-oscuro": { "$type": "string", "$value": "#0f3ea8" },
+  "activo": { "$type": "string", "$value": "#E86A2C" },
+  "activo-oscuro": { "$type": "string", "$value": "#C45520" },
+
+  "panel": { "$type": "string", "$value": "#ffffff" },
+  "panel-suave": { "$type": "string", "$value": "#f8fafc" },
+
+  "peligro": { "$type": "string", "$value": "#dc2626" },
+  "exito": { "$type": "string", "$value": "#16a34a" },
+  "aviso": { "$type": "string", "$value": "#f59e0b" },
+  "info": { "$type": "string", "$value": "#0891b2" },
+
+  "barra-lateral": { "$type": "string", "$value": "#0f172a" },
+  "barra-lateral-suave": { "$type": "string", "$value": "#102a56" },
+
+  "fondo-peligro-suave": { "$type": "string", "$value": "#FEF2F2" },
+  "fondo-exito-suave": { "$type": "string", "$value": "#F0FDF4" },
+  "fondo-aviso-suave": { "$type": "string", "$value": "#FEF9C3" },
+  "fondo-info-suave": { "$type": "string", "$value": "#EFF6FF" },
+
+  "exito-oscuro": { "$type": "string", "$value": "#15803D" },
+
+  "texto-sobre-peligro": { "$type": "string", "$value": "#991B1B" },
+  "texto-sobre-exito": { "$type": "string", "$value": "#166534" },
+  "texto-sobre-aviso": { "$type": "string", "$value": "#92400E" },
+  "texto-sobre-info": { "$type": "string", "$value": "#1E40AF" }
+}

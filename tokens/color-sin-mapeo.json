@@ -1,0 +1,58 @@
+{
+  "color-danger-strong-upper": { "$type": "string", "$value": "#DC2626" },
+  "color-danger-text-lower": { "$type": "string", "$value": "#991b1b" },
+  "color-danger-bg-lower": { "$type": "string", "$value": "#fef2f2" },
+  "color-danger-bg-alt-upper": { "$type": "string", "$value": "#FEE2E2" },
+  "color-danger-bg-alt-lower": { "$type": "string", "$value": "#fee2e2" },
+
+  "color-success-strong-upper": { "$type": "string", "$value": "#16A34A" },
+  "color-success-bg-lower": { "$type": "string", "$value": "#f0fdf4" },
+  "color-success-hover-lower": { "$type": "string", "$value": "#15803d" },
+  "color-success-bg-alt-upper": { "$type": "string", "$value": "#DCFCE7" },
+  "color-success-bg-alt-lower": { "$type": "string", "$value": "#dcfce7" },
+  "color-success-text-alt-upper": { "$type": "string", "$value": "#065F46" },
+  "color-success-text-alt-lower": { "$type": "string", "$value": "#065f46" },
+  "color-success-bg-light-upper": { "$type": "string", "$value": "#D1FAE5" },
+  "color-success-bg-light-lower": { "$type": "string", "$value": "#d1fae5" },
+  "color-success-text-strong-upper": { "$type": "string", "$value": "#14532D" },
+  "color-success-text-strong-lower": { "$type": "string", "$value": "#14532d" },
+  "color-success-bg-strong": { "$type": "string", "$value": "#bbf7d0" },
+
+  "color-warning-strong-upper": { "$type": "string", "$value": "#F59E0B" },
+  "color-warning-bg-lower": { "$type": "string", "$value": "#fef9c3" },
+  "color-warning-text-lower": { "$type": "string", "$value": "#92400e" },
+  "color-warning-bg-alt-upper": { "$type": "string", "$value": "#FFFBEB" },
+  "color-warning-bg-alt-lower": { "$type": "string", "$value": "#fffbeb" },
+  "color-warning-text-alt-upper": { "$type": "string", "$value": "#854D0E" },
+  "color-warning-text-alt-lower": { "$type": "string", "$value": "#854d0e" },
+  "color-warning-accent-1": { "$type": "string", "$value": "#CA8A04" },
+  "color-warning-accent-2": { "$type": "string", "$value": "#D97706" },
+  "color-warning-text-deep": { "$type": "string", "$value": "#713F12" },
+  "color-warning-amber": { "$type": "string", "$value": "#F5A623" },
+
+  "color-info-text-lower": { "$type": "string", "$value": "#1e40af" },
+  "color-info-bg-upper": { "$type": "string", "$value": "#DBEAFE" },
+  "color-info-bg-lower": { "$type": "string", "$value": "#dbeafe" },
+  "color-info-accent": { "$type": "string", "$value": "#3B82F6" },
+
+  "color-generic-badge-bg": { "$type": "string", "$value": "#eef2ff" },
+  "color-generic-badge-text-upper": { "$type": "string", "$value": "#3730A3" },
+  "color-generic-badge-text-lower": { "$type": "string", "$value": "#3730a3" },
+
+  "color-landing-bg": { "$type": "string", "$value": "#0F1117" },
+  "color-landing-text": { "$type": "string", "$value": "#F3F4F6" },
+
+  "color-gray-muted-alt": { "$type": "string", "$value": "#9CA3AF" },
+  "color-gray-border-alt-upper": { "$type": "string", "$value": "#D1D5DB" },
+  "color-gray-label-text": { "$type": "string", "$value": "#374151" },
+  "color-gray-table-header-bg-upper": { "$type": "string", "$value": "#F9FAFB" },
+  "color-gray-table-header-bg-lower": { "$type": "string", "$value": "#f9fafb" },
+  "color-gray-neutral-bg-upper": { "$type": "string", "$value": "#F1F5F9" },
+  "color-gray-neutral-bg-lower": { "$type": "string", "$value": "#f1f5f9" },
+  "color-gray-neutral-text": { "$type": "string", "$value": "#475569" },
+  "color-gray-soft-accent": { "$type": "string", "$value": "#eef4ff" },
+
+  "color-role-cliente-bg": { "$type": "string", "$value": "#ffedd5" },
+  "color-role-cliente-text-upper": { "$type": "string", "$value": "#9A3412" },
+  "color-role-cliente-text-lower": { "$type": "string", "$value": "#9a3412" }
+}

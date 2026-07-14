@@ -1,0 +1,37 @@
+{
+  "fuente-staff": { "$type": "string", "$value": "Inter, \"Segoe UI\", Arial, sans-serif" },
+  "fuente-cliente": { "$type": "string", "$value": "'Segoe UI', system-ui, sans-serif" },
+  "fuente-landing": { "$type": "string", "$value": "{fuente-cliente}" },
+
+  "texto-xs-staff": { "$type": "string", "$value": "11px" },
+  "texto-sm-staff": { "$type": "string", "$value": "12px" },
+  "texto-md-staff": { "$type": "string", "$value": "15px" },
+  "texto-lg-staff": { "$type": "string", "$value": "16px" },
+  "texto-xl-staff": { "$type": "string", "$value": "17px" },
+  "texto-2xl-staff": { "$type": "string", "$value": "21px" },
+
+  "texto-xs-cliente": { "$type": "string", "$value": "0.8rem" },
+  "texto-sm-cliente": { "$type": "string", "$value": "0.82rem" },
+  "texto-md-cliente": { "$type": "string", "$value": "0.95rem" },
+  "texto-lg-cliente": { "$type": "string", "$value": "1.1rem" },
+  "texto-xl-cliente": { "$type": "string", "$value": "1.6rem" },
+
+  "peso-regular": { "$type": "string", "$value": "400" },
+  "peso-semibold": { "$type": "string", "$value": "600" },
+  "peso-bold": { "$type": "string", "$value": "700" },
+  "peso-extrabold": { "$type": "string", "$value": "800" },
+
+  "font-family-mono": { "$type": "string", "$value": "monospace" },
+
+  "font-size-sm-alt": { "$type": "string", "$value": "13px" },
+  "font-size-base": { "$type": "string", "$value": "14px" },
+  "font-size-3xl": { "$type": "string", "$value": "32px" },
+  "font-size-4xl": { "$type": "string", "$value": "34px" },
+  "font-size-client-sm-alt": { "$type": "string", "$value": "0.85rem" },
+  "font-size-client-base": { "$type": "string", "$value": "0.9rem" },
+
+  "font-weight-medium": { "$type": "string", "$value": "500" },
+  "font-weight-semibold-alt": { "$type": "string", "$value": "650" },
+  "font-weight-bold-alt": { "$type": "string", "$value": "750" },
+  "font-weight-black": { "$type": "string", "$value": "900" }
+}

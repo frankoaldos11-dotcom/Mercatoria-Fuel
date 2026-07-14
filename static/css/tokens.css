@@ -1,202 +1,135 @@
-/*
- * tokens.css — Mercatoria Fuel
- * Design tokens Tanda 0 — inventario de valores estéticos actuales.
- *
- * ESTADO: este archivo NO está enlazado a ningún layout todavía. No sustituye
- * nada en admin.css ni en los <style> embebidos de base_tienda.html,
- * landing.html o login.html. Es un espejo de los valores que existen HOY,
- * para servir de base a un rediseño futuro sin tocar nada visualmente aún.
- *
- * NAMING: los nombres de variable son PROVISIONALES. El vocabulario
- * definitivo lo fija primero el repo Truck (hermano de este); Fuel lo
- * heredará y este archivo se realineará en ese momento.
- *
- * VARIANTES DE CASE: donde el mismo color existe en dos capitalizaciones
- * distintas en el código real (ej. #DC2626 y #dc2626), se declaran AMBAS
- * como tokens separados (sufijo -upper / -lower). Ninguna fue elegida como
- * "la oficial" — esa decisión queda pendiente de aprobación explícita.
- *
- * SUPERFICIES: donde el mismo concepto (bg, text, muted, border) tiene
- * valores DISTINTOS entre el panel staff (admin.css) y el portal cliente
- * (base_tienda.html / login.html), se declaran como tokens separados por
- * superficie (sufijo -staff / -client). No se fusionaron.
- *
- * ALCANCE: cubre colores sólidos, tipografía, espaciado, radios y sombras
- * recurrentes. No tokeniza opacidades rgba() de un solo uso (overlays de
- * hover, fondos translúcidos puntuales de landing.html) ni valores de
- * padding/margin bespoke que solo aparecen una vez en un componente
- * específico de admin.css (ej. 9px, 13px, 18px, 22px, 26px, 30px, 34px,
- * 38px) — esos se quedan como están hasta que una tanda de reemplazo
- * futura decida si ameritan su propio token.
+/**
+ * Do not edit directly, this file was auto-generated.
  */
 
 :root {
-
-    /* ---------- COLOR — MARCA (limpio, sin variantes) ---------- */
-    --color-brand-orange: #E86A2C;
-    --color-brand-orange-dark: #C45520;
-    --color-brand-blue: #155eef;
-    --color-brand-blue-dark: #0f3ea8;
-
-    /* ---------- COLOR — SEMÁNTICO: DANGER ---------- */
-    --color-danger-strong-upper: #DC2626;
-    --color-danger-strong-lower: #dc2626;
-    --color-danger-text-upper: #991B1B;
-    --color-danger-text-lower: #991b1b;
-    --color-danger-bg-upper: #FEF2F2;
-    --color-danger-bg-lower: #fef2f2;
-    --color-danger-bg-alt-upper: #FEE2E2;
-    --color-danger-bg-alt-lower: #fee2e2;
-
-    /* ---------- COLOR — SEMÁNTICO: SUCCESS ---------- */
-    --color-success-strong-upper: #16A34A;
-    --color-success-strong-lower: #16a34a;
-    --color-success-bg-upper: #F0FDF4;
-    --color-success-bg-lower: #f0fdf4;
-    --color-success-hover-upper: #15803D;
-    --color-success-hover-lower: #15803d;
-    --color-success-bg-alt-upper: #DCFCE7;
-    --color-success-bg-alt-lower: #dcfce7;
-    --color-success-text: #166534;
-    --color-success-text-alt-upper: #065F46;
-    --color-success-text-alt-lower: #065f46;
-    --color-success-bg-light-upper: #D1FAE5;
-    --color-success-bg-light-lower: #d1fae5;
-    --color-success-text-strong-upper: #14532D;
-    --color-success-text-strong-lower: #14532d;
-    --color-success-bg-strong: #bbf7d0;
-
-    /* ---------- COLOR — SEMÁNTICO: WARNING ---------- */
-    --color-warning-strong-upper: #F59E0B;
-    --color-warning-strong-lower: #f59e0b;
-    --color-warning-bg-upper: #FEF9C3;
-    --color-warning-bg-lower: #fef9c3;
-    --color-warning-text-upper: #92400E;
-    --color-warning-text-lower: #92400e;
-    --color-warning-bg-alt-upper: #FFFBEB;
-    --color-warning-bg-alt-lower: #fffbeb;
-    --color-warning-text-alt-upper: #854D0E;
-    --color-warning-text-alt-lower: #854d0e;
-    --color-warning-accent-1: #CA8A04;
-    --color-warning-accent-2: #D97706;
-    --color-warning-text-deep: #713F12;
-    --color-warning-amber: #F5A623;
-
-    /* ---------- COLOR — SEMÁNTICO: INFO ---------- */
-    --color-info-strong: #0891b2;
-    --color-info-text-upper: #1E40AF;
-    --color-info-text-lower: #1e40af;
-    --color-info-bg-upper: #DBEAFE;
-    --color-info-bg-lower: #dbeafe;
-    --color-info-accent: #3B82F6;
-    --color-info-bg-alt: #EFF6FF;
-
-    /* ---------- COLOR — BADGE GENÉRICO (morado, admin.css .badge) ---------- */
-    --color-generic-badge-bg: #eef2ff;
-    --color-generic-badge-text-upper: #3730A3;
-    --color-generic-badge-text-lower: #3730a3;
-
-    /* ---------- COLOR — BLANCO (único token, los 3 formatos del código
-       #fff / #ffffff / #FFFFFF son el mismo color) ---------- */
-    --color-white: #ffffff;
-
-    /* ---------- COLOR — NEUTROS: SUPERFICIE STAFF (admin.css) ---------- */
-    --color-bg-staff: #f4f6fb;
-    --color-panel-soft-staff: #f8fafc;
-    --color-text-staff: #172033;
-    --color-muted-staff: #64748b;
-    --color-border-staff: #e5e7eb;
-
-    /* ---------- COLOR — NEUTROS: SUPERFICIE CLIENTE (base_tienda.html / login.html) ---------- */
-    --color-bg-client: #F3F4F6;
-    --color-text-client: #111827;
-    --color-muted-client: #6B7280;
-    --color-border-client: #E5E7EB;
-
-    /* ---------- COLOR — NEUTROS: TONOS OSCUROS / INVERSOS ---------- */
-    --color-sidebar-dark: #0f172a;
-    --color-sidebar-dark-soft: #102a56;
-    --color-landing-bg: #0F1117;
-    --color-landing-text: #F3F4F6;
-
-    /* ---------- COLOR — GRISES DE SOPORTE (no atados a una sola superficie) ---------- */
-    --color-gray-muted-alt: #9CA3AF;
-    --color-gray-border-alt-upper: #D1D5DB;
-    --color-gray-label-text: #374151;
-    --color-gray-table-header-bg-upper: #F9FAFB;
-    --color-gray-table-header-bg-lower: #f9fafb;
-    --color-gray-neutral-bg-upper: #F1F5F9;
-    --color-gray-neutral-bg-lower: #f1f5f9;
-    --color-gray-neutral-text: #475569;
-    --color-gray-soft-accent: #eef4ff;
-
-    /* ---------- COLOR — ROLE BADGES (admin.css .role-*) ---------- */
-    --color-role-cliente-bg: #ffedd5;
-    --color-role-cliente-text-upper: #9A3412;
-    --color-role-cliente-text-lower: #9a3412;
-
-    /* ---------- TIPOGRAFÍA — FAMILIAS ---------- */
-    --font-family-staff: Inter, "Segoe UI", Arial, sans-serif;
-    --font-family-client: 'Segoe UI', system-ui, sans-serif;
-    --font-family-mono: monospace;
-
-    /* ---------- TIPOGRAFÍA — TAMAÑOS (escala staff, px) ---------- */
-    --font-size-xs: 11px;
-    --font-size-sm: 12px;
-    --font-size-sm-alt: 13px;
-    --font-size-base: 14px;
-    --font-size-md: 15px;
-    --font-size-lg: 16px;
-    --font-size-xl: 17px;
-    --font-size-2xl: 21px;
-    --font-size-3xl: 32px;
-    --font-size-4xl: 34px;
-
-    /* ---------- TIPOGRAFÍA — TAMAÑOS (escala cliente/portal, rem) ---------- */
-    --font-size-client-xs: 0.8rem;
-    --font-size-client-sm: 0.82rem;
-    --font-size-client-sm-alt: 0.85rem;
-    --font-size-client-base: 0.9rem;
-    --font-size-client-md: 0.95rem;
-    --font-size-client-lg: 1.1rem;
-    --font-size-client-xl: 1.6rem;
-
-    /* ---------- TIPOGRAFÍA — PESOS ---------- */
-    --font-weight-regular: 400;
-    --font-weight-medium: 500;
-    --font-weight-semibold: 600;
-    --font-weight-semibold-alt: 650;
-    --font-weight-bold: 700;
-    --font-weight-bold-alt: 750;
-    --font-weight-extrabold: 800;
-    --font-weight-black: 900;
-
-    /* ---------- ESPACIADO (valores recurrentes en múltiples componentes) ---------- */
-    --space-1: 4px;
-    --space-2: 6px;
-    --space-3: 8px;
-    --space-4: 10px;
-    --space-5: 12px;
-    --space-6: 14px;
-    --space-7: 16px;
-    --space-8: 20px;
-    --space-9: 24px;
-
-    /* ---------- RADIO ---------- */
-    --radius-xs: 4px;
-    --radius-sm: 6px;
-    --radius-sm-alt: 8px;
-    --radius-md: 10px;
-    --radius-md-alt: 11px;
-    --radius-lg: 14px;
-    --radius-lg-alt: 16px;
-    --radius-xl: 18px;
-    --radius-xl-alt: 20px;
-    --radius-pill: 999px;
-
-    /* ---------- SOMBRA ---------- */
-    --shadow-panel: 0 14px 35px rgba(15, 23, 42, 0.08);
-    --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.1);
-    --shadow-overlay: 0 8px 32px rgba(0, 0, 0, 0.18);
-
+  --color-danger-strong-upper: #DC2626;
+  --color-danger-text-lower: #991b1b;
+  --color-danger-bg-lower: #fef2f2;
+  --color-danger-bg-alt-upper: #FEE2E2;
+  --color-danger-bg-alt-lower: #fee2e2;
+  --color-success-strong-upper: #16A34A;
+  --color-success-bg-lower: #f0fdf4;
+  --color-success-hover-lower: #15803d;
+  --color-success-bg-alt-upper: #DCFCE7;
+  --color-success-bg-alt-lower: #dcfce7;
+  --color-success-text-alt-upper: #065F46;
+  --color-success-text-alt-lower: #065f46;
+  --color-success-bg-light-upper: #D1FAE5;
+  --color-success-bg-light-lower: #d1fae5;
+  --color-success-text-strong-upper: #14532D;
+  --color-success-text-strong-lower: #14532d;
+  --color-success-bg-strong: #bbf7d0;
+  --color-warning-strong-upper: #F59E0B;
+  --color-warning-bg-lower: #fef9c3;
+  --color-warning-text-lower: #92400e;
+  --color-warning-bg-alt-upper: #FFFBEB;
+  --color-warning-bg-alt-lower: #fffbeb;
+  --color-warning-text-alt-upper: #854D0E;
+  --color-warning-text-alt-lower: #854d0e;
+  --color-warning-accent-1: #CA8A04;
+  --color-warning-accent-2: #D97706;
+  --color-warning-text-deep: #713F12;
+  --color-warning-amber: #F5A623;
+  --color-info-text-lower: #1e40af;
+  --color-info-bg-upper: #DBEAFE;
+  --color-info-bg-lower: #dbeafe;
+  --color-info-accent: #3B82F6;
+  --color-generic-badge-bg: #eef2ff;
+  --color-generic-badge-text-upper: #3730A3;
+  --color-generic-badge-text-lower: #3730a3;
+  --color-landing-bg: #0F1117;
+  --color-landing-text: #F3F4F6;
+  --color-gray-muted-alt: #9CA3AF;
+  --color-gray-border-alt-upper: #D1D5DB;
+  --color-gray-label-text: #374151;
+  --color-gray-table-header-bg-upper: #F9FAFB;
+  --color-gray-table-header-bg-lower: #f9fafb;
+  --color-gray-neutral-bg-upper: #F1F5F9;
+  --color-gray-neutral-bg-lower: #f1f5f9;
+  --color-gray-neutral-text: #475569;
+  --color-gray-soft-accent: #eef4ff;
+  --color-role-cliente-bg: #ffedd5;
+  --color-role-cliente-text-upper: #9A3412;
+  --color-role-cliente-text-lower: #9a3412;
+  --fondo-staff: #f4f6fb;
+  --texto-staff: #172033;
+  --atenuado-staff: #64748b;
+  --borde-staff: #e5e7eb;
+  --fondo-cliente: #F3F4F6;
+  --texto-cliente: #111827;
+  --atenuado-cliente: #6B7280;
+  --borde-cliente: #E5E7EB;
+  --principal: #155eef;
+  --principal-oscuro: #0f3ea8;
+  --activo: #E86A2C;
+  --activo-oscuro: #C45520;
+  --panel: #ffffff;
+  --panel-suave: #f8fafc;
+  --peligro: #dc2626;
+  --exito: #16a34a;
+  --aviso: #f59e0b;
+  --info: #0891b2;
+  --barra-lateral: #0f172a;
+  --barra-lateral-suave: #102a56;
+  --fondo-peligro-suave: #FEF2F2;
+  --fondo-exito-suave: #F0FDF4;
+  --fondo-aviso-suave: #FEF9C3;
+  --fondo-info-suave: #EFF6FF;
+  --exito-oscuro: #15803D;
+  --texto-sobre-peligro: #991B1B;
+  --texto-sobre-exito: #166534;
+  --texto-sobre-aviso: #92400E;
+  --texto-sobre-info: #1E40AF;
+  --radio-sm: 6px;
+  --radio-md: 10px;
+  --radio-lg: 14px;
+  --radio-xl: 18px;
+  --radio-2xl: 20px;
+  --radio-pill: 999px;
+  --radius-xs: 4px;
+  --radius-sm-alt: 8px;
+  --radius-md-alt: 11px;
+  --radius-lg-alt: 16px;
+  --sombra-sm: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --sombra-md: 0 8px 32px rgba(0, 0, 0, 0.18);
+  --sombra-lg: 0 14px 35px rgba(15, 23, 42, 0.08);
+  --espacio-xs: 4px;
+  --espacio-sm: 8px;
+  --espacio-md: 12px;
+  --espacio-lg: 16px;
+  --espacio-xl: 20px;
+  --espacio-2xl: 24px;
+  --space-2: 6px;
+  --space-4: 10px;
+  --space-6: 14px;
+  --fuente-staff: Inter, "Segoe UI", Arial, sans-serif;
+  --fuente-cliente: 'Segoe UI', system-ui, sans-serif;
+  --fuente-landing: 'Segoe UI', system-ui, sans-serif;
+  --texto-xs-staff: 11px;
+  --texto-sm-staff: 12px;
+  --texto-md-staff: 15px;
+  --texto-lg-staff: 16px;
+  --texto-xl-staff: 17px;
+  --texto-2xl-staff: 21px;
+  --texto-xs-cliente: 0.8rem;
+  --texto-sm-cliente: 0.82rem;
+  --texto-md-cliente: 0.95rem;
+  --texto-lg-cliente: 1.1rem;
+  --texto-xl-cliente: 1.6rem;
+  --peso-regular: 400;
+  --peso-semibold: 600;
+  --peso-bold: 700;
+  --peso-extrabold: 800;
+  --font-family-mono: monospace;
+  --font-size-sm-alt: 13px;
+  --font-size-base: 14px;
+  --font-size-3xl: 32px;
+  --font-size-4xl: 34px;
+  --font-size-client-sm-alt: 0.85rem;
+  --font-size-client-base: 0.9rem;
+  --font-weight-medium: 500;
+  --font-weight-semibold-alt: 650;
+  --font-weight-bold-alt: 750;
+  --font-weight-black: 900;
 }
