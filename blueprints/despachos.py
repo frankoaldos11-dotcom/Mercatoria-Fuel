@@ -7,6 +7,7 @@ from utils.constants import TIPOS_COMBUSTIBLE_LABELS, ESTADOS_HABILITACION_LABEL
 from utils.auth import requiere_login, requiere_staff
 from utils.adjuntos import foto_valida, guardar_adjunto
 from utils.despachos import insertar_despacho_con_numero
+from utils.tarjetas import obtener_factor, calcular_usd_desde_litros
 
 despachos_bp = Blueprint("despachos", __name__, url_prefix="/despachos")
 
@@ -282,7 +283,7 @@ def crear():
             cur = conn.cursor()
             cur.execute("""
                 SELECT h.*,
-                       t.saldo_usable_l, t.saldo_usd, t.estado AS tarjeta_estado,
+                       t.saldo_usable_l, t.estado AS tarjeta_estado,
                        s.litros_reservados AS sub_litros
                 FROM habilitaciones h
                 JOIN tarjetas t ON t.id = h.tarjeta_id
@@ -291,9 +292,7 @@ def crear():
             """, (habilitacion_id,))
             hab = cur.fetchone()
 
-            cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-            _frow = cur.fetchone()
-            factor = float(_frow["valor"]) if _frow else 0.90
+            factor = obtener_factor(cur)
             monto_usd = round(litros * factor, 2)
 
             if not hab:
@@ -305,14 +304,9 @@ def crear():
             elif float(hab["saldo_usable_l"]) < litros - 0.001:
                 error = (
                     f"Saldo insuficiente en la tarjeta. Disponible: "
-                    f"{float(hab['saldo_usable_l']):,.2f} L, solicitado: {litros:,.2f} L."
-                )
-                conn.close()
-            elif float(hab["saldo_usd"] or 0) < monto_usd - 0.001:
-                error = (
-                    f"Saldo Fincimex insuficiente. Disponible: "
-                    f"${float(hab['saldo_usd'] or 0):,.2f} USD, "
-                    f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
+                    f"{float(hab['saldo_usable_l']):,.2f} L "
+                    f"(≈ ${calcular_usd_desde_litros(hab['saldo_usable_l'], factor):,.2f} USD), "
+                    f"solicitado: {litros:,.2f} L."
                 )
                 conn.close()
             if not error:
@@ -323,13 +317,16 @@ def crear():
 
                 fecha_despacho = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+                # saldo_usable_l es la única fuente de verdad para el bloqueo;
+                # saldo_usd se recalcula como espejo (a partir del valor ANTERIOR
+                # de saldo_usable_l) solo por consistencia, hasta el DROP futuro.
                 cur.execute("""
                     UPDATE tarjetas
                     SET saldo_usable_l = saldo_usable_l - ?,
-                        saldo_usd = saldo_usd - ?,
+                        saldo_usd = ROUND((saldo_usable_l - ?) * ?, 2),
                         updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ? AND saldo_usable_l >= ? - 0.001 AND saldo_usd >= ? - 0.001
-                """, (litros, monto_usd, hab["tarjeta_id"], litros, monto_usd))
+                    WHERE id = ? AND saldo_usable_l >= ? - 0.001
+                """, (litros, litros, factor, hab["tarjeta_id"], litros))
 
                 if cur.rowcount == 0:
                     # Carrera: el saldo cambió entre la validación y el UPDATE. Abortar sin comitear.

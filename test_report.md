@@ -890,3 +890,76 @@ Las descritas arriba.
 
 - Verificación en producción queda a cargo de Aldo, como siempre.
 - La columna `clientes.tipo` y las constantes `TIPOS_CLIENTE`/`TIPOS_CLIENTE_LABELS` quedan sin uso en el código, a la espera del `DROP COLUMN` que Aldo hará en el reseteo futuro.
+
+---
+
+# Reporte de Pruebas — 2026-07-14
+
+## Saldo de tarjeta: fuente única en litros, USD calculado por factor
+
+### Contexto
+`diagnostico_saldos_sincronizados.md` (no comiteado) confirmó que `tarjetas.saldo_usd` y
+`tarjetas.saldo_usable_l` eran dos columnas independientes que debían representar el mismo
+valor en dos unidades, pero varios flujos solo escribían una (ej. `asignar_saldo()` solo
+escribía `saldo_usd`, dejando tarjetas con USD asignado y 0.00 L usables).
+
+Aldo aprobó el arreglo de raíz: **litros es la única fuente de verdad**; `saldo_usd` pasa a
+ser un valor calculado/espejo, escrito en cada UPDATE solo por consistencia visual hasta el
+`DROP COLUMN` futuro — nunca vuelve a leerse como verdad.
+
+### Criterio de redondeo aplicado
+- USD mostrado (derivado de litros): redondeo normal a 2 decimales (`round`).
+- Litros acreditados al asignar desde el bolsón (USD ÷ factor): redondeo **hacia abajo** a
+  2 decimales (`math.floor`), para nunca acreditar más litros de los que el monto cubre.
+- El monto realmente debitado del bolsón se recalcula desde los litros ya redondeados
+  (`litros_acreditados × factor`), nunca el monto tecleado sin ajustar — así el bolsón nunca
+  queda descuadrado a favor de la tarjeta.
+- El espejo `saldo_usd` se escribe con `ROUND(..., 2)` explícito en el propio SQL (no se
+  confía en el tipo de columna) para que el valor guardado siempre coincida con el valor
+  mostrado, en SQLite y PostgreSQL por igual.
+
+### Archivos modificados
+`utils/tarjetas.py` (nuevo), `blueprints/tarjetas.py`, `blueprints/despachos.py`,
+`blueprints/turno.py`, `blueprints/habilitaciones.py`, `blueprints/gasolineras.py`,
+`templates/tarjetas/{listado,detalle,asignar_saldo}.html`,
+`templates/gasolineras/{listado,detalle}.html`, `migraciones.py`, `migraciones_pg.py`.
+
+## Verificación (local, SQLite fresco, puerto 5055 — no producción)
+
+| # | Caso | Método | Resultado |
+|---|---|---|---|
+| 1 | Redondeo: asignar $3,000 (no divide exacto entre 0.90) | Navegador, `/tarjetas/6/asignar-saldo` | ✅ Preview JS y resultado real coinciden: **3,333.33 L** acreditados (piso), USD mostrado **$3,000.00** exacto. Bolsón bajó de $10,000 a $7,000 (exactamente lo cubierto por los litros acreditados, no el monto tecleado sin ajustar). |
+| 1b | Precisión del espejo `saldo_usd` | Inspección directa de BD | ✅ Antes del fix `ROUND(...,2)` el espejo quedaba en `2999.997` (sin redondear) en SQLite — **bug encontrado y corregido** en la misma sesión antes de continuar. Tras el fix: `saldo_usd = 3000.0` exacto. |
+| 2 | Recargar en litros → USD se ajusta solo | Navegador, `/tarjetas/7/recargar`, +50 L sobre 100 L | ✅ Saldo pasó a 150.00 L, USD equiv. mostrado se recalculó solo a $135.00, sin tocar el formulario de USD (no existe). |
+| 3 | Despachar → solo baja litros | Navegador, habilitación #1 (500 L) sobre tarjeta con 800 L → aprobar → despachar | ✅ Tarjeta bajó exactamente a 300.00 L; USD espejo bajó a $270.00 exacto. Movimiento `descuento` en `movimientos_saldo_fincimex` registrado correctamente (500 L × 0.9 = $450). |
+| 4 | Desplegable de habilitación muestra litros reales | Navegador, `/habilitaciones/crear`, select de tarjeta | ✅ Mostró "**** 6002 — 150.00 L" y luego "**** 6002 — 300.00 L" tras el despacho — nunca 0 con saldo real. |
+| 5 | Bloqueo de saldo con chequeo único de litros | Navegador, habilitación de 500 L sobre tarjeta con solo 300 L → aprobar | ✅ Bloqueado con mensaje enriquecido: "Saldo insuficiente en la tarjeta. Disponible: 300.00 L (≈ $270.00 USD), requerido: 500.00 L." — un solo chequeo (antes había un segundo chequeo redundante en USD, eliminado). |
+| 6 | Re-sincronización idempotente (migración) | Tarjeta sembrada con `saldo_usable_l=0, saldo_usd=2700` + 2 reinicios del server | ✅ Primer reinicio: migración la corrigió a `saldo_usable_l=3000.0` (=2700/0.9), `saldo_usd` sin tocar. Segundo reinicio: sin cambios (condición `saldo_usable_l = 0` ya no matchea — confirma idempotencia). |
+
+**0 errores 500, 0 errores de consola** en toda la sesión (verificado con `read_console_messages` y grep sobre el log del server Flask).
+
+Screenshots tomados: login, detalle de tarjeta antes/después de asignar saldo (con preview JS del redondeo), formulario de recarga con saldo proyectado, habilitación aprobada y despacho confirmado, bloqueo por saldo insuficiente, tarjeta re-sincronizada, listado de tarjetas y detalle de gasolinera con las columnas USD derivadas.
+
+## Errores encontrados
+
+- **Espejo `saldo_usd` sin redondear en el UPDATE atómico** (SQLite): las 5 sentencias
+  `UPDATE tarjetas SET ... saldo_usd = (saldo_usable_l ± ?) * ?` calculaban el espejo sin
+  redondeo explícito. En PostgreSQL el tipo `NUMERIC(14,2)` de la columna redondea solo al
+  guardar, pero en SQLite (afinidad de tipos, sin precisión fija) el valor crudo se
+  guardaba tal cual (ej. `2999.997` en vez de `3000.00`), divergiendo del valor mostrado
+  (que sí usa `round()` en Python). Corregido envolviendo las 5 expresiones con
+  `ROUND(..., 2)` directamente en el SQL — portable entre ambos motores, ya no depende del
+  tipo de columna.
+
+## Correcciones aplicadas
+
+Las descritas arriba (fuente única en litros + fix de redondeo del espejo `saldo_usd`).
+
+## Recomendaciones
+
+- Verificación en producción queda a cargo de Aldo, como siempre.
+- `tarjetas.saldo_usd` queda sin lecturas de verdad en todo el código; candidata a `DROP
+  COLUMN` junto con `clientes.tipo` en el reseteo futuro que Aldo tiene planeado.
+- La migración de re-sincronización (`migraciones.py` / `migraciones_pg.py`) es
+  autocontenida e idempotente — se ejecutará automáticamente en el próximo deploy a
+  producción y corregirá cualquier tarjeta desincronizada existente sin intervención manual.

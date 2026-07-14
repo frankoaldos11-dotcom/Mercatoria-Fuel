@@ -9,6 +9,7 @@ from utils.constants import ROLES_ADMIN_PM, TURNOS_CONCILIACION, TURNOS_CONCILIA
 from utils import mailer
 from utils.adjuntos import foto_valida, guardar_adjunto
 from utils.despachos import insertar_despacho_con_numero
+from utils.tarjetas import obtener_factor, calcular_usd_desde_litros
 
 logger = logging.getLogger(__name__)
 
@@ -283,7 +284,7 @@ def api_despachar(hab_id):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        SELECT h.*, v.id AS vid, t.id AS tid, t.saldo_usable_l, t.saldo_usd,
+        SELECT h.*, v.id AS vid, t.id AS tid, t.saldo_usable_l,
                t.estado AS tarjeta_estado, s.litros_reservados AS sub_litros
         FROM habilitaciones h
         JOIN vehiculos v ON v.id = h.unidad_id
@@ -312,22 +313,13 @@ def api_despachar(hab_id):
         conn.close()
         return jsonify({"error": "La tarjeta no está activa"}), 400
 
-    # Validar saldo_usable_l (litros)
+    # Validar saldo_usable_l (litros) — única fuente de verdad
     if float(hab["saldo_usable_l"]) < litros - 0.001:
         conn.close()
         return jsonify({"error": f"Saldo insuficiente: {float(hab['saldo_usable_l']):,.2f} L disponible"}), 400
 
-    # Validar saldo_usd (Fincimex) — bloqueo duro, sin override
-    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-    _frow = cur.fetchone()
-    factor = float(_frow["valor"]) if _frow else 0.90
+    factor = obtener_factor(cur)
     monto_usd = round(litros * factor, 2)
-    if float(hab["saldo_usd"] or 0) < monto_usd - 0.001:
-        conn.close()
-        return jsonify({
-            "error": f"Saldo Fincimex insuficiente. Disponible: ${float(hab['saldo_usd'] or 0):,.2f} USD, "
-                     f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
-        }), 400
 
     hoy_str = date.today().isoformat()
 
@@ -357,10 +349,10 @@ def api_despachar(hab_id):
     cur.execute("""
         UPDATE tarjetas
         SET saldo_usable_l = saldo_usable_l - ?,
-            saldo_usd = saldo_usd - ?,
+            saldo_usd = ROUND((saldo_usable_l - ?) * ?, 2),
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND saldo_usable_l >= ? - 0.001 AND saldo_usd >= ? - 0.001
-    """, (litros, monto_usd, hab["tarjeta_id"], litros, monto_usd))
+        WHERE id = ? AND saldo_usable_l >= ? - 0.001
+    """, (litros, litros, factor, hab["tarjeta_id"], litros))
 
     if cur.rowcount == 0:
         # Carrera: el saldo cambió entre la validación y el UPDATE. Abortar sin comitear.
@@ -640,14 +632,12 @@ def api_reserva_completar(token):
 
     litros = float(row["litros_solicitados"])
 
-    # Si hay tarjeta asignada: validar y descontar saldo_usd (bloqueo duro)
+    # Si hay tarjeta asignada: validar y descontar saldo_usable_l (bloqueo duro, única fuente de verdad)
     if row["tarjeta_id"]:
-        cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-        _frow = cur.fetchone()
-        factor = float(_frow["valor"]) if _frow else 0.90
+        factor = obtener_factor(cur)
         monto_usd = round(litros * factor, 2)
 
-        cur.execute("SELECT saldo_usable_l, saldo_usd, estado FROM tarjetas WHERE id=?", (row["tarjeta_id"],))
+        cur.execute("SELECT saldo_usable_l, estado FROM tarjetas WHERE id=?", (row["tarjeta_id"],))
         t = cur.fetchone()
         if not t:
             conn.close()
@@ -655,10 +645,11 @@ def api_reserva_completar(token):
         if t["estado"] != "activa":
             conn.close()
             return jsonify({"error": "La tarjeta no está activa"}), 400
-        if float(t["saldo_usd"] or 0) < monto_usd - 0.001:
+        if float(t["saldo_usable_l"]) < litros - 0.001:
             detalle = (
-                f"Disponible: ${float(t['saldo_usd'] or 0):,.2f} USD, "
-                f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
+                f"Disponible: {float(t['saldo_usable_l']):,.2f} L "
+                f"(≈ ${calcular_usd_desde_litros(t['saldo_usable_l'], factor):,.2f} USD), "
+                f"requerido: {litros:,.2f} L (≈ ${monto_usd:,.2f} USD)."
             )
             conn.close()
             try:
@@ -669,7 +660,7 @@ def api_reserva_completar(token):
                 logger.error("Error notificando staff de saldo insuficiente (tarjeta #%s)",
                              row["tarjeta_id"], exc_info=True)
             return jsonify({
-                "error": f"Saldo Fincimex insuficiente. {detalle}"
+                "error": f"Saldo insuficiente. {detalle}"
             }), 400
 
     foto_ticket_url = guardar_adjunto(cur, "reserva_tienda", row["id"], "ticket", foto)
@@ -682,10 +673,10 @@ def api_reserva_completar(token):
         cur.execute("""
             UPDATE tarjetas
             SET saldo_usable_l = saldo_usable_l - ?,
-                saldo_usd = saldo_usd - ?,
+                saldo_usd = ROUND((saldo_usable_l - ?) * ?, 2),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = ? AND saldo_usable_l >= ? - 0.001 AND saldo_usd >= ? - 0.001
-        """, (litros, monto_usd, row["tarjeta_id"], litros, monto_usd))
+            WHERE id = ? AND saldo_usable_l >= ? - 0.001
+        """, (litros, litros, factor, row["tarjeta_id"], litros))
 
         if cur.rowcount == 0:
             # Carrera: el saldo cambió entre la validación y el UPDATE. Abortar sin comitear.

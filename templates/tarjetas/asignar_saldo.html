@@ -31,9 +31,9 @@
     </div>
 
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Saldo actual tarjeta (USD)</div>
-        <div style="font-size:26px;font-weight:700;color:var(--primary);">${{ "{:,.2f}".format(tarjeta.saldo_usd | float) }}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">≈ {{ "{:,.2f}".format((tarjeta.saldo_usd | float) / factor if factor else 0) }} L equiv.</div>
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Saldo actual tarjeta</div>
+        <div style="font-size:26px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">≈ ${{ "{:,.2f}".format(saldo_usd_actual) }} USD equiv.</div>
     </div>
 
     <div class="panel" style="padding:20px;text-align:center;">
@@ -82,7 +82,7 @@
 
         <div style="background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#1E40AF;">
             <i class="bi bi-info-circle"></i>
-            El monto asignado se descuenta del <strong>bolsón general</strong> y se acredita al <strong>saldo Fincimex</strong> de esta tarjeta. No afecta el saldo en litros (<strong>{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</strong> usables actualmente).
+            El saldo de la tarjeta se maneja siempre en <strong>litros</strong>. El monto que indiques se convierte a litros con el factor actual (redondeado hacia abajo, para nunca acreditar de más) y se descuenta del <strong>bolsón general</strong> exactamente por ese equivalente. Saldo actual: <strong>{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</strong>.
         </div>
 
         <div style="padding:0 24px 24px;display:flex;gap:10px;">
@@ -102,10 +102,12 @@
 const FACTOR = {{ factor }};
 function calcEquiv(val) {
     const monto = parseFloat(val) || 0;
-    const equiv = FACTOR > 0 ? monto / FACTOR : 0;
+    // Mismo redondeo hacia abajo que aplica el backend al acreditar —
+    // esta vista previa coincide con lo que realmente se va a acreditar.
+    const equiv = FACTOR > 0 ? Math.floor((monto / FACTOR) * 100) / 100 : 0;
     const el = document.getElementById('equiv-display');
     if (monto > 0) {
-        el.textContent = '≈ ' + equiv.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L equivalentes';
+        el.textContent = '≈ ' + equiv.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L se acreditarán a la tarjeta';
     } else {
         el.textContent = '';
     }

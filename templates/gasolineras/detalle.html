@@ -109,7 +109,7 @@
 
 <!-- Panel Tarjetas Fincimex -->
 {% if tarjetas_gas %}
-{% set litros_equiv_total = (saldo_usd_total_gas / factor) if factor else 0 %}
+{% set litros_equiv_total = tarjetas_gas | sum(attribute="saldo_usable_l") %}
 <div class="panel mb-4">
     <div class="panel-header">
         <div>
@@ -138,9 +138,8 @@
                 <tr>
                     <th>Tarjeta</th>
                     <th>Combustible</th>
-                    <th>SALDO (USD)</th>
-                    <th>LITROS equiv.</th>
                     <th>Litros usables</th>
+                    <th>SALDO (USD equiv.)</th>
                     <th></th>
                 </tr>
             </thead>
@@ -153,15 +152,12 @@
                         </a>
                     </td>
                     <td><span class="badge badge-info">{{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}</span></td>
+                    <td>{{ "{:,.2f}".format(t.saldo_usable_l | float) }} L</td>
                     <td>
-                        <strong style="color:{% if (t.saldo_usd | float) > 0 %}#16A34A{% else %}var(--muted){% endif %};">
-                            ${{ "{:,.2f}".format(t.saldo_usd | float) }}
+                        <strong style="color:{% if t.saldo_usd_calc > 0 %}#16A34A{% else %}var(--muted){% endif %};">
+                            ${{ "{:,.2f}".format(t.saldo_usd_calc) }}
                         </strong>
                     </td>
-                    <td style="color:var(--muted);font-size:13px;">
-                        {{ "{:,.2f}".format((t.saldo_usd | float) / factor if factor else 0) }} L
-                    </td>
-                    <td>{{ "{:,.2f}".format(t.saldo_usable_l | float) }} L</td>
                     <td>
                         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
                         <a href="/tarjetas/{{ t.id }}/asignar-saldo" class="btn btn-success btn-sm">
@@ -174,9 +170,9 @@
                 <!-- Fila total -->
                 <tr style="background:#F8FAFC;font-weight:700;border-top:2px solid var(--border);">
                     <td colspan="2" style="font-size:13px;color:var(--muted);">Total tarjetas activas</td>
-                    <td style="color:#16A34A;">${{ "{:,.2f}".format(saldo_usd_total_gas) }}</td>
                     <td style="color:var(--muted);font-size:13px;">{{ "{:,.2f}".format(litros_equiv_total) }} L</td>
-                    <td colspan="2"></td>
+                    <td style="color:#16A34A;">${{ "{:,.2f}".format(saldo_usd_total_gas) }}</td>
+                    <td></td>
                 </tr>
             </tbody>
         </table>

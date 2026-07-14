@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM, ESTADOS_TARJETA
 from utils.auth import requiere_login, requiere_staff
+from utils.tarjetas import obtener_factor, calcular_usd_desde_litros, litros_desde_usd_piso
 
 tarjetas_bp = Blueprint("tarjetas", __name__, url_prefix="/tarjetas")
 
@@ -16,12 +17,6 @@ _TRANSICIONES_VALIDAS = {
     "inactiva": ["activa"],
     "bloqueada": ["activa"],
 }
-
-
-def _get_factor(cur):
-    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-    row = cur.fetchone()
-    return float(row["valor"]) if row else 0.90
 
 
 def _bolson_disponible(cur):
@@ -102,7 +97,7 @@ def listado():
     cur = conn.cursor()
     cur.execute(f"""
         SELECT t.id, t.numero_parcial, t.tipo_combustible,
-               t.saldo_usable_l, t.saldo_retenido_l, t.saldo_usd, t.estado,
+               t.saldo_usable_l, t.saldo_retenido_l, t.estado,
                g.nombre AS gasolinera_nombre,
                (SELECT COUNT(*) FROM devoluciones_tarjetas d
                 WHERE d.tarjeta_id = t.id AND d.estado = 'pendiente') AS devoluciones_pendientes
@@ -111,13 +106,16 @@ def listado():
         {where}
         ORDER BY t.id ASC
     """, params)
-    lista = cur.fetchall()
+    lista = [dict(row) for row in cur.fetchall()]
 
     cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
     gasolineras = cur.fetchall()
-    factor = _get_factor(cur)
+    factor = obtener_factor(cur)
     bolson = _bolson_disponible(cur)
     conn.close()
+
+    for t in lista:
+        t["saldo_usd_calc"] = calcular_usd_desde_litros(t["saldo_usable_l"], factor)
 
     return render_template(
         "tarjetas/listado.html",
@@ -185,9 +183,11 @@ def detalle(id):
 
     conn2 = conectar()
     cur2 = conn2.cursor()
-    factor = _get_factor(cur2)
+    factor = obtener_factor(cur2)
     bolson = _bolson_disponible(cur2)
     conn2.close()
+
+    saldo_usd_calc = calcular_usd_desde_litros(tarjeta["saldo_usable_l"], factor)
 
     return render_template(
         "tarjetas/detalle.html",
@@ -198,6 +198,7 @@ def detalle(id):
         hoy=date.today().isoformat(),
         factor=factor,
         bolson_disponible=bolson,
+        saldo_usd_calc=saldo_usd_calc,
     )
 
 
@@ -448,11 +449,17 @@ def recargar(id):
         if not error:
             conn = conectar()
             cur = conn.cursor()
+            factor = obtener_factor(cur)
+            # saldo_usd se guarda como espejo calculado (a partir del valor
+            # ANTERIOR de saldo_usable_l) solo por consistencia, hasta el DROP
+            # futuro — saldo_usable_l sigue siendo la única fuente de verdad.
             cur.execute("""
                 UPDATE tarjetas
-                SET saldo_usable_l = saldo_usable_l + ?, updated_at = CURRENT_TIMESTAMP
+                SET saldo_usable_l = saldo_usable_l + ?,
+                    saldo_usd = ROUND((saldo_usable_l + ?) * ?, 2),
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (litros, id))
+            """, (litros, litros, factor, id))
             cur.execute("""
                 INSERT INTO recargas_tarjetas
                     (tarjeta_id, fecha, litros_recargados, responsable_id, observaciones, estado)
@@ -498,7 +505,7 @@ def asignar_saldo(id):
         conn.close()
         return redirect("/tarjetas")
 
-    factor = _get_factor(cur)
+    factor = obtener_factor(cur)
     bolson = _bolson_disponible(cur)
     error = None
 
@@ -520,22 +527,43 @@ def asignar_saldo(id):
             )
 
         if not error:
-            monto = round(monto, 2)
-            cur.execute(
-                "UPDATE tarjetas SET saldo_usd = saldo_usd + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (monto, id)
-            )
-            cur.execute("""
-                INSERT INTO movimientos_saldo_fincimex
-                    (tipo, monto_usd, tarjeta_id, responsable_id, observaciones)
-                VALUES ('asignacion', ?, ?, ?, ?)
-            """, (
-                monto, id, session.get("user_id"),
-                observaciones or f"Asignación a tarjeta ****{tarjeta['numero_parcial']}",
-            ))
-            conn.commit()
-            conn.close()
-            return redirect(f"/tarjetas/{id}?ok=1")
+            monto_solicitado = round(monto, 2)
+            # Los litros que realmente se acreditan se redondean hacia ABAJO:
+            # nunca se acredita más de lo que el monto solicitado cubre.
+            litros_acreditados = litros_desde_usd_piso(monto_solicitado, factor)
+            if litros_acreditados <= 0:
+                error = "El monto es demasiado bajo para acreditar litros con el factor actual."
+            else:
+                # Lo que sale del bolsón es exactamente el equivalente de los
+                # litros acreditados (nunca el monto solicitado sin ajustar) —
+                # así el bolsón nunca queda descuadrado a favor de la tarjeta.
+                monto_debitado = calcular_usd_desde_litros(litros_acreditados, factor)
+
+                # UPDATE atómico: saldo_usable_l es la fuente de verdad; saldo_usd
+                # se calcula en la misma sentencia como espejo (a partir del valor
+                # ANTERIOR de saldo_usable_l, antes de esta suma) — solo por
+                # consistencia visual hasta que se elimine la columna.
+                cur.execute("""
+                    UPDATE tarjetas
+                    SET saldo_usable_l = saldo_usable_l + ?,
+                        saldo_usd = ROUND((saldo_usable_l + ?) * ?, 2),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (litros_acreditados, litros_acreditados, factor, id))
+                cur.execute("""
+                    INSERT INTO movimientos_saldo_fincimex
+                        (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
+                    VALUES ('asignacion', ?, ?, ?, ?, ?, ?)
+                """, (
+                    monto_debitado, litros_acreditados, factor, id, session.get("user_id"),
+                    observaciones or (
+                        f"Asignación a tarjeta ****{tarjeta['numero_parcial']} — "
+                        f"{litros_acreditados:,.2f} L (${monto_debitado:,.2f} USD)"
+                    ),
+                ))
+                conn.commit()
+                conn.close()
+                return redirect(f"/tarjetas/{id}?ok=1")
 
     conn.close()
     return render_template(
@@ -543,6 +571,7 @@ def asignar_saldo(id):
         tarjeta=tarjeta,
         factor=factor,
         bolson_disponible=bolson,
+        saldo_usd_actual=calcular_usd_desde_litros(tarjeta["saldo_usable_l"], factor),
         error=error,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=date.today().isoformat(),

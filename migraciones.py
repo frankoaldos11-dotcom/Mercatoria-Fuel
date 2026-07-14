@@ -701,6 +701,19 @@ def ejecutar_migraciones(bcrypt):
     for clave, valor in params_default:
         cur.execute("INSERT OR IGNORE INTO configuracion (clave, valor) VALUES (?, ?)", (clave, valor))
 
+    # Re-sincronización idempotente: tarjetas desincronizadas (saldo_usd > 0 pero
+    # saldo_usable_l = 0) por el bug histórico de escritura en una sola columna.
+    # Litros es la fuente única de verdad desde ahora; se reconstruye desde el
+    # saldo_usd legado. Deja de aplicar en cuanto saldo_usable_l != 0.
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    _frow = cur.fetchone()
+    _factor_resync = float(_frow["valor"]) if _frow else 0.90
+    cur.execute("""
+        UPDATE tarjetas
+        SET saldo_usable_l = saldo_usd / ?
+        WHERE saldo_usable_l = 0 AND saldo_usd > 0
+    """, (_factor_resync,))
+
     conn.commit()
     conn.close()
     print("[migraciones] SQLite — tablas creadas correctamente.")

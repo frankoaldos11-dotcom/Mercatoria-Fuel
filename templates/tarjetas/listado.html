@@ -87,7 +87,6 @@
                     <th>Combustible</th>
                     <th>Saldo usable (L)</th>
                     <th>SALDO (USD)</th>
-                    <th>LITROS equiv.</th>
                     <th>Saldo retenido (L)</th>
                     <th>Estado</th>
                 </tr>
@@ -133,12 +132,9 @@
                         {% endif %}
                     </td>
                     <td>
-                        <strong style="font-size:15px;color:{% if (t.saldo_usd | float) > 0 %}#16A34A{% else %}var(--muted){% endif %};">
-                            ${{ "{:,.2f}".format(t.saldo_usd | float) }}
+                        <strong style="font-size:15px;color:{% if t.saldo_usd_calc > 0 %}#16A34A{% else %}var(--muted){% endif %};">
+                            ${{ "{:,.2f}".format(t.saldo_usd_calc) }}
                         </strong>
-                    </td>
-                    <td>
-                        <span style="font-size:13px;color:var(--muted);">{{ "{:,.2f}".format((t.saldo_usd | float) / factor if factor else 0) }} L</span>
                     </td>
                     <td>
                         {% if t.saldo_retenido_l > 0 %}
@@ -159,7 +155,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" class="empty-state">
+                    <td colspan="8" class="empty-state">
                         <i class="bi bi-credit-card-2-front" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay tarjetas registradas.
                         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}

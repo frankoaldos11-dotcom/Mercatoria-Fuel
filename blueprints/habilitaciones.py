@@ -8,6 +8,7 @@ from utils.constants import (
 )
 from utils.auth import requiere_login, requiere_staff
 from utils.subinventarios import crear_subinventario, ajustar_reserva, SubinventarioError
+from utils.tarjetas import obtener_factor, calcular_usd_desde_litros
 
 habilitaciones_bp = Blueprint("habilitaciones", __name__, url_prefix="/habilitaciones")
 
@@ -363,7 +364,7 @@ def aprobar(id):
         SELECT h.*,
                v.estado AS unidad_estado, v.chofer_id,
                ch.licencia_vencimiento,
-               t.estado AS tarjeta_estado, t.saldo_usable_l, t.saldo_usd,
+               t.estado AS tarjeta_estado, t.saldo_usable_l,
                s.litros_reservados AS sub_litros
         FROM habilitaciones h
         JOIN vehiculos v ON v.id = h.unidad_id
@@ -386,10 +387,7 @@ def aprobar(id):
     tarjeta_link = None
     litros = float(hab["litros_autorizados"])
 
-    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-    _frow = cur.fetchone()
-    factor = float(_frow["valor"]) if _frow else 0.90
-    monto_usd = round(litros * factor, 2)
+    factor = obtener_factor(cur)
 
     if hab["unidad_estado"] != "activo":
         error = "La unidad no está activa."
@@ -399,15 +397,9 @@ def aprobar(id):
         error = "La tarjeta no está activa."
     elif float(hab["saldo_usable_l"]) < litros - 0.001:
         error = (
-            f"Saldo insuficiente en la tarjeta. Disponible: {float(hab['saldo_usable_l']):,.2f} L, "
+            f"Saldo insuficiente en la tarjeta. Disponible: {float(hab['saldo_usable_l']):,.2f} L "
+            f"(≈ ${calcular_usd_desde_litros(hab['saldo_usable_l'], factor):,.2f} USD), "
             f"requerido: {litros:,.2f} L."
-        )
-        tarjeta_link = hab["tarjeta_id"]
-    elif float(hab["saldo_usd"] or 0) < monto_usd - 0.001:
-        error = (
-            f"Saldo Fincimex insuficiente. Disponible: "
-            f"${float(hab['saldo_usd'] or 0):,.2f} USD, "
-            f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
         )
         tarjeta_link = hab["tarjeta_id"]
     elif hab["subinventario_id"] and hab["sub_litros"] is not None:
@@ -448,7 +440,7 @@ def liberar(id):
         SELECT h.*,
                v.estado AS unidad_estado, v.chofer_id,
                ch.licencia_vencimiento,
-               t.estado AS tarjeta_estado, t.saldo_usable_l, t.saldo_usd,
+               t.estado AS tarjeta_estado, t.saldo_usable_l,
                s.litros_reservados AS sub_litros
         FROM habilitaciones h
         JOIN vehiculos v ON v.id = h.unidad_id
@@ -471,10 +463,7 @@ def liberar(id):
     tarjeta_link = None
     litros = float(hab["litros_autorizados"])
 
-    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-    _frow = cur.fetchone()
-    factor = float(_frow["valor"]) if _frow else 0.90
-    monto_usd = round(litros * factor, 2)
+    factor = obtener_factor(cur)
 
     if hab["unidad_estado"] != "activo":
         error = "La unidad no está activa."
@@ -484,15 +473,9 @@ def liberar(id):
         error = "La tarjeta no está activa."
     elif float(hab["saldo_usable_l"]) < litros - 0.001:
         error = (
-            f"Saldo insuficiente en la tarjeta. Disponible: {float(hab['saldo_usable_l']):,.2f} L, "
+            f"Saldo insuficiente en la tarjeta. Disponible: {float(hab['saldo_usable_l']):,.2f} L "
+            f"(≈ ${calcular_usd_desde_litros(hab['saldo_usable_l'], factor):,.2f} USD), "
             f"requerido: {litros:,.2f} L."
-        )
-        tarjeta_link = hab["tarjeta_id"]
-    elif float(hab["saldo_usd"] or 0) < monto_usd - 0.001:
-        error = (
-            f"Saldo Fincimex insuficiente. Disponible: "
-            f"${float(hab['saldo_usd'] or 0):,.2f} USD, "
-            f"requerido: ${monto_usd:,.2f} USD ({litros:,.2f} L × {factor})."
         )
         tarjeta_link = hab["tarjeta_id"]
     elif hab["subinventario_id"] and hab["sub_litros"] is not None:

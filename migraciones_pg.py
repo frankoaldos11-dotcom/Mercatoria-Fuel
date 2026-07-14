@@ -672,5 +672,18 @@ def ejecutar_migraciones_pg(bcrypt):
             (clave, valor)
         )
 
+    # Re-sincronización idempotente: tarjetas desincronizadas (saldo_usd > 0 pero
+    # saldo_usable_l = 0) por el bug histórico de escritura en una sola columna.
+    # Litros es la fuente única de verdad desde ahora; se reconstruye desde el
+    # saldo_usd legado. Deja de aplicar en cuanto saldo_usable_l != 0.
+    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
+    _frow = cur.fetchone()
+    _factor_resync = float(_frow[0]) if _frow else 0.90
+    cur.execute("""
+        UPDATE tarjetas
+        SET saldo_usable_l = saldo_usd / %s
+        WHERE saldo_usable_l = 0 AND saldo_usd > 0
+    """, (_factor_resync,))
+
     conn.commit()
     print("[migraciones_pg] Fase 2 (seeds) completada. Base de datos lista.")

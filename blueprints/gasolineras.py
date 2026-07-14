@@ -6,6 +6,7 @@ from utils.constants import (
 )
 from utils.auth import requiere_login, requiere_staff
 from utils.subinventarios import crear_subinventario, validar_tope_reserva, SubinventarioError
+from utils.tarjetas import obtener_factor, calcular_usd_desde_litros
 
 gasolineras_bp = Blueprint("gasolineras", __name__, url_prefix="/gasolineras")
 
@@ -110,17 +111,19 @@ def listado():
             capacidades_gasolineras[_gid] = {}
         capacidades_gasolineras[_gid][_r["tipo_combustible"]] = float(_r["capacidad_referencia_l"] or 0)
 
-    # Saldo USD en tarjetas activas por gasolinera
+    factor = obtener_factor(cur)
+
+    # Saldo en tarjetas activas por gasolinera — litros es la fuente única,
+    # el USD mostrado se deriva del total en litros.
     cur.execute("""
-        SELECT gasolinera_id, COALESCE(SUM(saldo_usd), 0) AS saldo_usd_total
+        SELECT gasolinera_id, COALESCE(SUM(saldo_usable_l), 0) AS saldo_litros_total
         FROM tarjetas WHERE estado = 'activa'
         GROUP BY gasolinera_id
     """)
-    saldo_tarjetas_gas = {r["gasolinera_id"]: float(r["saldo_usd_total"] or 0) for r in cur.fetchall()}
-
-    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-    _frow = cur.fetchone()
-    factor = float(_frow["valor"]) if _frow else 0.90
+    saldo_tarjetas_gas = {
+        r["gasolinera_id"]: calcular_usd_desde_litros(r["saldo_litros_total"], factor)
+        for r in cur.fetchall()
+    }
 
     conn.close()
 
@@ -222,18 +225,21 @@ def detalle(id):
     """, (id,))
     despachos_recientes = cur.fetchall()
 
-    # Saldo USD en tarjetas activas de esta gasolinera
+    factor = obtener_factor(cur)
+
+    # Saldo en tarjetas activas de esta gasolinera — litros es la fuente única,
+    # el USD mostrado (por tarjeta y total) se deriva del saldo en litros.
     cur.execute("""
-        SELECT id, numero_parcial, tipo_combustible, saldo_usd, saldo_usable_l, estado
+        SELECT id, numero_parcial, tipo_combustible, saldo_usable_l, estado
         FROM tarjetas WHERE gasolinera_id = ? AND estado = 'activa'
         ORDER BY numero_parcial ASC
     """, (id,))
-    tarjetas_gas = cur.fetchall()
-    saldo_usd_total_gas = sum(float(t["saldo_usd"] or 0) for t in tarjetas_gas)
-
-    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-    _frow = cur.fetchone()
-    factor = float(_frow["valor"]) if _frow else 0.90
+    tarjetas_gas = [dict(row) for row in cur.fetchall()]
+    for t in tarjetas_gas:
+        t["saldo_usd_calc"] = calcular_usd_desde_litros(t["saldo_usable_l"], factor)
+    saldo_usd_total_gas = calcular_usd_desde_litros(
+        sum(float(t["saldo_usable_l"] or 0) for t in tarjetas_gas), factor
+    )
 
     conn.close()
 
