@@ -21,21 +21,13 @@
     <form method="GET" action="/clientes" class="panel-header" style="flex-wrap:wrap;gap:10px;">
         <input type="text" name="buscar" value="{{ buscar }}" class="form-control"
                placeholder="Buscar por nombre o código..." style="max-width:240px;">
-        <select name="tipo" class="form-select" style="max-width:180px;">
-            <option value="">Todos los tipos</option>
-            {% for t in tipos_cliente %}
-            <option value="{{ t }}" {{ 'selected' if filtro_tipo == t }}>
-                {{ tipos_cliente_labels.get(t, t) }}
-            </option>
-            {% endfor %}
-        </select>
         <select name="estado" class="form-select" style="max-width:160px;">
             <option value="">Todos los estados</option>
             <option value="activo"   {{ 'selected' if filtro_estado == 'activo' }}>Activo</option>
             <option value="inactivo" {{ 'selected' if filtro_estado == 'inactivo' }}>Inactivo</option>
         </select>
         <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> Filtrar</button>
-        {% if buscar or filtro_tipo or filtro_estado %}
+        {% if buscar or filtro_estado %}
         <a href="/clientes" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
         {% endif %}
     </form>
@@ -49,7 +41,6 @@
                     <th>Acciones</th>
                     <th>Código</th>
                     <th>Nombre</th>
-                    <th>Tipo</th>
                     <th>Contacto</th>
                     <th>Reservado (L)</th>
                     <th>Estado</th>
@@ -96,15 +87,6 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if c.tipo == 'internacional' %}
-                        <span class="badge badge-info">Internacional</span>
-                        {% elif c.tipo == 'nacional' %}
-                        <span class="badge badge-ok">Nacional</span>
-                        {% else %}
-                        <span class="badge badge-neutral">Interno</span>
-                        {% endif %}
-                    </td>
-                    <td>
                         {{ c.contacto_nombre or '—' }}
                         {% if c.contacto_telefono %}
                         <br><span style="font-size:12px;color:var(--muted);">{{ c.contacto_telefono }}</span>
@@ -121,7 +103,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="empty-state">
+                    <td colspan="6" class="empty-state">
                         <i class="bi bi-buildings" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
                         No hay clientes registrados.
                         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}

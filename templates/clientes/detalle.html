@@ -11,14 +11,6 @@
         <p>
             <span style="font-family:monospace;font-weight:700;color:var(--primary);">{{ cliente.codigo }}</span>
             &nbsp;·&nbsp;
-            {% if cliente.tipo == 'internacional' %}
-            <span class="badge badge-info">Internacional</span>
-            {% elif cliente.tipo == 'nacional' %}
-            <span class="badge badge-ok">Nacional</span>
-            {% else %}
-            <span class="badge badge-neutral">Interno</span>
-            {% endif %}
-            &nbsp;·&nbsp;
             {% if cliente.activo %}
             <span class="badge badge-ok">Activo</span>
             {% else %}

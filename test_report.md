@@ -852,3 +852,41 @@ Las descritas arriba.
 - Verificación en producción queda a cargo de Aldo, como siempre.
 - El PIN en texto plano es una decisión de seguridad deliberada y aceptada por Aldo por necesidad operativa — documentado aquí para que quede constancia de que es intencional, no un descuido.
 - La prueba de colisión "real" vía monkeypatch fue necesaria porque SQLite serializa escrituras (un solo escritor a la vez) y no reproduce de forma confiable una carrera genuina entre dos transacciones — en Postgres (producción) sí puede haber transacciones concurrentes reales, y el mecanismo de `SAVEPOINT` + reintento es exactamente lo que cubre ese caso.
+
+---
+
+# Clientes: quitar campo "Tipo" (nacional/internacional) sin uso — 2026-07-13
+
+## Diagnóstico previo
+
+Grep exhaustivo en todo `*.py` del proyecto confirmó que `clientes.tipo` no participa en ninguna lógica de negocio fuera del propio módulo Clientes (sin uso en habilitaciones, despachos, tarjetas, reportes, Fincimex ni permisos). Dentro de Clientes sí se usaba en tres puntos más allá de crear/editar que el pedido original no mencionaba explícitamente: el filtro del listado (`clientes.py:42,52-54`), la columna/badge del listado (`templates/clientes/listado.html`), y el badge del detalle (`templates/clientes/detalle.html`) — reportado en el plan antes de tocar nada, tal como se pidió; aprobado incluirlo en el mismo cambio.
+
+## Cambio
+
+- `blueprints/clientes.py` — `listado()`: quitado `filtro_tipo`, la condición `WHERE tipo = ?`, `tipo` del `SELECT` y `tipos_cliente`/`tipos_cliente_labels` del contexto (el resto del armado de `condiciones`/`params`/`where` para `buscar` y `filtro_estado` quedó intacto, verificado explícitamente). `crear()`/`editar()`: quitada la lectura del campo, la validación `tipo not in TIPOS_CLIENTE`, la columna del `INSERT`/`UPDATE`, y `"tipo"` del payload de auditoría. `detalle()`: quitado `tipos_cliente_labels` del contexto. Import de `TIPOS_CLIENTE`/`TIPOS_CLIENTE_LABELS` eliminado del blueprint (ya sin uso).
+- 4 templates (`crear.html`, `editar.html`, `listado.html`, `detalle.html`) — quitado el campo de formulario, el filtro, la columna/badge y el badge del detalle. `colspan` del estado vacío del listado ajustado de 7 a 6.
+- `utils/constants.py` (`TIPOS_CLIENTE`/`TIPOS_CLIENTE_LABELS`) y la columna `clientes.tipo` en la base **no se tocaron**, tal como se pidió — quedan huérfanos hasta que Aldo haga el `DROP` en el reseteo futuro.
+
+## Verificación (local, SQLite fresco, puerto 5090 — no producción)
+
+| Caso | Método | Resultado |
+|---|---|---|
+| Crear cliente | Navegador, formulario sin campo Tipo | ✅ Cliente `SNT-001` creado correctamente, sin errores. |
+| Listado | Navegador, tras crear | ✅ Sin columna "Tipo" ni filtro; "Buscar" y "Todos los estados" siguen presentes y funcionales. |
+| Detalle | Navegador, ficha del cliente creado | ✅ Encabezado sin badge de tipo (solo código y estado); resto de la ficha (contacto, litros reservados, unidades) intacto. |
+| Editar | Navegador, formulario sin campo Tipo, guardar notas nuevas | ✅ Cambios guardados correctamente, sin errores; notas reflejadas en el detalle tras guardar. |
+
+**0 errores 500** en toda la sesión. Screenshots tomados de los 4 casos.
+
+## Errores encontrados
+
+Ninguno.
+
+## Correcciones aplicadas
+
+Las descritas arriba.
+
+## Recomendaciones
+
+- Verificación en producción queda a cargo de Aldo, como siempre.
+- La columna `clientes.tipo` y las constantes `TIPOS_CLIENTE`/`TIPOS_CLIENTE_LABELS` quedan sin uso en el código, a la espera del `DROP COLUMN` que Aldo hará en el reseteo futuro.

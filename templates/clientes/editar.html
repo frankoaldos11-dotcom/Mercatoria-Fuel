@@ -40,17 +40,6 @@
                        style="text-transform:uppercase;">
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Tipo <span style="color:var(--danger)">*</span></label>
-                <select name="tipo" class="form-select" required>
-                    <option value="">Seleccionar...</option>
-                    {% for t in tipos_cliente %}
-                    <option value="{{ t }}" {{ 'selected' if cliente.tipo == t }}>
-                        {{ tipos_cliente_labels.get(t, t) }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
 
             <div class="mb-3">
                 <label class="form-label">Nombre de contacto</label>

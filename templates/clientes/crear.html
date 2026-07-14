@@ -42,16 +42,6 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo <span style="color:var(--danger)">*</span></label>
-                <select name="tipo" class="form-select" required>
-                    <option value="">Seleccionar...</option>
-                    {% for t in tipos_cliente %}
-                    <option value="{{ t }}">{{ tipos_cliente_labels.get(t, t) }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="mb-3">
                 <label class="form-label">Nombre de contacto</label>
                 <input type="text" name="contacto_nombre" class="form-control"
                        placeholder="Nombre del contacto principal">

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
-from utils.constants import TIPOS_CLIENTE, TIPOS_CLIENTE_LABELS, ROLES_ADMIN_PM
+from utils.constants import ROLES_ADMIN_PM
 from utils.auth import requiere_login, requiere_staff
 
 clientes_bp = Blueprint("clientes", __name__, url_prefix="/clientes")
@@ -39,7 +39,6 @@ def listado():
         return redir
 
     buscar = request.args.get("buscar", "").strip()
-    filtro_tipo = request.args.get("tipo", "").strip()
     filtro_estado = request.args.get("estado", "").strip()
 
     condiciones = []
@@ -49,9 +48,6 @@ def listado():
         condiciones.append("(nombre LIKE ? OR codigo LIKE ? OR contacto_nombre LIKE ?)")
         like = f"%{buscar}%"
         params.extend([like, like, like])
-    if filtro_tipo:
-        condiciones.append("tipo = ?")
-        params.append(filtro_tipo)
     if filtro_estado == "activo":
         condiciones.append("activo = 1")
     elif filtro_estado == "inactivo":
@@ -62,7 +58,7 @@ def listado():
     conn = conectar()
     cur = conn.cursor()
     cur.execute(f"""
-        SELECT id, nombre, codigo, tipo, contacto_nombre, contacto_telefono,
+        SELECT id, nombre, codigo, contacto_nombre, contacto_telefono,
                contacto_email, subinventario_reservado_l, activo, created_at
         FROM clientes
         {where}
@@ -75,10 +71,7 @@ def listado():
         "clientes/listado.html",
         lista=lista,
         buscar=buscar,
-        filtro_tipo=filtro_tipo,
         filtro_estado=filtro_estado,
-        tipos_cliente=TIPOS_CLIENTE,
-        tipos_cliente_labels=TIPOS_CLIENTE_LABELS,
     )
 
 
@@ -95,7 +88,6 @@ def crear():
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
         codigo = request.form.get("codigo", "").strip().upper()
-        tipo = request.form.get("tipo", "").strip()
         contacto_nombre = request.form.get("contacto_nombre", "").strip()
         contacto_telefono = request.form.get("contacto_telefono", "").strip()
         contacto_email = request.form.get("contacto_email", "").strip().lower()
@@ -106,8 +98,6 @@ def crear():
             error = "El nombre es obligatorio."
         elif not codigo:
             error = "El código es obligatorio."
-        elif tipo not in TIPOS_CLIENTE:
-            error = "Tipo de cliente no válido."
         else:
             conn = conectar()
             cur = conn.cursor()
@@ -118,25 +108,23 @@ def crear():
             else:
                 cur.execute("""
                     INSERT INTO clientes
-                        (nombre, codigo, tipo, contacto_nombre, contacto_telefono,
+                        (nombre, codigo, contacto_nombre, contacto_telefono,
                          contacto_email, notas, activo)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (nombre, codigo, tipo, contacto_nombre, contacto_telefono,
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (nombre, codigo, contacto_nombre, contacto_telefono,
                       contacto_email, notas, activo))
                 nuevo_id = cur.lastrowid
                 conn.commit()
                 conn.close()
                 _registrar_auditoria(
                     session.get("user_id"), "Creó cliente", "clientes", nuevo_id,
-                    valor_nuevo={"nombre": nombre, "codigo": codigo, "tipo": tipo}
+                    valor_nuevo={"nombre": nombre, "codigo": codigo}
                 )
                 return redirect("/clientes?ok=1")
 
     return render_template(
         "clientes/crear.html",
         error=error,
-        tipos_cliente=TIPOS_CLIENTE,
-        tipos_cliente_labels=TIPOS_CLIENTE_LABELS,
     )
 
 
@@ -178,7 +166,6 @@ def detalle(id):
         "clientes/detalle.html",
         cliente=cliente,
         unidades=unidades,
-        tipos_cliente_labels=TIPOS_CLIENTE_LABELS,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=hoy,
         limite_30=limite_30,
@@ -200,7 +187,6 @@ def editar(id):
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
         codigo = request.form.get("codigo", "").strip().upper()
-        tipo = request.form.get("tipo", "").strip()
         contacto_nombre = request.form.get("contacto_nombre", "").strip()
         contacto_telefono = request.form.get("contacto_telefono", "").strip()
         contacto_email = request.form.get("contacto_email", "").strip().lower()
@@ -211,8 +197,6 @@ def editar(id):
             error = "El nombre es obligatorio."
         elif not codigo:
             error = "El código es obligatorio."
-        elif tipo not in TIPOS_CLIENTE:
-            error = "Tipo de cliente no válido."
         else:
             cur.execute("SELECT id FROM clientes WHERE codigo = ? AND id != ?", (codigo, id))
             if cur.fetchone():
@@ -223,19 +207,19 @@ def editar(id):
 
                 cur.execute("""
                     UPDATE clientes
-                    SET nombre = ?, codigo = ?, tipo = ?, contacto_nombre = ?,
+                    SET nombre = ?, codigo = ?, contacto_nombre = ?,
                         contacto_telefono = ?, contacto_email = ?,
                         notas = ?, activo = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """, (nombre, codigo, tipo, contacto_nombre, contacto_telefono,
+                """, (nombre, codigo, contacto_nombre, contacto_telefono,
                       contacto_email, notas, activo, id))
                 conn.commit()
                 conn.close()
                 _registrar_auditoria(
                     session.get("user_id"), "Editó cliente", "clientes", id,
                     valor_anterior=anterior,
-                    valor_nuevo={"nombre": nombre, "codigo": codigo, "tipo": tipo}
+                    valor_nuevo={"nombre": nombre, "codigo": codigo}
                 )
                 return redirect(f"/clientes/{id}?ok=1")
 
@@ -250,8 +234,6 @@ def editar(id):
         "clientes/editar.html",
         cliente=cliente,
         error=error,
-        tipos_cliente=TIPOS_CLIENTE,
-        tipos_cliente_labels=TIPOS_CLIENTE_LABELS,
     )
 
 
