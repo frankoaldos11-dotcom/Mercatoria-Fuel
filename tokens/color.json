@@ -1,7 +1,7 @@
 {
-  "principal": { "$type": "string", "$value": "#155eef" },
+  "principal": { "$type": "string", "$value": "#F16A30" },
   "principal-oscuro": { "$type": "string", "$value": "#0f3ea8" },
-  "activo": { "$type": "string", "$value": "#E86A2C" },
+  "activo": { "$type": "string", "$value": "#F16A30" },
   "activo-oscuro": { "$type": "string", "$value": "#C45520" },
 
   "panel": { "$type": "string", "$value": "#ffffff" },

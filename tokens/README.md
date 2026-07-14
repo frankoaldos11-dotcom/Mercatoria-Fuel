@@ -57,9 +57,9 @@ real de cada hex en `admin.css` y templates.
 
 | Nombre viejo (Tanda 0) | Nombre nuevo | Valor |
 |---|---|---|
-| `--color-brand-blue` | `--principal` | `#155eef` |
-| `--color-brand-blue-dark` | `--principal-oscuro` | `#0f3ea8` |
-| `--color-brand-orange` | `--activo` | `#E86A2C` |
+| `--color-brand-blue` | `--principal` | `#F16A30` (corregido — ver "Corrección: naranja de marca" abajo; el valor original de Tanda 1 era `#155eef`, el azul que `admin.css` llamaba `--primary`) |
+| `--color-brand-blue-dark` | `--principal-oscuro` | `#0f3ea8` (sin cambios — ver más abajo) |
+| `--color-brand-orange` | `--activo` | `#F16A30` (corregido junto con `--principal`; el valor original de Tanda 1 era `#E86A2C`) |
 | `--color-white` | `--panel` | `#ffffff` |
 | `--color-danger-strong-lower` | `--peligro` | `#dc2626` |
 | `--color-success-strong-lower` | `--exito` | `#16a34a` |
@@ -92,12 +92,14 @@ real de cada hex en `admin.css` y templates.
 | `--font-size-xs/sm/md/lg/xl/2xl` (staff) | `--texto-xs/sm/md/lg/xl/2xl-staff` | `11/12/15/16/17/21px` |
 | `--font-size-client-xs/sm/md/lg/xl` | `--texto-xs/sm/md/lg/xl-cliente` | `0.8/0.82/0.95/1.1/1.6rem` |
 
-**`--principal` = azul, `--activo` = naranja — por qué, aunque el naranja es visualmente más
-dominante:** `admin.css` ya llama `--primary` al azul (`#155eef`) en su propio código fuente
-desde antes de esta tanda; el naranja (`#E86A2C`) se usa exactamente para el mismo rol que
-Truck nombró `activo` — `.nav-item-active` en `admin.css`, idéntico patrón al que documenta el
-`README.md` de Truck para su propio token `activo`. Se mantuvo la correspondencia con lo que
-Fuel ya nombraba internamente.
+**`--principal` y `--activo` — historia de la decisión:** en la Tanda 1 (renombrado puro) se
+mapeó `--principal` al azul `#155eef` porque `admin.css` ya llamaba `--primary` a ese valor en
+su propio código, y `--activo` al naranja `#E86A2C` porque se usa exactamente para el mismo rol
+que Truck nombró `activo` (`.nav-item-active` en `admin.css`). Eso resultó ser el mapeo
+equivocado: el objetivo real es que Truck y Fuel compartan la misma paleta, y en Truck
+`--principal` es naranja. Corregido en la Tanda 2 (ver sección "Corrección: naranja de marca
+unificado con Truck" más abajo) — `--principal` y `--activo` ahora son el mismo valor,
+`#F16A30`.
 
 **Escala de tamaños de texto con superficie — extensión del patrón de Truck:** Truck define
 `texto-*` como escala plana porque solo tuvo panel admin. Fuel tiene dos sistemas de unidades
@@ -173,6 +175,73 @@ error, es lo que ya existe hoy en el código.
 
 `--fuente-base` (que sí existe en el catálogo real de Truck, idéntico a `fuente-cliente`) no se
 creó en Fuel — no estaba en el pedido explícito de esta tanda.
+
+## Corrección (Tanda 2): naranja de marca unificado con Truck
+
+La Tanda 1 (arriba) fue un renombrado puro que preservó los valores que Fuel ya tenía. Al
+revisarlo se detectó que el mapeo de `--principal` estaba mal: el objetivo real de este
+proyecto es que Truck y Fuel compartan la misma paleta, y en Truck `--principal` es naranja
+(`#f16a30`, el valor de la paleta de Adrián), no azul. La Tanda 1 había mapeado `--principal`
+al azul `#155eef` (el `--primary` que ya usaba `admin.css`) siguiendo el nombre que Fuel ya
+tenía internamente, sin cuestionar si ese era el color correcto para compartir con Truck.
+
+**Cambio de valor (intencional, no un renombrado):**
+
+| Token | Valor Tanda 1 | Valor Tanda 2 |
+|---|---|---|
+| `--principal` | `#155eef` (azul) | `#F16A30` (naranja, igual que Truck) |
+| `--activo` | `#E86A2C` (naranja propio de Fuel) | `#F16A30` (unificado con `--principal`) |
+
+`--activo` se unificó al mismo valor que `--principal` en la misma pasada — dejar `--principal`
+en `#F16A30` (nuevo, sin uso real todavía) y `--activo` en `#E86A2C` (el naranja que Fuel ya usa
+en todos lados) habría dejado dos naranjas casi idénticos conviviendo en el catálogo, exactamente
+el tipo de casi-duplicado que este proyecto de tokens busca eliminar. Truck hace lo mismo:
+`principal`/`activo`/`peligro` son el mismo `#f16a30` desde el rebrand de Adrián.
+
+**Importante — esta corrección no cambia nada visible en la app todavía.** `tokens.css` sigue
+sin estar enlazado a ningún layout (confirmado igual que en la Tanda 1: cero `<link>`, cero
+`var(--principal)` en `templates/` o `static/`). `admin.css` sigue definiendo su propio
+`--primary: #155eef` de forma completamente independiente. El cambio visual real (Fuel pasando
+de interfaz azul a naranja en su superficie staff) va a ocurrir recién cuando una tanda futura
+migre `admin.css`/templates a consumir estos tokens — no es parte de esta corrección.
+
+### Inventario de usos de `#155eef` / `var(--primary)`, con rol — referencia para esa tanda futura
+
+Grep completo sobre `static/` y `templates/`. Ningún uso es informativo (rol `--info`) — todos
+son rol marca/acción (`--principal`). `--info` (`#0891b2`) ya se usa consistentemente aparte,
+sin relación con este azul (dashboards, conciliación, badges "aprobada" en el portal cliente) y
+no se toca.
+
+| Uso | Ubicación | Rol |
+|---|---|---|
+| `--primary: #155eef` | `admin.css:7` | definición de la variable |
+| `.eyebrow { color: var(--primary) }` | `admin.css:165` | etiqueta de marca sobre secciones |
+| `.kpi-icon.primary { color: var(--primary) }` | `admin.css:209` | ícono de categoría "primaria" en KPI |
+| `.btn-primary { background: var(--primary) }` | `admin.css:284` | botón de acción principal (CTA) |
+| `.btn-soft` (color y hover-background) | `admin.css:293-294` | botón secundario suave, mismo rol de marca |
+| `.form-control:focus { border-color: var(--primary) }` | `admin.css:316` | anillo de foco de inputs |
+| `.form-control:focus { box-shadow: rgba(21,94,239,.12) }` | `admin.css:317` | halo de foco — mismo azul hardcodeado en rgba, sin variable; si se migra en el futuro debería recalcularse como el rgba de `--principal` nuevo, no solo cambiar el border |
+| botón "volver" | `templates/404.html:12` | CTA en página de error, hardcodeado — fuera de alcance |
+| botón "volver" | `templates/500.html:12` | ídem |
+
+### `--principal-oscuro` y `--activo-oscuro`: sin cambios, a propósito
+
+- `--principal-oscuro` sigue en `#0f3ea8` (azul). Truck tiene el mismo quirk documentado en su
+  propio README: tras el rebrand de Adrián, `principal` pasó a naranja pero `principal-oscuro`
+  se quedó azul (Adrián no definió un naranja oscuro). Dejar Fuel igual es la alineación más
+  fiel con el estado real de Truck hoy, no un descuido.
+- `--activo-oscuro` sigue en `#C45520`. A diferencia de `principal-oscuro`, este sí tiene uso
+  real hoy en templates (`login.html`, `registro.html`, `tienda/index.html` — hover de botones
+  naranja). Como esta corrección no toca templates, ese hover sigue siendo literalmente
+  `#C45520` en la app — el token con ese valor es lo que refleja la realidad actual. Migrar el
+  hover a un naranja oscuro derivado de `#F16A30` queda para la tanda que aplique estos tokens.
+
+### `--peligro` no se toca
+
+Truck colapsó `peligro` al mismo naranja que `principal` (Adrián no tiene un rojo propio).
+Fuel no hace lo mismo acá: `--peligro` sigue en `#dc2626` (rojo real) porque esta corrección es
+específicamente sobre `--principal`/`--activo`, no sobre extender el colapso de Adrián a los
+demás roles semánticos.
 
 ## Enfoque: rename directo, sin capa de alias
 
