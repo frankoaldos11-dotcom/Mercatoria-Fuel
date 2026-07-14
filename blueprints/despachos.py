@@ -6,6 +6,7 @@ from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE_LABELS, ESTADOS_HABILITACION_LABELS
 from utils.auth import requiere_login, requiere_staff
 from utils.adjuntos import foto_valida, guardar_adjunto
+from utils.despachos import insertar_despacho_con_numero
 
 despachos_bp = Blueprint("despachos", __name__, url_prefix="/despachos")
 
@@ -53,7 +54,7 @@ def listado():
     cur = conn.cursor()
     cur.execute(f"""
         SELECT d.id, d.litros_despachados, d.fecha_despacho, d.estado,
-               d.foto_ticket_url, d.odometro_km,
+               d.foto_ticket_url, d.odometro_km, d.numero_operacion,
                cli.nombre AS cliente_nombre,
                v.chapa AS unidad_chapa,
                ch.nombre AS chofer_nombre,
@@ -360,17 +361,21 @@ def crear():
                         WHERE id = ?
                     """, (litros, habilitacion_id))
 
-                    cur.execute("""
-                        INSERT INTO despachos
-                            (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
-                             litros_despachados, odometro_km, observaciones, fecha_despacho,
-                             operario_id, estado)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completado')
-                    """, (habilitacion_id, hab["gasolinera_id"], hab["tarjeta_id"],
-                          hab["cliente_id"], hab["unidad_id"], litros,
-                          odometro_km, observaciones or None, fecha_despacho,
-                          session.get("user_id")))
-                    nuevo_id = cur.lastrowid
+                    nuevo_id, numero_operacion = insertar_despacho_con_numero(
+                        cur,
+                        """
+                            INSERT INTO despachos
+                                (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
+                                 litros_despachados, odometro_km, observaciones, fecha_despacho,
+                                 operario_id, estado, numero_operacion)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completado', ?)
+                        """,
+                        (habilitacion_id, hab["gasolinera_id"], hab["tarjeta_id"],
+                         hab["cliente_id"], hab["unidad_id"], litros,
+                         odometro_km, observaciones or None, fecha_despacho,
+                         session.get("user_id")),
+                        hab["gasolinera_id"], fecha_despacho,
+                    )
 
                     foto_ticket_url = guardar_adjunto(cur, "despacho", nuevo_id, "ticket", foto_ticket)
                     foto_vehiculo_url = guardar_adjunto(cur, "despacho", nuevo_id, "vehiculo", foto_vehiculo)

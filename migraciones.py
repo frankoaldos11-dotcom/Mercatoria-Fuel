@@ -665,11 +665,18 @@ def ejecutar_migraciones(bcrypt):
         "ALTER TABLE usuarios ADD COLUMN verificacion_token_hash TEXT",
         "ALTER TABLE usuarios ADD COLUMN verificacion_codigo_hash TEXT",
         "ALTER TABLE usuarios ADD COLUMN verificacion_expira TEXT",
+        "ALTER TABLE tarjetas ADD COLUMN pin_plano TEXT",
+        "ALTER TABLE despachos ADD COLUMN numero_operacion TEXT",
     ]:
         try:
             cur.execute(_sql)
         except Exception:
             pass
+
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_despachos_numero_operacion
+        ON despachos (numero_operacion)
+    """)
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS movimientos_saldo_fincimex (

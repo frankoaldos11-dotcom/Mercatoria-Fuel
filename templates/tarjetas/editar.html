@@ -68,6 +68,14 @@
                 </select>
             </div>
 
+            <!-- PIN — editable, opcional (reintroducir o cambiar) -->
+            <div class="mb-3">
+                <label class="form-label">PIN</label>
+                <input type="text" name="pin" class="form-control" inputmode="numeric"
+                       placeholder="{% if tarjeta.pin_plano %}{{ tarjeta.pin_plano }}{% else %}Reintroducir PIN...{% endif %}">
+                <small style="color:var(--muted);font-size:12px;">Deja en blanco para no cambiarlo. Se guarda visible para admin, PM y operador de gasolinera.</small>
+            </div>
+
             <!-- Notas — editable -->
             <div class="mb-3" style="grid-column:1/-1;">
                 <label class="form-label">Notas</label>

@@ -8,6 +8,7 @@ from utils.auth import requiere_login, requiere_staff
 from utils.constants import ROLES_ADMIN_PM, TURNOS_CONCILIACION, TURNOS_CONCILIACION_LABELS, ROLES_OPERARIO_GAS
 from utils import mailer
 from utils.adjuntos import foto_valida, guardar_adjunto
+from utils.despachos import insertar_despacho_con_numero
 
 logger = logging.getLogger(__name__)
 
@@ -330,14 +331,18 @@ def api_despachar(hab_id):
 
     hoy_str = date.today().isoformat()
 
-    cur.execute("""
-        INSERT INTO despachos
-            (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
-             litros_despachados, fecha_despacho, operario_id, estado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completado')
-    """, (hab_id, hab["gasolinera_id"], hab["tarjeta_id"], hab["cliente_id"],
-          hab["unidad_id"], litros, hoy_str, session.get("user_id")))
-    nuevo_despacho_id = cur.lastrowid
+    nuevo_despacho_id, numero_operacion = insertar_despacho_con_numero(
+        cur,
+        """
+            INSERT INTO despachos
+                (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
+                 litros_despachados, fecha_despacho, operario_id, estado, numero_operacion)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completado', ?)
+        """,
+        (hab_id, hab["gasolinera_id"], hab["tarjeta_id"], hab["cliente_id"],
+         hab["unidad_id"], litros, hoy_str, session.get("user_id")),
+        hab["gasolinera_id"], hoy_str,
+    )
 
     foto_url = guardar_adjunto(cur, "despacho", nuevo_despacho_id, "ticket", foto)
     cur.execute("""
@@ -394,7 +399,7 @@ def api_despachar(hab_id):
 
     conn.commit()
     conn.close()
-    return jsonify({"ok": True, "estado": "despachada", "litros": litros})
+    return jsonify({"ok": True, "estado": "despachada", "litros": litros, "numero_operacion": numero_operacion})
 
 
 # ── Cerrar turno / conciliación ───────────────────────────────────────────────

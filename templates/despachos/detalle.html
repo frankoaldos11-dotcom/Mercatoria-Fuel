@@ -6,6 +6,9 @@
     <div>
         <span class="eyebrow">Operativa / Despachos</span>
         <h1>Despacho #{{ despacho.id }}</h1>
+        {% if despacho.numero_operacion %}
+        <p style="font-family:monospace;font-size:13px;color:var(--muted);margin-top:2px;">Nº operación: <strong style="color:var(--text);">{{ despacho.numero_operacion }}</strong></p>
+        {% endif %}
         <p>{{ despacho.cliente_nombre }} — {{ despacho.unidad_chapa }}</p>
     </div>
     <div style="display:flex;gap:10px;">
@@ -42,6 +45,10 @@
                         <span class="badge badge-danger">Anulado</span>
                         {% endif %}
                     </td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;color:var(--muted);">Nº operación</td>
+                    <td style="padding:8px 0;font-family:monospace;">{{ despacho.numero_operacion or '—' }}</td>
                 </tr>
                 <tr style="border-bottom:1px solid var(--border);">
                     <td style="padding:8px 0;color:var(--muted);">Cliente</td>

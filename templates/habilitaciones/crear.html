@@ -114,7 +114,7 @@
 
                 <div id="sub-existente-wrap">
                     <select name="subinventario_id" id="sel-sub" class="form-select">
-                        <option value="">Sin subinventario específico</option>
+                        <option value="">Venta</option>
                         {% for s in subinventarios %}
                         <option value="{{ s.id }}"
                                 data-gasolinera="{{ s.gasolinera_id }}"
@@ -259,7 +259,7 @@ const labelSub = document.getElementById('label-sub');
 const inputSubNuevo = document.getElementById('input-sub-nuevo');
 
 function subEmptyLabel() {
-    return modoReserva.checked ? 'Seleccionar subinventario...' : 'Sin subinventario específico';
+    return modoReserva.checked ? 'Seleccionar subinventario...' : 'Venta';
 }
 
 function actualizarModo() {

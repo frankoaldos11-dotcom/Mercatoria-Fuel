@@ -800,3 +800,55 @@ Las descritas arriba.
 
 - Verificación en producción queda a cargo de Aldo, como siempre.
 - Si en el futuro se quiere permitir subir la foto después también para reservas de Tienda, hace falta antes una pantalla de detalle de reserva (hoy solo existe el listado en `/tienda/admin`) — quedó fuera de alcance de este cambio por decisión explícita de Aldo.
+
+---
+
+# PIN visible en plano, etiqueta "Venta", y número de operación automático — 2026-07-13
+
+## Cambio
+
+**1. PIN de tarjeta visible (decisión operativa de Aldo, baja de seguridad deliberada):**
+- Columna nueva `tarjetas.pin_plano TEXT` (nullable, `ADD COLUMN IF NOT EXISTS` en ambos motores). La columna vieja `pin_hash` (NOT NULL) se sigue escribiendo igual que antes (satisface el constraint, queda como legado sin uso real) — evita tocar su NOT NULL y evita cualquier migración de tipo `ALTER COLUMN` (no soportada de forma simple en SQLite).
+- `tarjetas.py::crear()` guarda el PIN tal cual en `pin_plano` además de seguir hasheando en `pin_hash`.
+- `tarjetas.py::editar()` — nuevo campo PIN opcional (vacío = no cambiar); es el mecanismo para reintroducir PINs viejos irrecuperables.
+- `tarjetas/detalle.html` — fila "PIN" visible solo para `admin`, `puesto_de_mando`, `operador_gasolinera`. Si `pin_plano` existe se muestra; si no (PIN viejo, solo hasheado), muestra "PIN no disponible (reintroducir)".
+
+**2. Etiqueta "Venta":** en `habilitaciones/crear.html`, la opción vacía del desplegable de subinventario pasa de "Sin subinventario específico" a "Venta" (2 lugares: el `<option>` estático y la función JS `subEmptyLabel()`). Sin cambio de valor/lógica.
+
+**3. Número de operación automático:**
+- Columna nueva `despachos.numero_operacion TEXT` (nullable) + `CREATE UNIQUE INDEX IF NOT EXISTS` en ambos motores — la base es la garantía real de unicidad, no solo el cálculo en Python. (SQLite no soporta `UNIQUE` inline en `ADD COLUMN`, confirmado localmente; de ahí el índice separado, usado igual en ambos motores por consistencia.)
+- `utils/despachos.py` (nuevo) — `_candidato_numero_operacion()` calcula `AAAAMMDD` (8) + `id_gasolinera` (2, con padding) + `secuencia_del_día` (4, con padding) = 14 dígitos, vía `COUNT(despachos de esa gasolinera ese día) + 1`, con rango de fecha (no substring) para funcionar igual con los dos formatos de `fecha_despacho` que ya convivían en el código (timestamp completo en `despachos.py`, solo fecha en `turno.py`). `insertar_despacho_con_numero()` ejecuta el `INSERT` dentro de un `SAVEPOINT`; si choca con el `UNIQUE` (carrera real entre despachos concurrentes), hace `ROLLBACK TO SAVEPOINT`, recalcula el siguiente número disponible y reintenta (hasta 20 intentos) — nunca deja que la colisión rompa el despacho.
+- `despachos.py::crear()` y `turno.py::api_despachar()` usan el helper. Reservas de Tienda quedan fuera de alcance (decisión confirmada con Aldo).
+- `despachos/detalle.html` (encabezado + tabla) y `despachos/listado.html` (columna nueva) muestran el número; `—` si es `NULL` (despachos viejos, sin backfill, según lo acordado).
+
+No se tocó lógica de saldo, stock ni el circuito Fincimex en ninguno de los tres cambios.
+
+## Verificación (local, SQLite fresco, puerto 5080 — no producción)
+
+| Caso | Método | Resultado |
+|---|---|---|
+| PIN se guarda en plano | Crear tarjeta con PIN `4521` vía formulario | ✅ `pin_plano='4521'` en BD; `pin_hash` sigue con el hash de siempre (columna legada, sin uso). |
+| PIN visible — admin / PM / operador | Login como los 3 roles, ver detalle de la tarjeta | ✅ Los 3 ven `4521` en la fila PIN. |
+| PIN viejo (solo hasheado) no rompe la página | Ver detalle de una tarjeta sembrada antes de este cambio (`pin_plano` NULL) | ✅ Muestra "PIN no disponible (reintroducir)", página renderiza normal. |
+| Reintroducir PIN viejo | `POST /tarjetas/1/editar` con campo `pin` relleno | ✅ `pin_plano` pasa de `NULL` a `1234`. |
+| Etiqueta "Venta" | HTML renderizado de `habilitaciones/crear.html` | ✅ `<option value="">Venta</option>` y `subEmptyLabel()` ambos actualizados. |
+| Esquema: columnas y UNIQUE index | `PRAGMA table_info` + `sqlite_master` sobre la BD fresca | ✅ `tarjetas.pin_plano`, `despachos.numero_operacion`, e `idx_despachos_numero_operacion` (UNIQUE) presentes. |
+| Dos despachos concurrentes, misma gasolinera, mismo día | 2 requests HTTP simultáneos (`curl` en paralelo, mismo patrón de pruebas de carrera de sesiones anteriores) a `turno.py::api_despachar` | ✅ Ambos HTTP 200, números **distintos**: `20260713010001` y `20260713010002`. |
+| Colisión real de `UNIQUE` forzada directamente contra el helper | Llamada aislada a `insertar_despacho_con_numero()` con el primer candidato interceptado (monkeypatch) para que coincida a propósito con una fila ya insertada | ✅ El helper detectó la colisión, ejecutó `ROLLBACK TO SAVEPOINT`, recalculó, y completó con el siguiente número (`...010004` en vez del `...010003` ya ocupado) — 2 intentos internos confirmados, sin excepción, ambas filas coexisten. |
+| Visualización en listado/detalle | Navegador — `despachos/`, `despachos/2` | ✅ Columna "Nº Operación" en el listado con los 4 despachos de la sesión, todos distintos y con el formato correcto; encabezado y tabla del detalle muestran el número. Screenshots tomados. |
+
+**0 errores 500** en toda la sesión.
+
+## Errores encontrados
+
+Ninguno.
+
+## Correcciones aplicadas
+
+Las descritas arriba.
+
+## Recomendaciones
+
+- Verificación en producción queda a cargo de Aldo, como siempre.
+- El PIN en texto plano es una decisión de seguridad deliberada y aceptada por Aldo por necesidad operativa — documentado aquí para que quede constancia de que es intencional, no un descuido.
+- La prueba de colisión "real" vía monkeypatch fue necesaria porque SQLite serializa escrituras (un solo escritor a la vez) y no reproduce de forma confiable una carrera genuina entre dos transacciones — en Postgres (producción) sí puede haber transacciones concurrentes reales, y el mecanismo de `SAVEPOINT` + reintento es exactamente lo que cubre ese caso.

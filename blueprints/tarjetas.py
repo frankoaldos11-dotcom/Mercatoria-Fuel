@@ -249,10 +249,10 @@ def crear():
                 pin_hash = generate_password_hash(pin)
                 cur.execute("""
                     INSERT INTO tarjetas
-                        (numero_completo, numero_parcial, pin_hash, gasolinera_id,
+                        (numero_completo, numero_parcial, pin_hash, pin_plano, gasolinera_id,
                          tipo_combustible, saldo_usable_l, estado, notas)
-                    VALUES (?, ?, ?, ?, ?, 0, ?, ?)
-                """, (numero_completo, numero_parcial, pin_hash, gasolinera_id,
+                    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+                """, (numero_completo, numero_parcial, pin_hash, pin, gasolinera_id,
                       tipo_combustible, estado, notas or None))
                 conn.commit()
                 conn.close()
@@ -300,6 +300,7 @@ def editar(id):
         nueva_gasolinera_id = request.form.get("gasolinera_id", "").strip()
         nuevo_estado = request.form.get("estado", "").strip()
         nuevas_notas = request.form.get("notas", "").strip()
+        nuevo_pin = request.form.get("pin", "").strip()
 
         if not nueva_gasolinera_id:
             error = "Debe seleccionar una gasolinera."
@@ -312,11 +313,20 @@ def editar(id):
 
             conn = conectar()
             cur = conn.cursor()
-            cur.execute("""
-                UPDATE tarjetas
-                SET gasolinera_id = ?, estado = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            """, (gasolinera_nueva, nuevo_estado, nuevas_notas or None, id))
+            if nuevo_pin:
+                cur.execute("""
+                    UPDATE tarjetas
+                    SET gasolinera_id = ?, estado = ?, notas = ?, pin_plano = ?,
+                        pin_hash = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (gasolinera_nueva, nuevo_estado, nuevas_notas or None, nuevo_pin,
+                      generate_password_hash(nuevo_pin), id))
+            else:
+                cur.execute("""
+                    UPDATE tarjetas
+                    SET gasolinera_id = ?, estado = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (gasolinera_nueva, nuevo_estado, nuevas_notas or None, id))
             conn.commit()
             conn.close()
 

@@ -147,6 +147,16 @@
         <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Datos</div>
         <div style="font-size:13px;margin-bottom:4px;"><strong>Gasolinera:</strong> {{ tarjeta.gasolinera_nombre }}</div>
         <div style="font-size:13px;margin-bottom:4px;"><strong>Combustible:</strong> {{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}</div>
+        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando', 'operador_gasolinera') %}
+        <div style="font-size:13px;margin-bottom:4px;">
+            <strong>PIN:</strong>
+            {% if tarjeta.pin_plano %}
+            <span style="font-family:monospace;font-weight:700;letter-spacing:1px;">{{ tarjeta.pin_plano }}</span>
+            {% else %}
+            <span style="color:var(--muted);">PIN no disponible (reintroducir)</span>
+            {% endif %}
+        </div>
+        {% endif %}
         {% if tarjeta.notas %}
         <div style="font-size:12px;color:var(--muted);margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">{{ tarjeta.notas }}</div>
         {% endif %}
