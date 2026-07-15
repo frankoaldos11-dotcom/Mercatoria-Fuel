@@ -74,22 +74,22 @@
                         </div>
                     </td>
                     <td>
-                        <span style="font-family:monospace;font-size:13px;font-weight:700;color:var(--primary);">
+                        <span style="font-family:monospace;font-size:13px;font-weight:700;color:var(--principal);">
                             {{ c.codigo }}
                         </span>
                     </td>
                     <td>
-                        <a href="/clientes/{{ c.id }}" style="text-decoration:none;color:var(--text);">
+                        <a href="/clientes/{{ c.id }}" style="text-decoration:none;color:var(--texto-staff);">
                             <strong>{{ c.nombre }}</strong>
                         </a>
                         {% if c.contacto_email %}
-                        <br><span style="font-size:12px;color:var(--muted);">{{ c.contacto_email }}</span>
+                        <br><span style="font-size:12px;color:var(--atenuado-staff);">{{ c.contacto_email }}</span>
                         {% endif %}
                     </td>
                     <td>
                         {{ c.contacto_nombre or '—' }}
                         {% if c.contacto_telefono %}
-                        <br><span style="font-size:12px;color:var(--muted);">{{ c.contacto_telefono }}</span>
+                        <br><span style="font-size:12px;color:var(--atenuado-staff);">{{ c.contacto_telefono }}</span>
                         {% endif %}
                     </td>
                     <td>{{ "{:,.0f}".format(c.subinventario_reservado_l or 0) }}</td>

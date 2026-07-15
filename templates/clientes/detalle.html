@@ -9,7 +9,7 @@
         <span class="eyebrow">Comercial</span>
         <h1>{{ cliente.nombre }}</h1>
         <p>
-            <span style="font-family:monospace;font-weight:700;color:var(--primary);">{{ cliente.codigo }}</span>
+            <span style="font-family:monospace;font-weight:700;color:var(--principal);">{{ cliente.codigo }}</span>
             &nbsp;·&nbsp;
             {% if cliente.activo %}
             <span class="badge badge-ok">Activo</span>
@@ -40,30 +40,30 @@
     </div>
     <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
         <div>
-            <span class="form-label" style="color:var(--muted);">Contacto principal</span>
+            <span class="form-label" style="color:var(--atenuado-staff);">Contacto principal</span>
             <p style="margin:4px 0 0;font-weight:600;">{{ cliente.contacto_nombre or '—' }}</p>
         </div>
         <div>
-            <span class="form-label" style="color:var(--muted);">Teléfono</span>
+            <span class="form-label" style="color:var(--atenuado-staff);">Teléfono</span>
             <p style="margin:4px 0 0;font-weight:600;">{{ cliente.contacto_telefono or '—' }}</p>
         </div>
         <div>
-            <span class="form-label" style="color:var(--muted);">Email</span>
+            <span class="form-label" style="color:var(--atenuado-staff);">Email</span>
             <p style="margin:4px 0 0;font-weight:600;">
                 {% if cliente.contacto_email %}
-                <a href="mailto:{{ cliente.contacto_email }}" style="color:var(--primary);">{{ cliente.contacto_email }}</a>
+                <a href="mailto:{{ cliente.contacto_email }}" style="color:var(--principal);">{{ cliente.contacto_email }}</a>
                 {% else %}—{% endif %}
             </p>
         </div>
         <div>
-            <span class="form-label" style="color:var(--muted);">Litros reservados</span>
+            <span class="form-label" style="color:var(--atenuado-staff);">Litros reservados</span>
             <p style="margin:4px 0 0;font-weight:600;">
                 {{ "{:,.0f}".format(cliente.subinventario_reservado_l or 0) }} L
             </p>
         </div>
         {% if cliente.notas %}
         <div style="grid-column:1/-1;">
-            <span class="form-label" style="color:var(--muted);">Notas</span>
+            <span class="form-label" style="color:var(--atenuado-staff);">Notas</span>
             <p style="margin:4px 0 0;">{{ cliente.notas }}</p>
         </div>
         {% endif %}
@@ -74,7 +74,7 @@
 <div class="panel mb-4">
     <div class="panel-header">
         <div>
-            <h2>Unidades autorizadas <span style="background:#eef4ff;color:var(--primary);padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;margin-left:8px;">{{ unidades|length }}</span></h2>
+            <h2>Unidades autorizadas <span style="background:var(--fondo-principal-suave);color:var(--principal);padding:2px 10px;border-radius:999px;font-size:14px;font-weight:700;margin-left:8px;">{{ unidades|length }}</span></h2>
             <p>Vehículos y conductores habilitados para despachos de este cliente.</p>
         </div>
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
@@ -111,7 +111,7 @@
                     <td>
                         <strong style="font-family:monospace;font-size:15px;">{{ u.chapa }}</strong>
                         {% if u.marca or u.modelo %}
-                        <br><span style="font-size:12px;color:var(--muted);">{{ u.marca or '' }} {{ u.modelo or '' }}{% if u.anio %} ({{ u.anio }}){% endif %}</span>
+                        <br><span style="font-size:12px;color:var(--atenuado-staff);">{{ u.marca or '' }} {{ u.modelo or '' }}{% if u.anio %} ({{ u.anio }}){% endif %}</span>
                         {% endif %}
                     </td>
                     <td>
@@ -122,7 +122,7 @@
                         {% if u.chofer_nombre %}
                         <strong>{{ u.chofer_nombre }}</strong>
                         {% else %}
-                        <span style="color:var(--muted);font-size:12px;">Sin asignar</span>
+                        <span style="color:var(--atenuado-staff);font-size:12px;">Sin asignar</span>
                         {% endif %}
                     </td>
                     <td>
@@ -182,8 +182,8 @@
         </div>
     </div>
     <div style="padding:32px;text-align:center;">
-        <i class="bi bi-box-arrow-right" style="font-size:40px;color:var(--muted);opacity:0.4;display:block;margin-bottom:12px;"></i>
-        <p style="font-size:14px;color:var(--muted);margin:0;">
+        <i class="bi bi-box-arrow-right" style="font-size:40px;color:var(--atenuado-staff);opacity:0.4;display:block;margin-bottom:12px;"></i>
+        <p style="font-size:14px;color:var(--atenuado-staff);margin:0;">
             El historial de despachos estará disponible en el <strong>Sprint 5</strong>.
         </p>
     </div>

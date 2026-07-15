@@ -75,10 +75,10 @@
                 <tr>
                     <td><strong>{{ ch.nombre }}</strong></td>
                     <td>
-                        <a href="/clientes/{{ ch.cliente_id }}" style="text-decoration:none;color:var(--text);">
+                        <a href="/clientes/{{ ch.cliente_id }}" style="text-decoration:none;color:var(--texto-staff);">
                             {{ ch.cliente_nombre }}
                         </a>
-                        <br><span style="font-size:12px;color:var(--muted);font-family:monospace;">{{ ch.cliente_codigo }}</span>
+                        <br><span style="font-size:12px;color:var(--atenuado-staff);font-family:monospace;">{{ ch.cliente_codigo }}</span>
                     </td>
                     <td style="font-family:monospace;">{{ ch.ci }}</td>
                     <td>{{ ch.licencia_numero or '—' }}</td>

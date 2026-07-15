@@ -14,7 +14,7 @@
 </div>
 
 {% if llegadas_pendientes %}
-<div style="background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;color:#92400e;">
+<div style="background:var(--color-warning-bg-alt-lower);border:1px solid var(--aviso);border-radius:10px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;color:var(--texto-sobre-aviso);">
     <i class="bi bi-exclamation-triangle-fill" style="font-size:18px;"></i>
     <strong>{{ llegadas_pendientes|length }}</strong> isotanque{{ 's' if llegadas_pendientes|length != 1 else '' }} en puerto pendiente{{ 's' if llegadas_pendientes|length != 1 else '' }} de transferir.
 </div>
@@ -41,10 +41,10 @@
                     <td style="font-weight:600;font-family:monospace;">{{ l.numero_isotanque }}</td>
                     <td style="font-size:13px;">{{ l.puerto_nombre }}</td>
                     <td><span class="badge badge-neutral">{{ l.tipo_combustible }}</span></td>
-                    <td style="text-align:right;font-weight:700;color:var(--primary);">
+                    <td style="text-align:right;font-weight:700;color:var(--principal);">
                         {{ "{:,.2f}".format(l.litros) }} L
                     </td>
-                    <td style="font-size:12px;color:var(--muted);">{{ l.fecha_llegada }}</td>
+                    <td style="font-size:12px;color:var(--atenuado-staff);">{{ l.fecha_llegada }}</td>
                     <td>
                         <a href="/puertos/{{ l.id }}" class="btn btn-sm btn-primary">
                             <i class="bi bi-arrow-right-circle"></i> Transferir

@@ -19,23 +19,23 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Cambios guardados correctamente.
 </div>
 {% endif %}
 
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error') | replace('+', ' ') }}
 </div>
 {% endif %}
 
 <!-- ── Form embebido (colapsable) ─────────────────────────────────────────── -->
-<div id="form-nuevo" class="panel" style="display:none;margin-bottom:24px;border-top:3px solid var(--primary);">
-    <div class="panel-header" style="background:#EFF6FF;">
+<div id="form-nuevo" class="panel" style="display:none;margin-bottom:24px;border-top:3px solid var(--principal);">
+    <div class="panel-header" style="background:var(--fondo-info-suave);">
         <div>
-            <h2 style="color:var(--primary);margin:0;"><i class="bi bi-person-plus"></i> Nuevo usuario</h2>
-            <p style="margin:2px 0 0;font-size:13px;color:var(--muted);">Completa los campos y haz clic en "Crear usuario".</p>
+            <h2 style="color:var(--principal);margin:0;"><i class="bi bi-person-plus"></i> Nuevo usuario</h2>
+            <p style="margin:2px 0 0;font-size:13px;color:var(--atenuado-staff);">Completa los campos y haz clic en "Crear usuario".</p>
         </div>
         <button onclick="toggleFormNuevo()" class="btn btn-sm btn-secondary">
             <i class="bi bi-x-lg"></i>
@@ -46,27 +46,27 @@
         <div class="form-grid" style="padding:20px 24px 0;">
 
             <div class="mb-3">
-                <label class="form-label">Nombre completo <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Nombre completo <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="nombre" class="form-control" placeholder="Nombre completo" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Email <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Email <span style="color:var(--peligro)">*</span></label>
                 <input type="email" name="email" class="form-control" placeholder="usuario@ejemplo.com" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Contraseña <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Contraseña <span style="color:var(--peligro)">*</span></label>
                 <input type="password" name="password" class="form-control" placeholder="Mín. 8 caracteres" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Confirmar contraseña <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Confirmar contraseña <span style="color:var(--peligro)">*</span></label>
                 <input type="password" name="confirm_password" class="form-control" placeholder="Repetir contraseña" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Rol <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Rol <span style="color:var(--peligro)">*</span></label>
                 <select name="rol" id="nuevo-rol" class="form-select" required onchange="toggleNuevoRol(this.value)">
                     <option value="">— Selecciona un rol —</option>
                     {% for r_val, r_label in roles %}
@@ -76,7 +76,7 @@
             </div>
 
             <div class="mb-3" id="nuevo-bloque-cliente" style="display:none;">
-                <label class="form-label">Cliente vinculado <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Cliente vinculado <span style="color:var(--peligro)">*</span></label>
                 <select name="cliente_id" class="form-select">
                     <option value="">Seleccionar cliente...</option>
                     {% for c in clientes %}
@@ -86,7 +86,7 @@
             </div>
 
             <div class="mb-3" id="nuevo-bloque-gasolinera" style="display:none;">
-                <label class="form-label">Gasolinera asignada <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Gasolinera asignada <span style="color:var(--peligro)">*</span></label>
                 <select name="gasolinera_id" class="form-select">
                     <option value="">Seleccionar gasolinera...</option>
                     {% for g in gasolineras %}
@@ -112,7 +112,7 @@
 </div>
 
 <!-- ── Toolbar: chips de rol + buscador ─────────────────────────────────────── -->
-<div class="panel" style="padding:14px 20px;border-radius:18px 18px 0 0;border-bottom:1px solid var(--border);">
+<div class="panel" style="padding:14px 20px;border-radius:18px 18px 0 0;border-bottom:1px solid var(--borde-staff);">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;" id="chips-rol">
             <button class="u-chip active" data-rol="todos" onclick="filtrarRol('todos',this)">
@@ -165,7 +165,7 @@
                     <!-- Nombre + email -->
                     <td>
                         <strong>{{ u.nombre }}</strong><br>
-                        <span style="font-size:12px;color:var(--muted);">{{ u.email }}</span>
+                        <span style="font-size:12px;color:var(--atenuado-staff);">{{ u.email }}</span>
                     </td>
 
                     <!-- Rol: badge + formulario inline -->
@@ -173,17 +173,17 @@
                         <!-- Vista badge -->
                         <div id="rol-badge-{{ u.id }}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                             {% if u.rol == 'admin' %}
-                            <span class="badge" style="background:#fee2e2;color:#991b1b;">Admin</span>
+                            <span class="badge" style="background:var(--color-danger-bg-alt-lower);color:var(--texto-sobre-peligro);">Admin</span>
                             {% elif u.rol == 'pm' %}
                             <span class="badge badge-neutral">PM <small style="opacity:.6">(legacy)</small></span>
                             {% elif u.rol == 'puesto_de_mando' %}
-                            <span class="badge" style="background:#dcfce7;color:#166534;">Puesto de Mando</span>
+                            <span class="badge" style="background:var(--color-success-bg-alt-lower);color:var(--texto-sobre-exito);">Puesto de Mando</span>
                             {% elif u.rol == 'operador_gasolinera' %}
-                            <span class="badge" style="background:#e0f2fe;color:#0c4a6e;">Operador Gas.</span>
+                            <span class="badge" style="background:var(--color-role-operador-gas-bg);color:var(--color-role-operador-gas-text);">Operador Gas.</span>
                             {% elif u.rol == 'supervisor' %}
                             <span class="badge badge-neutral">Supervisor <small style="opacity:.6">(legacy)</small></span>
                             {% elif u.rol == 'cliente' %}
-                            <span class="badge" style="background:#ffedd5;color:#9a3412;">Cliente</span>
+                            <span class="badge" style="background:var(--color-role-cliente-bg);color:var(--color-role-cliente-text-lower);">Cliente</span>
                             {% else %}
                             <span class="badge badge-neutral">{{ u.rol }}</span>
                             {% endif %}
@@ -244,7 +244,7 @@
                     </td>
 
                     <!-- Vinculado a (cliente o gasolinera) -->
-                    <td style="font-size:13px;color:var(--muted);">
+                    <td style="font-size:13px;color:var(--atenuado-staff);">
                         {% if u.cliente_nombre %}
                         <i class="bi bi-building" style="font-size:11px;margin-right:3px;"></i>{{ u.cliente_nombre }}
                         {% elif u.gasolinera_nombre %}
@@ -264,7 +264,7 @@
                     </td>
 
                     <!-- Creado -->
-                    <td style="font-size:12px;color:var(--muted);">
+                    <td style="font-size:12px;color:var(--atenuado-staff);">
                         {{ (u.created_at | string)[:10] if u.created_at else '—' }}
                     </td>
 
@@ -304,13 +304,13 @@
                 </tr>
 
                 <!-- Sub-fila reset contraseña -->
-                <tr id="pw-row-{{ u.id }}" style="display:none;background:#F8FAFC;">
+                <tr id="pw-row-{{ u.id }}" style="display:none;background:var(--panel-suave);">
                     <td colspan="6" style="padding:10px 16px;">
                         <form method="POST" action="/usuarios/{{ u.id }}/reset-password"
                               style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div>
-                                <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">
+                                <label style="font-size:11px;color:var(--atenuado-staff);display:block;margin-bottom:3px;">
                                     Nueva contraseña — {{ u.nombre }}
                                 </label>
                                 <input type="password" name="nueva_password" class="form-control"
@@ -318,7 +318,7 @@
                                        placeholder="Mín. 8 caracteres" required>
                             </div>
                             <div>
-                                <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Confirmar</label>
+                                <label style="font-size:11px;color:var(--atenuado-staff);display:block;margin-bottom:3px;">Confirmar</label>
                                 <input type="password" name="confirm_password" class="form-control"
                                        style="font-size:13px;min-width:160px;"
                                        placeholder="Repetir" required>
@@ -347,9 +347,9 @@
 .u-chip {
     padding: 5px 14px;
     border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--panel-soft);
-    color: var(--muted);
+    border: 1px solid var(--borde-staff);
+    background: var(--panel-suave);
+    color: var(--atenuado-staff);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -357,13 +357,13 @@
     white-space: nowrap;
 }
 .u-chip:hover {
-    border-color: var(--primary);
-    color: var(--primary);
+    border-color: var(--principal);
+    color: var(--principal);
 }
 .u-chip.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #fff;
+    background: var(--principal);
+    border-color: var(--principal);
+    color: var(--panel);
 }
 .u-chip-count {
     display: inline-block;
@@ -371,12 +371,12 @@
     border-radius: 999px;
     font-size: 11px;
     margin-left: 4px;
-    background: var(--border);
-    color: var(--muted);
+    background: var(--borde-staff);
+    color: var(--atenuado-staff);
 }
 .u-chip.active .u-chip-count {
     background: rgba(255,255,255,0.25);
-    color: #fff;
+    color: var(--panel);
 }
 </style>
 <script>

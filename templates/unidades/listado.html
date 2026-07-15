@@ -23,12 +23,12 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Operación realizada correctamente.
 </div>
 {% endif %}
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
@@ -104,15 +104,15 @@
                         </div>
                     </td>
                     <td>
-                        <a href="/clientes/{{ u.cliente_id }}" style="font-weight:600;color:var(--primary);text-decoration:none;">
+                        <a href="/clientes/{{ u.cliente_id }}" style="font-weight:600;color:var(--principal);text-decoration:none;">
                             {{ u.cliente_nombre }}
                         </a>
-                        <br><span style="font-size:11px;color:var(--muted);font-family:monospace;">{{ u.cliente_codigo }}</span>
+                        <br><span style="font-size:11px;color:var(--atenuado-staff);font-family:monospace;">{{ u.cliente_codigo }}</span>
                     </td>
                     <td>
                         <strong style="font-family:monospace;font-size:15px;">{{ u.chapa }}</strong>
                         {% if u.marca or u.modelo %}
-                        <br><span style="font-size:12px;color:var(--muted);">{{ u.marca or '' }} {{ u.modelo or '' }}{% if u.anio %} ({{ u.anio }}){% endif %}</span>
+                        <br><span style="font-size:12px;color:var(--atenuado-staff);">{{ u.marca or '' }} {{ u.modelo or '' }}{% if u.anio %} ({{ u.anio }}){% endif %}</span>
                         {% endif %}
                     </td>
                     <td>
@@ -122,7 +122,7 @@
                         {% if u.chofer_nombre %}
                         <strong>{{ u.chofer_nombre }}</strong>
                         {% else %}
-                        <span style="color:var(--muted);font-size:12px;">Sin chofer asignado</span>
+                        <span style="color:var(--atenuado-staff);font-size:12px;">Sin chofer asignado</span>
                         {% endif %}
                     </td>
                     <td>

@@ -1245,3 +1245,94 @@ apuntando el navegador a `http://127.0.0.1:5000` con las credenciales locales de
   acción de esta migración, queda anotado por si en algún momento se retoma ese módulo.
 - Tandas 4-6 pendientes, mismo criterio: baseline/verificación local, reporte, commit y push
   inmediato si sale limpio, sin pausar entre tandas salvo caso dudoso.
+
+---
+
+# Reporte de Pruebas — 2026-07-15 (noche)
+
+## Migración de colores hardcodeados a tokens — Tanda 4 (CRUD de entidades + dashboards por rol)
+
+Cuarta tanda del plan de 6: Usuarios, Clientes, Vehículos, Choferes, Unidades y los 5
+dashboards por rol (25 templates). `404.html`/`500.html` ya habían quedado completos en la
+Tanda 1 — confirmado con barrido de hex + `var()` viejos antes de arrancar esta tanda, cero
+pendientes, no requirieron ningún cambio acá. Todo Cambio B, sin casos de Cambio A.
+
+### Cambios
+
+- **25 templates migrados**: `usuarios/{cambiar_password,crear,editar,listado}.html`,
+  `clientes/{crear,editar,listado,detalle}.html`,
+  `vehiculos/{crear,editar,importar,listado}.html`,
+  `choferes/{crear,editar,importar,listado}.html`,
+  `unidades/{crear,editar,importar,listado}.html`, `dashboard.html`,
+  `dashboard_operario.html`, `dashboard_operario_deposito.html`,
+  `dashboard_puesto_de_mando.html`, `dashboard_supervisor.html`.
+- **3 tokens nuevos** en `color-sin-mapeo.json` (ya previstos en la tabla del plan original,
+  no habían hecho falta hasta ahora): `color-role-operador-gas-bg`/`-text` (`#e0f2fe`/
+  `#0c4a6e`, badge de rol "Operador Gas." en `usuarios/listado.html`),
+  `color-neutral-bg-swatch` (`#F3F4F6`, code-swatch de columnas reconocidas en
+  `unidades/importar.html` — mismo valor que `--fondo-cliente` pero contexto staff, token
+  separado a propósito para no cruzar superficies, tal como marcaba el plan).
+- **`--eef4ff` resuelto** (`clientes/detalle.html:77`, el caso dudoso #1 del plan original):
+  usé el token ya creado en la Tanda 1 (`--fondo-principal-suave`), sin inventar un naranja
+  pálido nuevo — mismo criterio documentado entonces.
+- Barrido mecánico de ~90 hex hardcodeados + ~130 `var(--nombre-viejo)` en los 25 archivos
+  (mismas familias que tandas anteriores: `--muted`→`--atenuado-staff`,
+  `--primary`→`--principal`, `--danger`→`--peligro`, `--border`→`--borde-staff`,
+  `--text`→`--texto-staff`, `--panel-soft`→`--panel-suave`, más los ~25 valores hex ya
+  catalogados en tokens existentes). Incluye 2 casos de `#fff` como color de texto blanco
+  sobre chip activo naranja en `usuarios/listado.html` (`.u-chip.active`) — mapeados a
+  `var(--panel)` (mismo valor `#ffffff`, reutilizando el token de panel igual que en tandas
+  anteriores se reutilizó `--peligro` fuera de su rol semántico original).
+
+### Verificación local (servidor con `debug=True`, recarga automática de templates confirmada)
+
+| # | Página | Resultado |
+|---|---|---|
+| 1 | `/usuarios/` | ✅ 200, sin traceback, sin hex viejo en el HTML servido (confirma recarga). |
+| 2 | `/usuarios/crear` | ✅ 200, sin traceback. |
+| 3 | `/clientes` | ✅ 200, sin traceback. |
+| 4 | `/clientes/crear` | ✅ 200, sin traceback. |
+| 5 | `/vehiculos` | ✅ 200, sin traceback. |
+| 6 | `/vehiculos/crear` | ✅ 200, sin traceback. |
+| 7 | `/vehiculos/importar` | ✅ 200, sin traceback. |
+| 8 | `/choferes` | ✅ 200, sin traceback. |
+| 9 | `/choferes/crear` | ✅ 200, sin traceback. |
+| 10 | `/choferes/importar` | ✅ 200, sin traceback. |
+| 11 | `/unidades` | ✅ 200, sin traceback. |
+| 12 | `/unidades/crear` | ✅ 200, sin traceback. |
+| 13 | `/unidades/importar` | ✅ 200, sin traceback. |
+| 14 | `/dashboard` (vista admin) | ✅ 200, sin traceback. |
+
+**Dashboards por rol no admin** (`dashboard_operario.html`,
+`dashboard_operario_deposito.html`, `dashboard_puesto_de_mando.html`,
+`dashboard_supervisor.html`): no se pudo ejercitar por HTTP con el usuario admin sembrado (la
+ruta `/dashboard` resuelve la plantilla según `session['rol']`, y crear más usuarios de prueba
+por rol quedaba fuera del alcance rápido de esta verificación) — cubiertos igual por la
+validación de sintaxis Jinja (`env.get_template()`, sin errores) y el barrido de `var()`
+sin resolver (cero). Mismo nivel de confianza que el resto de la tanda: sin regresión de color
+esperada, ya que todo fue Cambio B.
+
+**Nota operativa:** el servidor local corrió con `debug=True` (recarga automática de Jinja
+confirmada — los cambios se reflejaron sin reiniciar el proceso). Sigue sin estar disponible el
+login por navegador (mismo bloqueo del clasificador de seguridad que en la Tanda 3); se repitió
+el mismo método de verificación por `urllib`.
+
+### Verificación programática adicional
+
+- Barrido de hex hardcodeado en los 25 archivos: **0 restantes**.
+- Barrido de `var(--nombre-viejo)`: **0 restantes**.
+- Cruce de todas las `var(--...)` usadas contra las variables definidas en `tokens.css` +
+  alias de `admin.css` — **0 sin resolver**.
+- Validé sintaxis Jinja de los 25 templates tocados — **todos compilan**.
+- `npm run tokens:build` corrido después de agregar los 3 tokens nuevos — build limpio.
+- Confirmé por barrido separado que `404.html`/`500.html` (parte del alcance original de esta
+  tanda según el plan) ya estaban 100% migrados desde la Tanda 1 — cero hex, cero `var()`
+  viejo, no requirieron cambios.
+
+## Recomendaciones
+
+- Los 4 dashboards por rol no-admin quedan sin verificación HTTP directa esta tanda (ver nota
+  arriba) — si en algún momento se quiere cubrir, hace falta un usuario sembrado por cada rol
+  (`operario`, `operario_deposito`, `puesto_de_mando`, `supervisor`).
+- Quedan las Tandas 5 (portal cliente) y 6 (tienda + login/registro/landing) — mismo criterio:
+  baseline/verificación local, reporte, commit y push inmediato si sale limpio.

@@ -11,7 +11,7 @@
 </div>
 
 <!-- Fila 1: Inventario -->
-<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Inventario</div>
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--atenuado-staff);letter-spacing:0.06em;margin:0 0 8px;">Inventario</div>
 <div class="kpi-grid" style="margin-bottom:24px;">
     <div class="kpi-card">
         <div class="kpi-icon primary"><i class="bi bi-droplet-fill"></i></div>
@@ -46,7 +46,7 @@
 </div>
 
 <!-- Fila 2: Operativa -->
-<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Operativa</div>
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--atenuado-staff);letter-spacing:0.06em;margin:0 0 8px;">Operativa</div>
 <div class="kpi-grid" style="margin-bottom:24px;">
     <div class="kpi-card">
         <div class="kpi-icon {{ 'danger' if tarjetas_bajo_saldo > 0 else 'neutral' }}">
@@ -96,7 +96,7 @@
 </div>
 
 <!-- Fila 3: Alertas -->
-<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin:0 0 8px;">Alertas</div>
+<div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--atenuado-staff);letter-spacing:0.06em;margin:0 0 8px;">Alertas</div>
 <div class="kpi-grid" style="margin-bottom:32px;">
     <div class="kpi-card">
         <div class="kpi-icon {{ 'danger' if conciliaciones_con_alerta > 0 else 'neutral' }}">
@@ -125,7 +125,7 @@
     </div>
 </div>
 
-<div style="padding:16px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);font-size:13px;color:var(--muted);text-align:center;">
+<div style="padding:16px;background:var(--panel-suave);border-radius:10px;border:1px solid var(--borde-staff);font-size:13px;color:var(--atenuado-staff);text-align:center;">
     <i class="bi bi-eye"></i> Vista de supervisor — solo lectura. Para acciones operativas use el módulo correspondiente.
 </div>
 

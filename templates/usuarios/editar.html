@@ -11,7 +11,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -22,13 +22,13 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Nombre completo <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Nombre completo <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="nombre" class="form-control"
                        value="{{ request.form.get('nombre', usuario.nombre) }}" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Email <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Email <span style="color:var(--peligro)">*</span></label>
                 <input type="email" name="email" class="form-control"
                        value="{{ request.form.get('email', usuario.email) }}" required>
             </div>
@@ -37,7 +37,7 @@
                 <label class="form-label">Nueva contraseña</label>
                 <input type="password" name="password" class="form-control"
                        placeholder="Dejar vacío para no cambiar">
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">Mínimo 8 caracteres si se cambia.</div>
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">Mínimo 8 caracteres si se cambia.</div>
             </div>
 
             <div class="mb-3">
@@ -47,7 +47,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Rol <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Rol <span style="color:var(--peligro)">*</span></label>
                 <select name="rol" id="sel-rol" class="form-select" required
                         onchange="toggleRol(this)"
                         {{ 'disabled' if usuario.id == session.get('user_id') }}>
@@ -59,7 +59,7 @@
                 </select>
                 {% if usuario.id == session.get('user_id') %}
                 <input type="hidden" name="rol" value="{{ usuario.rol }}">
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">No puedes cambiar tu propio rol.</div>
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">No puedes cambiar tu propio rol.</div>
                 {% endif %}
             </div>
 
@@ -81,7 +81,7 @@
                 {% set gid_actual = request.form.get('gasolinera_id', usuario.gasolinera_id|string if usuario.gasolinera_id else '') %}
                 {% if usuario.id == session.get('user_id') %}
                 <input type="hidden" name="gasolinera_id" value="{{ usuario.gasolinera_id or '' }}">
-                <div class="form-control" style="background:#F9FAFB;color:var(--muted);">
+                <div class="form-control" style="background:var(--color-gray-table-header-bg-upper);color:var(--atenuado-staff);">
                     {% for g in gasolineras %}{% if g.id|string == gid_actual %}{{ g.nombre }}{% endif %}{% endfor %}
                     {% if not gid_actual %}Sin gasolinera asignada{% endif %}
                 </div>

@@ -83,10 +83,10 @@
                 <tr>
                     <td><strong style="font-family:monospace;font-size:14px;">{{ v.chapa }}</strong></td>
                     <td>
-                        <a href="/clientes/{{ v.cliente_id }}" style="text-decoration:none;color:var(--text);">
+                        <a href="/clientes/{{ v.cliente_id }}" style="text-decoration:none;color:var(--texto-staff);">
                             {{ v.cliente_nombre }}
                         </a>
-                        <br><span style="font-size:12px;color:var(--muted);font-family:monospace;">{{ v.cliente_codigo }}</span>
+                        <br><span style="font-size:12px;color:var(--atenuado-staff);font-family:monospace;">{{ v.cliente_codigo }}</span>
                     </td>
                     <td>{{ v.marca or '' }} {{ v.modelo or '' }}</td>
                     <td>{{ v.anio or '—' }}</td>

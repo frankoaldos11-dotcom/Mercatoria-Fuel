@@ -17,17 +17,17 @@
 
 {% if resultado %}
     {% if resultado.error %}
-    <div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
         <i class="bi bi-exclamation-circle"></i> {{ resultado.error }}
     </div>
     {% else %}
-    <div style="background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:8px;padding:14px 18px;margin-bottom:1.5rem;">
+    <div style="background:var(--fondo-exito-suave);border:1px solid var(--color-success-border-alt);color:var(--texto-sobre-exito);border-radius:8px;padding:14px 18px;margin-bottom:1.5rem;">
         <div style="font-weight:700;font-size:15px;margin-bottom:6px;">
             <i class="bi bi-check-circle-fill"></i>
             {{ resultado.importados }} vehículo{{ 's' if resultado.importados != 1 else '' }} importado{{ 's' if resultado.importados != 1 else '' }} correctamente.
         </div>
         {% if resultado.fallos %}
-        <div style="margin-top:10px;font-size:13px;color:#92400e;">
+        <div style="margin-top:10px;font-size:13px;color:var(--texto-sobre-aviso);">
             <strong>{{ resultado.fallos|length }} fila{{ 's' if resultado.fallos|length != 1 else '' }} con errores:</strong>
             <ul style="margin:6px 0 0;padding-left:20px;">
                 {% for f in resultado.fallos %}
@@ -51,7 +51,7 @@
         <form method="POST" action="/vehiculos/importar" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
-                <label class="form-label">Archivo Excel (.xlsx) <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Archivo Excel (.xlsx) <span style="color:var(--peligro)">*</span></label>
                 <input type="file" name="archivo" class="form-control" accept=".xlsx" required>
             </div>
             <button type="submit" class="btn btn-primary">

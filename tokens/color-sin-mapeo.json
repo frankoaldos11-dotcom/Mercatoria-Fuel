@@ -78,5 +78,8 @@
   "color-info-bg-header": { "$type": "string", "$value": "#f0f9ff" },
   "color-neutral-bg-faint": { "$type": "string", "$value": "#fafafa" },
   "color-danger-text-deep": { "$type": "string", "$value": "#7F1D1D" },
-  "color-danger-border-alt": { "$type": "string", "$value": "#FCA5A5" }
+  "color-danger-border-alt": { "$type": "string", "$value": "#FCA5A5" },
+  "color-role-operador-gas-bg": { "$type": "string", "$value": "#e0f2fe" },
+  "color-role-operador-gas-text": { "$type": "string", "$value": "#0c4a6e" },
+  "color-neutral-bg-swatch": { "$type": "string", "$value": "#F3F4F6" }
 }

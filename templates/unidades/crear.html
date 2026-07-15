@@ -16,7 +16,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -29,11 +29,11 @@
 
             <!-- Cliente y estado -->
             <div class="mb-3" style="grid-column: 1 / -1;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Cliente</label>
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--atenuado-staff);font-weight:600;">Cliente</label>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Cliente <span style="color:var(--peligro)">*</span></label>
                 <select name="cliente_id" class="form-select" required>
                     <option value="">Seleccionar cliente...</option>
                     {% for c in clientes %}
@@ -45,7 +45,7 @@
                 </select>
                 <div style="margin-top:5px;">
                     <a href="/clientes/crear" target="_blank"
-                       style="font-size:12px;color:var(--primary);text-decoration:none;font-weight:600;">
+                       style="font-size:12px;color:var(--principal);text-decoration:none;font-weight:600;">
                         <i class="bi bi-plus-circle"></i> Añadir cliente nuevo
                     </a>
                 </div>
@@ -61,17 +61,17 @@
 
             <!-- Vehículo -->
             <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Vehículo</label>
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--atenuado-staff);font-weight:600;">Vehículo</label>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Chapa / Matrícula <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Chapa / Matrícula <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="chapa" class="form-control"
                        placeholder="Ej. ABC-1234" style="text-transform:uppercase;" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Tipo de combustible <span style="color:var(--peligro)">*</span></label>
                 <select name="tipo_combustible" class="form-select" required>
                     <option value="">Seleccionar...</option>
                     {% for tc in tipos_combustible %}
@@ -109,9 +109,9 @@
 
             <!-- Chofer -->
             <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--atenuado-staff);font-weight:600;">
                     Chofer / Conductor autorizado
-                    <span style="font-size:11px;font-weight:400;color:var(--muted);text-transform:none;"> — opcional, pero si se registra uno ambos campos son obligatorios</span>
+                    <span style="font-size:11px;font-weight:400;color:var(--atenuado-staff);text-transform:none;"> — opcional, pero si se registra uno ambos campos son obligatorios</span>
                 </label>
             </div>
 

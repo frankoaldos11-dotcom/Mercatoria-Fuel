@@ -11,7 +11,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -22,31 +22,31 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Nombre completo <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Nombre completo <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="nombre" class="form-control"
                        value="{{ request.form.get('nombre','') }}" required placeholder="Nombre completo">
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Email <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Email <span style="color:var(--peligro)">*</span></label>
                 <input type="email" name="email" class="form-control"
                        value="{{ request.form.get('email','') }}" required placeholder="usuario@ejemplo.com">
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Contraseña <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Contraseña <span style="color:var(--peligro)">*</span></label>
                 <input type="password" name="password" class="form-control"
                        placeholder="Mínimo 8 caracteres" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Confirmar contraseña <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Confirmar contraseña <span style="color:var(--peligro)">*</span></label>
                 <input type="password" name="confirm_password" class="form-control"
                        placeholder="Repetir contraseña" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Rol <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Rol <span style="color:var(--peligro)">*</span></label>
                 <select name="rol" id="sel-rol" class="form-select" required onchange="toggleRol(this)">
                     <option value="">— Selecciona un rol —</option>
                     {% for r_val, r_label in roles %}
@@ -58,7 +58,7 @@
             </div>
 
             <div class="mb-3" id="bloque-cliente" style="display:none;">
-                <label class="form-label">Cliente vinculado <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Cliente vinculado <span style="color:var(--peligro)">*</span></label>
                 <select name="cliente_id" class="form-select">
                     <option value="">Seleccionar cliente...</option>
                     {% for c in clientes %}
@@ -70,7 +70,7 @@
             </div>
 
             <div class="mb-3" id="bloque-gasolinera" style="display:none;">
-                <label class="form-label">Gasolinera asignada <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Gasolinera asignada <span style="color:var(--peligro)">*</span></label>
                 <select name="gasolinera_id" class="form-select">
                     <option value="">Seleccionar gasolinera...</option>
                     {% for g in gasolineras %}
