@@ -158,6 +158,21 @@ def recuperar():
     return render_template("recuperar.html")
 
 
+@app.route("/sw.js")
+def service_worker():
+    response = app.send_static_file("sw.js")
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Content-Type"] = "application/javascript"
+    return response
+
+
+@app.route("/.well-known/assetlinks.json")
+def asset_links():
+    response = app.send_static_file("assetlinks.json")
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+
 @app.route("/qr/<token>")
 def qr_vista(token):
     conn = conectar()
