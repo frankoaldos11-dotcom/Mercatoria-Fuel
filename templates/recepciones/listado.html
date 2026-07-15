@@ -18,12 +18,12 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Operación realizada correctamente.
 </div>
 {% endif %}
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
@@ -73,17 +73,17 @@
             <tbody>
                 {% for r in lista %}
                 <tr>
-                    <td><span style="color:var(--muted);font-size:12px;">#{{ r.id }}</span></td>
+                    <td><span style="color:var(--atenuado-staff);font-size:12px;">#{{ r.id }}</span></td>
                     <td>{{ r.fecha }}</td>
                     <td>
-                        <a href="/depositos/{{ r.deposito_id }}" style="color:var(--primary);text-decoration:none;">
+                        <a href="/depositos/{{ r.deposito_id }}" style="color:var(--principal);text-decoration:none;">
                             {{ r.deposito_nombre }}
                         </a>
                     </td>
                     <td>
                         {{ r.proveedor }}
                         {% if r.no_vale %}
-                        <br><span style="font-size:11px;color:var(--muted);">Vale: {{ r.no_vale }}</span>
+                        <br><span style="font-size:11px;color:var(--atenuado-staff);">Vale: {{ r.no_vale }}</span>
                         {% endif %}
                     </td>
                     <td>
@@ -96,7 +96,7 @@
                     <td>
                         {% set diff_pct = ((r.litros_recibidos - r.litros_factura) / r.litros_factura * 100) if r.litros_factura else 0 %}
                         {% if r.diferencia_l != 0 %}
-                        <span style="color:{{ '#DC2626' if r.diferencia_l < 0 else '#16A34A' }};">
+                        <span style="color:{{ 'var(--peligro)' if r.diferencia_l < 0 else 'var(--exito)' }};">
                             {{ "{:+,.2f}".format(r.diferencia_l) }}
                         </span>
                         {% if diff_pct|abs > 0.5 %}

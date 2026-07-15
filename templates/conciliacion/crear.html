@@ -12,7 +12,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -20,7 +20,7 @@
 <!-- Paso 1: Seleccionar gasolinera y fecha para precargar datos -->
 {% if not gasolinera_id_pre %}
 <div class="panel mb-4">
-    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;">
+    <div class="panel-header" style="border-bottom:1px solid var(--borde-staff);padding-bottom:14px;margin-bottom:14px;">
         <h2 style="margin:0;">Paso 1 — Seleccionar gasolinera y fecha</h2>
     </div>
     <form method="GET" action="/conciliacion/crear" style="padding:0 24px 24px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
@@ -46,19 +46,19 @@
 
 <!-- Paso 2: Formulario completo con datos precalculados -->
 {% if datos_calculados %}
-<div class="panel mb-4" style="background:#f0fdf4;border:1px solid #86efac;">
+<div class="panel mb-4" style="background:var(--fondo-exito-suave);border:1px solid var(--color-success-border-alt);">
     <div style="padding:16px 24px;">
-        <h3 style="margin:0 0 12px;font-size:15px;color:#166534;">
+        <h3 style="margin:0 0 12px;font-size:15px;color:var(--texto-sobre-exito);">
             <i class="bi bi-calculator"></i> Datos calculados por el sistema — {{ gasolinera_pre_row.nombre if gasolinera_pre_row else '' }} / {{ fecha_pre }}
         </h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div>
-                <div style="font-size:12px;color:#166534;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;">Total entradas del día</div>
-                <div style="font-size:22px;font-weight:700;color:#166534;">{{ "{:,.2f}".format(datos_calculados.total_entrada_l) }} L</div>
+                <div style="font-size:12px;color:var(--texto-sobre-exito);text-transform:uppercase;font-weight:700;letter-spacing:0.05em;">Total entradas del día</div>
+                <div style="font-size:22px;font-weight:700;color:var(--texto-sobre-exito);">{{ "{:,.2f}".format(datos_calculados.total_entrada_l) }} L</div>
             </div>
             <div>
-                <div style="font-size:12px;color:#166534;text-transform:uppercase;font-weight:700;letter-spacing:0.05em;">Total despachado del día</div>
-                <div style="font-size:22px;font-weight:700;color:#166534;">{{ "{:,.2f}".format(datos_calculados.total_despachado_l) }} L</div>
+                <div style="font-size:12px;color:var(--texto-sobre-exito);text-transform:uppercase;font-weight:700;letter-spacing:0.05em;">Total despachado del día</div>
+                <div style="font-size:22px;font-weight:700;color:var(--texto-sobre-exito);">{{ "{:,.2f}".format(datos_calculados.total_despachado_l) }} L</div>
             </div>
         </div>
     </div>
@@ -72,11 +72,11 @@
             <i class="bi bi-list-check"></i> Habilitaciones del día
         </h3>
         {% if n_sin_despacho == 0 %}
-        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:8px 14px;margin-bottom:12px;color:#166534;font-weight:600;font-size:13px;">
+        <div style="background:var(--fondo-exito-suave);border:1px solid var(--color-success-border-alt);border-radius:6px;padding:8px 14px;margin-bottom:12px;color:var(--texto-sobre-exito);font-weight:600;font-size:13px;">
             <i class="bi bi-check-circle-fill"></i> Turno listo para cerrar — todas las habilitaciones despachadas
         </div>
         {% else %}
-        <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:8px 14px;margin-bottom:12px;color:#991b1b;font-weight:600;font-size:13px;">
+        <div style="background:var(--fondo-peligro-suave);border:1px solid var(--color-danger-border-alt);border-radius:6px;padding:8px 14px;margin-bottom:12px;color:var(--color-danger-text-lower);font-weight:600;font-size:13px;">
             <i class="bi bi-exclamation-triangle-fill"></i> {{ n_sin_despacho }} habilitacion{{ 'es' if n_sin_despacho != 1 else '' }} sin despachar
         </div>
         {% endif %}
@@ -98,21 +98,21 @@
                 {% set sin_despacho = h.estado in ('pendiente', 'aprobada') %}
                 {% set diferencia = (h.litros_despachados or 0) - h.litros_autorizados if not sin_despacho else none %}
                 {% set tiene_diferencia = diferencia is not none and diferencia|abs > 0.01 %}
-                <tr style="{% if sin_despacho %}background:#fef2f2;{% elif tiene_diferencia %}background:#fffbeb;{% else %}background:#f0fdf4;{% endif %}">
-                    <td style="color:var(--muted);">#{{ h.id }}</td>
+                <tr style="{% if sin_despacho %}background:var(--fondo-peligro-suave);{% elif tiene_diferencia %}background:var(--color-warning-bg-alt-upper);{% else %}background:var(--fondo-exito-suave);{% endif %}">
+                    <td style="color:var(--atenuado-staff);">#{{ h.id }}</td>
                     <td>
                         <div style="font-weight:600;">{{ h.cliente_nombre }}</div>
-                        <div style="font-size:11px;color:var(--muted);">{{ h.unidad_chapa }}</div>
+                        <div style="font-size:11px;color:var(--atenuado-staff);">{{ h.unidad_chapa }}</div>
                     </td>
                     <td><span class="badge badge-info">{{ combustible_labels.get(h.tipo_combustible, h.tipo_combustible) }}</span></td>
                     <td>{{ "{:,.2f}".format(h.litros_autorizados) }}</td>
                     <td>
                         {% if h.litros_despachados is not none %}
-                        <strong {% if tiene_diferencia %}style="color:#D97706;"{% endif %}>
+                        <strong {% if tiene_diferencia %}style="color:var(--color-warning-accent-2);"{% endif %}>
                             {{ "{:,.2f}".format(h.litros_despachados) }}
                         </strong>
                         {% else %}
-                        <span style="color:var(--muted);">—</span>
+                        <span style="color:var(--atenuado-staff);">—</span>
                         {% endif %}
                     </td>
                     <td>
@@ -134,7 +134,7 @@
 {% endif %}
 
 <div class="panel">
-    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:0;">
+    <div class="panel-header" style="border-bottom:1px solid var(--borde-staff);padding-bottom:14px;margin-bottom:0;">
         <h2 style="margin:0;">Paso 2 — Reporte físico del turno</h2>
         <a href="/conciliacion/crear" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Cambiar</a>
     </div>
@@ -146,14 +146,14 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Saldo físico al inicio del turno (L) <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Saldo físico al inicio del turno (L) <span style="color:var(--peligro)">*</span></label>
                 <input type="number" name="saldo_fisico_inicio_l" class="form-control" id="inp-inicio"
                        value="{{ request.form.get('saldo_fisico_inicio_l', '0') }}"
                        min="0" step="0.01" required oninput="calcDiff()">
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Saldo físico al cierre del turno (L) <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Saldo físico al cierre del turno (L) <span style="color:var(--peligro)">*</span></label>
                 <input type="number" name="saldo_fisico_fin_l" class="form-control" id="inp-fin"
                        value="{{ request.form.get('saldo_fisico_fin_l', '0') }}"
                        min="0" step="0.01" required oninput="calcDiff()">
@@ -162,9 +162,9 @@
             <!-- Vista previa de diferencia calculada -->
             {% if datos_calculados %}
             <div class="mb-3" style="grid-column:1/-1;">
-                <div id="diff-preview" style="background:var(--panel-soft);border:1px solid var(--border);border-radius:8px;padding:14px 18px;font-size:14px;">
+                <div id="diff-preview" style="background:var(--panel-suave);border:1px solid var(--borde-staff);border-radius:8px;padding:14px 18px;font-size:14px;">
                     <strong>Diferencia estimada:</strong> <span id="diff-val" style="font-size:18px;font-weight:700;">—</span>
-                    <span style="font-size:12px;color:var(--muted);margin-left:8px;">
+                    <span style="font-size:12px;color:var(--atenuado-staff);margin-left:8px;">
                         (saldo_fin − saldo_inicio − total_entrada + total_despachado)
                     </span>
                 </div>
@@ -175,7 +175,7 @@
                 <label class="form-label">Observaciones</label>
                 <textarea name="observaciones" class="form-control" rows="3"
                           placeholder="Obligatorio si la diferencia supera el 0.5%...">{{ request.form.get('observaciones', '') }}</textarea>
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">
                     Si la diferencia supera el 0.5% del total despachado, las observaciones son obligatorias.
                 </div>
             </div>
@@ -206,7 +206,7 @@ function calcDiff() {
     const diff = fin - (inicio + totalEntrada - totalDespachado);
     const el = document.getElementById('diff-val');
     el.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(2) + ' L';
-    el.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : (Math.abs(diff) / (totalDespachado || 1) > 0.005 ? 'var(--danger)' : 'var(--warning)');
+    el.style.color = Math.abs(diff) < 0.01 ? 'var(--exito)' : (Math.abs(diff) / (totalDespachado || 1) > 0.005 ? 'var(--peligro)' : 'var(--aviso)');
 }
 calcDiff();
 </script>

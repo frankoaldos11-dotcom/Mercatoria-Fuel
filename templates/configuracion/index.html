@@ -11,21 +11,21 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#166534;border-radius:8px;padding:.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--texto-sobre-exito);border-radius:8px;padding:.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Cambios guardados correctamente.
 </div>
 {% endif %}
 {% if request.args.get('error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('error') }}
 </div>
 {% endif %}
 
 {% if reseteo_resumen %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#14532D;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--color-success-text-strong-upper);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
     <div style="font-weight:700;margin-bottom:8px;"><i class="bi bi-check-circle"></i> Reseteo de inventario ejecutado correctamente.</div>
     <div style="margin-bottom:4px;">Tarjetas con saldo reseteado a 0: <strong>{{ reseteo_resumen.tarjetas_reseteadas }}</strong> · Subinventarios reseteados: <strong>{{ reseteo_resumen.subinventarios_reseteados }}</strong></div>
-    <div style="font-size:12px;color:var(--muted);margin-top:8px;">Filas eliminadas por tabla:</div>
+    <div style="font-size:12px;color:var(--atenuado-staff);margin-top:8px;">Filas eliminadas por tabla:</div>
     <ul style="margin:4px 0 0;padding-left:20px;font-size:12px;">
         {% for tabla, n in reseteo_resumen.tablas.items() %}
         <li>{{ tabla }}: {{ n }}</li>
@@ -39,7 +39,7 @@
     <form method="POST" action="/configuracion/">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div style="padding:24px;">
-            <h2 style="font-size:16px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 20px;">Parámetros operativos</h2>
+            <h2 style="font-size:16px;font-weight:700;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 20px;">Parámetros operativos</h2>
             {% for clave, meta in params_labels.items() %}
             <div class="mb-3" style="max-width:480px;">
                 <label class="form-label">{{ meta.label }}</label>
@@ -52,7 +52,7 @@
                        value="{{ config.get(clave, '') }}">
                 {% endif %}
                 {% if meta.hint %}
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">{{ meta.hint }}</div>
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">{{ meta.hint }}</div>
                 {% endif %}
             </div>
             {% endfor %}
@@ -67,12 +67,12 @@
 
 <!-- Precios de combustible (Tienda) -->
 <div class="panel">
-    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--borde-staff);display:flex;align-items:center;justify-content:space-between;">
         <h2 style="font-size:16px;font-weight:700;margin:0;">Precios de combustible — Tienda</h2>
     </div>
 
     <!-- Agregar/editar precio -->
-    <div style="padding:20px 24px;border-bottom:1px solid var(--border);background:var(--bg-muted,#F9FAFB);">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--borde-staff);background:var(--color-gray-table-header-bg-upper);">
         <form method="POST" action="/configuracion/precios/guardar" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div style="flex:1;min-width:160px;">
@@ -104,7 +104,7 @@
                 </button>
             </div>
         </form>
-        <div style="font-size:12px;color:var(--muted);margin-top:8px;">
+        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:8px;">
             Si ya existe un precio para esa combinación, se actualizará automáticamente.
         </div>
     </div>
@@ -127,10 +127,10 @@
                     <td>{{ p.gasolinera_nombre }}</td>
                     <td>{{ tipos_combustible_labels.get(p.tipo_combustible, p.tipo_combustible) }}</td>
                     <td>
-                        <span id="val-{{ p.id }}" style="font-weight:700;color:#E86A2C;">${{ "%.4f"|format(p.precio_usd_por_litro) }}</span>
+                        <span id="val-{{ p.id }}" style="font-weight:700;color:var(--activo);">${{ "%.4f"|format(p.precio_usd_por_litro) }}</span>
                         <span id="edit-{{ p.id }}" style="display:none;">
                             <input type="text" id="inp-{{ p.id }}" value="{{ p.precio_usd_por_litro }}"
-                                   style="width:100px;font-size:13px;padding:4px 8px;border:1.5px solid #D1D5DB;border-radius:6px;">
+                                   style="width:100px;font-size:13px;padding:4px 8px;border:1.5px solid var(--color-gray-border-alt-upper);border-radius:6px;">
                         </span>
                     </td>
                     <td>
@@ -158,7 +158,7 @@
                             <form method="POST" action="/configuracion/precios/{{ p.id }}/eliminar" style="display:inline;"
                                   onsubmit="return confirm('¿Eliminar este precio?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-secondary" style="color:#DC2626;border-color:#DC2626;">
+                                <button type="submit" class="btn btn-sm btn-secondary" style="color:var(--peligro);border-color:var(--peligro);">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
@@ -177,7 +177,7 @@
 <div class="panel" style="margin-top:24px;">
     <div style="padding:20px 24px;">
         <h2 style="font-size:16px;font-weight:700;margin:0 0 4px;">Modo de reseteo de inventario</h2>
-        <p style="font-size:13px;color:var(--muted);margin:0 0 14px;">
+        <p style="font-size:13px;color:var(--atenuado-staff);margin:0 0 14px;">
             Al activarlo aparece una zona de reseteo total del inventario, pensada solo para reconstruir el ciclo
             durante pruebas. Está apagado por defecto y no es visible para nadie mientras lo esté.
         </p>
@@ -195,12 +195,12 @@
 </div>
 
 {% if reseteo_habilitado %}
-<div class="panel" style="margin-top:24px;border:2px solid #DC2626;">
-    <div style="padding:20px 24px;background:#FEF2F2;">
-        <h2 style="font-size:16px;font-weight:700;margin:0 0 4px;color:#991B1B;">
+<div class="panel" style="margin-top:24px;border:2px solid var(--peligro);">
+    <div style="padding:20px 24px;background:var(--fondo-peligro-suave);">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 4px;color:var(--texto-sobre-peligro);">
             <i class="bi bi-exclamation-triangle-fill"></i> Zona de peligro — Reseteo de inventario a cero
         </h2>
-        <p style="font-size:13px;color:#991B1B;margin:0;">
+        <p style="font-size:13px;color:var(--texto-sobre-peligro);margin:0;">
             Vacía por completo movimientos, recepciones, transferencias, llegadas de puerto, recargas y devoluciones
             de tarjeta, habilitaciones, despachos, reservas de Tienda, conciliaciones y movimientos TL38. Pone en 0
             el saldo usable, saldo Fincimex y saldo retenido de todas las tarjetas, y los litros reservados de todos

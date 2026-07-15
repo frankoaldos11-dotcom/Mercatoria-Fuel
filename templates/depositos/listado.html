@@ -18,12 +18,12 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Operación realizada correctamente.
 </div>
 {% endif %}
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
@@ -95,13 +95,13 @@
                             {% endif %}
                         </div>
                     </td>
-                    <td><span style="color:var(--muted);font-size:12px;">#{{ d.id }}</span></td>
+                    <td><span style="color:var(--atenuado-staff);font-size:12px;">#{{ d.id }}</span></td>
                     <td>
-                        <a href="/depositos/{{ d.id }}" style="font-weight:600;color:var(--primary);text-decoration:none;">
+                        <a href="/depositos/{{ d.id }}" style="font-weight:600;color:var(--principal);text-decoration:none;">
                             {{ d.nombre }}
                         </a>
                         {% if d.direccion %}
-                        <br><span style="font-size:12px;color:var(--muted);">{{ d.direccion }}</span>
+                        <br><span style="font-size:12px;color:var(--atenuado-staff);">{{ d.direccion }}</span>
                         {% endif %}
                     </td>
                     <td>{{ d.region }}</td>

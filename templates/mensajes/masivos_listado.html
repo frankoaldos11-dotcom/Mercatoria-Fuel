@@ -57,7 +57,7 @@
                                 </button>
                             </form>
                             <button onclick="abrirRechazo({{ m.id }})" class="btn btn-sm btn-secondary"
-                                    style="color:#DC2626;border-color:#DC2626;">
+                                    style="color:var(--peligro);border-color:var(--peligro);">
                                 <i class="bi bi-x-lg"></i> Rechazar
                             </button>
                             {% endif %}
@@ -77,12 +77,12 @@
                     <td style="font-size:13px;">
                         {% if m.estado == 'enviado' %}
                         {{ m.total_enviados }} enviados
-                        {% if m.total_excluidos_no_verificado %}<br><span style="color:var(--muted);">{{ m.total_excluidos_no_verificado }} excluidos (sin verificar)</span>{% endif %}
+                        {% if m.total_excluidos_no_verificado %}<br><span style="color:var(--atenuado-staff);">{{ m.total_excluidos_no_verificado }} excluidos (sin verificar)</span>{% endif %}
                         {% else %}
                         {{ m.total_destinatarios or '—' }}
                         {% endif %}
                     </td>
-                    <td style="font-size:12px;color:var(--muted);white-space:nowrap;">
+                    <td style="font-size:12px;color:var(--atenuado-staff);white-space:nowrap;">
                         {{ (m.created_at | string)[:16] if m.created_at else '—' }}
                     </td>
                 </tr>
@@ -96,14 +96,14 @@
 
 <!-- Modal rechazar -->
 <div id="modal-rechazo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <div style="background:var(--panel);border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
         <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:700;">Rechazar mensaje masivo</h3>
-        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Indica el motivo del rechazo (obligatorio):</p>
+        <p style="color:var(--atenuado-staff);font-size:14px;margin-bottom:14px;">Indica el motivo del rechazo (obligatorio):</p>
         <textarea id="motivo-rechazo" class="form-control" rows="3"
                   placeholder="Ej: Contenido a revisar antes de enviar..."></textarea>
         <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
             <button onclick="cerrarModalRechazo()" class="btn btn-secondary">Cancelar</button>
-            <button onclick="confirmarRechazo()" class="btn btn-primary" style="background:#DC2626;border-color:#DC2626;">
+            <button onclick="confirmarRechazo()" class="btn btn-primary" style="background:var(--peligro);border-color:var(--peligro);">
                 <i class="bi bi-x-lg"></i> Confirmar rechazo
             </button>
         </div>

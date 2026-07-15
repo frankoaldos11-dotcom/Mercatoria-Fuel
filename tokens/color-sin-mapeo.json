@@ -74,5 +74,9 @@
   "color-warning-bg-header": { "$type": "string", "$value": "#FFF7ED" },
   "color-conciliada-bg": { "$type": "string", "$value": "#ede9fe" },
   "color-conciliada-text": { "$type": "string", "$value": "#5b21b6" },
-  "color-warning-border-alt": { "$type": "string", "$value": "#FDE68A" }
+  "color-warning-border-alt": { "$type": "string", "$value": "#FDE68A" },
+  "color-info-bg-header": { "$type": "string", "$value": "#f0f9ff" },
+  "color-neutral-bg-faint": { "$type": "string", "$value": "#fafafa" },
+  "color-danger-text-deep": { "$type": "string", "$value": "#7F1D1D" },
+  "color-danger-border-alt": { "$type": "string", "$value": "#FCA5A5" }
 }

@@ -12,20 +12,20 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
 
 {% if resultado %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;">
     <div style="font-weight:700;font-size:15px;margin-bottom:6px;">
         <i class="bi bi-check-circle"></i> Importación completada
     </div>
     <div>Registros importados: <strong>{{ resultado.importados }}</strong></div>
     {% if resultado.fallidos %}
-    <div style="margin-top:8px;font-weight:600;color:#991B1B;">Filas con error ({{ resultado.fallidos|length }}):</div>
-    <ul style="margin:4px 0 0 16px;font-size:13px;color:#7F1D1D;">
+    <div style="margin-top:8px;font-weight:600;color:var(--texto-sobre-peligro);">Filas con error ({{ resultado.fallidos|length }}):</div>
+    <ul style="margin:4px 0 0 16px;font-size:13px;color:var(--color-danger-text-deep);">
         {% for f in resultado.fallidos %}
         <li>{{ f }}</li>
         {% endfor %}
@@ -35,27 +35,27 @@
 {% endif %}
 
 <div class="panel">
-    <div class="panel-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;">
+    <div class="panel-header" style="border-bottom:1px solid var(--borde-staff);padding-bottom:14px;margin-bottom:14px;">
         <h2 style="margin:0;">Subir archivo Excel</h2>
     </div>
     <div style="padding:0 24px 24px;">
         <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
-                <label class="form-label">Archivo Excel (.xlsx) <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Archivo Excel (.xlsx) <span style="color:var(--peligro)">*</span></label>
                 <input type="file" name="archivo" class="form-control" accept=".xlsx,.xls" required>
             </div>
             <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Importar</button>
         </form>
 
-        <div style="margin-top:24px;padding:16px;background:var(--panel-soft);border-radius:8px;font-size:13px;">
+        <div style="margin-top:24px;padding:16px;background:var(--panel-suave);border-radius:8px;font-size:13px;">
             <strong>Columnas reconocidas (nombre en la primera fila):</strong>
             <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
                 {% for col in ['fecha','tipo','chapa','chofer','litros','tarjeta / tarjeta_tl38','flota','gasolinera','observaciones'] %}
                 <span class="badge badge-neutral">{{ col }}</span>
                 {% endfor %}
             </div>
-            <div style="margin-top:10px;color:var(--muted);">
+            <div style="margin-top:10px;color:var(--atenuado-staff);">
                 Campos obligatorios: <strong>fecha, chapa, chofer, litros</strong>. El tipo por defecto es "despacho". La flota por defecto es "599".
             </div>
         </div>

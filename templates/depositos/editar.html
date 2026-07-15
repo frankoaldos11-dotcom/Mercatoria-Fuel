@@ -21,7 +21,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -33,19 +33,19 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Nombre <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Nombre <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="nombre" class="form-control"
                        value="{{ deposito.nombre }}" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Provincia <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Provincia <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="region" class="form-control"
                        value="{{ deposito.region or '' }}" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Tipo de combustible <span style="color:var(--peligro)">*</span></label>
                 {% set combustibles_actuales = (request.form.getlist('tipo_combustible') if request.method == 'POST' else deposito.tipo_combustible.split(',') if deposito.tipo_combustible else []) %}
                 <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 0;">
                     {% for tc in tipos_combustible %}

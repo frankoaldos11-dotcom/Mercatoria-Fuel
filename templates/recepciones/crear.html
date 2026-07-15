@@ -16,7 +16,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -28,7 +28,7 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Depósito destino <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Depósito destino <span style="color:var(--peligro)">*</span></label>
                 <select name="deposito_id" class="form-select" required>
                     <option value="">Seleccionar depósito...</option>
                     {% for d in depositos %}
@@ -42,18 +42,18 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Fecha de recepción <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Fecha de recepción <span style="color:var(--peligro)">*</span></label>
                 <input type="date" name="fecha" class="form-control" value="{{ hoy }}" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Proveedor <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Proveedor <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="proveedor" class="form-control"
                        placeholder="Nombre del proveedor o empresa" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Tipo de combustible <span style="color:var(--peligro)">*</span></label>
                 <select name="tipo_combustible" class="form-select" id="sel-combustible" required>
                     <option value="">Seleccionar...</option>
                     {% for tc in tipos_combustible %}
@@ -63,14 +63,14 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Litros facturados <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Litros facturados <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="litros_factura" id="litros-factura" class="form-control"
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        placeholder="0.00" required oninput="calcDiferencia()">
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Litros recibidos <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Litros recibidos <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="litros_recibidos" id="litros-recibidos" class="form-control"
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        placeholder="0.00" required oninput="calcDiferencia()">
@@ -78,7 +78,7 @@
 
             <div class="mb-3">
                 <label class="form-label">Diferencia calculada</label>
-                <div id="diferencia-display" style="padding:8px 12px;background:var(--surface-alt);border-radius:6px;font-weight:600;color:var(--muted);min-height:38px;line-height:22px;">
+                <div id="diferencia-display" style="padding:8px 12px;background:var(--panel-suave);border-radius:6px;font-weight:600;color:var(--atenuado-staff);min-height:38px;line-height:22px;">
                     —
                 </div>
             </div>
@@ -123,11 +123,11 @@ function calcDiferencia() {
     const el = document.getElementById('diferencia-display');
     if (factura === 0 && recibido === 0) {
         el.textContent = '—';
-        el.style.color = 'var(--muted)';
+        el.style.color = 'var(--atenuado-staff)';
     } else {
         const pct = factura ? (diff / factura * 100) : 0;
         el.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L  (' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)';
-        el.style.color = diff < 0 ? '#DC2626' : (diff > 0 ? '#16A34A' : 'var(--muted)');
+        el.style.color = diff < 0 ? 'var(--peligro)' : (diff > 0 ? 'var(--exito)' : 'var(--atenuado-staff)');
     }
 }
 </script>

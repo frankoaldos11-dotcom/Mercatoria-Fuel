@@ -32,7 +32,7 @@
             <tbody>
             {% for m in lista %}
             <tr>
-                <td style="color:var(--muted);font-size:13px;">{{ m.id }}</td>
+                <td style="color:var(--atenuado-staff);font-size:13px;">{{ m.id }}</td>
                 <td style="white-space:nowrap;font-size:13px;">{{ m.created_at | string | truncate(16, killwords=True, end='') }}</td>
                 <td style="font-size:13px;">{{ m.destinatario }}</td>
                 <td style="font-size:13px;">{{ m.asunto | truncate(50) }}</td>
@@ -44,7 +44,7 @@
                     <span class="badge badge-danger">✗ fallido</span>
                     {% endif %}
                 </td>
-                <td style="font-size:12px;color:var(--danger);max-width:260px;word-break:break-word;">
+                <td style="font-size:12px;color:var(--peligro);max-width:260px;word-break:break-word;">
                     {{ m.error or '—' }}
                 </td>
                 <td style="font-size:13px;">{{ m.usuario_nombre or '—' }}</td>

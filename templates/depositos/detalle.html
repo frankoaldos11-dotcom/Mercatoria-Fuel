@@ -23,7 +23,7 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Cambios guardados correctamente.
 </div>
 {% endif %}
@@ -31,11 +31,11 @@
 <!-- KPI Row -->
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Stock actual</div>
-        <div style="font-size:28px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(stock_actual) }} <span style="font-size:14px;font-weight:400;">L</span></div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Stock actual</div>
+        <div style="font-size:28px;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(stock_actual) }} <span style="font-size:14px;font-weight:400;">L</span></div>
     </div>
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Estado</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Estado</div>
         <div style="margin-top:8px;">
             {% if deposito.estado == 'activo' %}
             <span class="badge badge-ok" style="font-size:14px;padding:6px 16px;">Activo</span>
@@ -45,7 +45,7 @@
         </div>
     </div>
     <div class="panel" style="padding:20px;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Información</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Información</div>
         {% if deposito.responsable %}
         <div style="font-size:13px;margin-bottom:4px;"><strong>Responsable:</strong> {{ deposito.responsable }}</div>
         {% endif %}
@@ -53,7 +53,7 @@
         <div style="font-size:13px;margin-bottom:4px;"><strong>Dirección:</strong> {{ deposito.direccion }}</div>
         {% endif %}
         {% if deposito.notas %}
-        <div style="font-size:13px;color:var(--muted);">{{ deposito.notas }}</div>
+        <div style="font-size:13px;color:var(--atenuado-staff);">{{ deposito.notas }}</div>
         {% endif %}
     </div>
 </div>
@@ -92,7 +92,7 @@
             <tbody>
                 {% for r in recepciones %}
                 <tr>
-                    <td><span style="color:var(--muted);font-size:12px;">#{{ r.id }}</span></td>
+                    <td><span style="color:var(--atenuado-staff);font-size:12px;">#{{ r.id }}</span></td>
                     <td>{{ r.fecha }}</td>
                     <td>{{ r.proveedor }}</td>
                     <td><span class="badge badge-info">{{ combustible_labels.get(r.tipo_combustible, r.tipo_combustible) }}</span></td>
@@ -100,7 +100,7 @@
                     <td>{{ "{:,.2f}".format(r.litros_recibidos) }}</td>
                     <td>
                         {% if r.diferencia_l != 0 %}
-                        <span style="color:{{ '#DC2626' if r.diferencia_l < 0 else '#16A34A' }};">
+                        <span style="color:{{ 'var(--peligro)' if r.diferencia_l < 0 else 'var(--exito)' }};">
                             {{ "{:+,.2f}".format(r.diferencia_l) }}
                         </span>
                         {% else %}—{% endif %}
@@ -147,7 +147,7 @@
             <tbody>
                 {% for t in transferencias %}
                 <tr>
-                    <td><span style="color:var(--muted);font-size:12px;">#{{ t.id }}</span></td>
+                    <td><span style="color:var(--atenuado-staff);font-size:12px;">#{{ t.id }}</span></td>
                     <td>{{ t.fecha_salida }}</td>
                     <td>{{ t.gasolinera_nombre }}</td>
                     <td><span class="badge badge-info">{{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}</span></td>

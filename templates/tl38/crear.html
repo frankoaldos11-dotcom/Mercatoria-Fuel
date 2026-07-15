@@ -11,7 +11,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -22,13 +22,13 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Fecha <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Fecha <span style="color:var(--peligro)">*</span></label>
                 <input type="date" name="fecha" class="form-control"
                        value="{{ request.form.get('fecha', hoy) }}" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Tipo <span style="color:var(--peligro)">*</span></label>
                 <select name="tipo" class="form-select" required>
                     {% for t in tipos %}
                     <option value="{{ t }}" {{ 'selected' if request.form.get('tipo', 'despacho') == t }}>{{ t|title }}</option>
@@ -37,21 +37,21 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Chapa / Matrícula <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Chapa / Matrícula <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="chapa" class="form-control"
                        value="{{ request.form.get('chapa', '') }}"
                        placeholder="Ej. EYH-123" required style="text-transform:uppercase;">
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Chofer <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Chofer <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="chofer" class="form-control"
                        value="{{ request.form.get('chofer', '') }}"
                        placeholder="Nombre del conductor" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Litros <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Litros <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="litros" class="form-control"
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        value="{{ request.form.get('litros', '') }}"
