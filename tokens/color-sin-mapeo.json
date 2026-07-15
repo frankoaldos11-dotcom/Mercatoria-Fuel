@@ -70,5 +70,9 @@
   "color-neutral-text-badge": { "$type": "string", "$value": "#6B7280" },
   "color-neutral-bg-badge": { "$type": "string", "$value": "#F3F4F6" },
   "color-warning-bg-alt-2": { "$type": "string", "$value": "#FEF3C7" },
-  "color-success-border-alt": { "$type": "string", "$value": "#86efac" }
+  "color-success-border-alt": { "$type": "string", "$value": "#86efac" },
+  "color-warning-bg-header": { "$type": "string", "$value": "#FFF7ED" },
+  "color-conciliada-bg": { "$type": "string", "$value": "#ede9fe" },
+  "color-conciliada-text": { "$type": "string", "$value": "#5b21b6" },
+  "color-warning-border-alt": { "$type": "string", "$value": "#FDE68A" }
 }

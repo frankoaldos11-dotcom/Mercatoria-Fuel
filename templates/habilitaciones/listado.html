@@ -16,7 +16,7 @@
 </div>
 
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
@@ -76,7 +76,7 @@
                     <td><strong>#{{ h.id }}</strong></td>
                     <td>
                         <div style="font-weight:700;">{{ h.cliente_nombre }}</div>
-                        <div style="font-size:12px;color:var(--muted);">
+                        <div style="font-size:12px;color:var(--atenuado-staff);">
                             <i class="bi bi-truck"></i> {{ h.unidad_chapa }}
                             {% if h.chofer_nombre %}· {{ h.chofer_nombre }}{% endif %}
                         </div>
@@ -84,14 +84,14 @@
                     </td>
                     <td>
                         <div>{{ h.gasolinera_nombre }}</div>
-                        <div style="font-size:12px;color:var(--muted);font-family:monospace;">**** {{ h.tarjeta_parcial }}</div>
+                        <div style="font-size:12px;color:var(--atenuado-staff);font-family:monospace;">**** {{ h.tarjeta_parcial }}</div>
                     </td>
                     <td><strong>{{ "{:,.2f}".format(h.litros_autorizados) }} L</strong></td>
                     <td>
                         {% if h.litros_despachados > 0 %}
-                        <strong style="color:var(--success);">{{ "{:,.2f}".format(h.litros_despachados) }} L</strong>
+                        <strong style="color:var(--exito);">{{ "{:,.2f}".format(h.litros_despachados) }} L</strong>
                         {% else %}
-                        <span style="color:var(--muted);">—</span>
+                        <span style="color:var(--atenuado-staff);">—</span>
                         {% endif %}
                     </td>
                     <td style="font-size:13px;">{{ h.fecha_habilitacion }}</td>
@@ -99,7 +99,7 @@
                         {% if h.estado == 'pendiente' %}
                         <span class="badge badge-neutral">Pendiente</span>
                         {% elif h.estado == 'en_reserva' %}
-                        <span class="badge" style="background:#fef3c7;color:#92400e;">En reserva</span>
+                        <span class="badge" style="background:var(--color-warning-bg-alt-2);color:var(--texto-sobre-aviso);">En reserva</span>
                         {% elif h.estado == 'aprobada' %}
                         <span class="badge badge-info">Aprobada</span>
                         {% elif h.estado == 'despachada' %}
@@ -107,7 +107,7 @@
                         {% elif h.estado == 'cancelada' %}
                         <span class="badge badge-danger">Cancelada</span>
                         {% elif h.estado == 'conciliada' %}
-                        <span class="badge" style="background:#ede9fe;color:#5b21b6;">Conciliada</span>
+                        <span class="badge" style="background:var(--color-conciliada-bg);color:var(--color-conciliada-text);">Conciliada</span>
                         {% endif %}
                     </td>
                 </tr>

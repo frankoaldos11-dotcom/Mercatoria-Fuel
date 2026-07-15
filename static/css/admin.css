@@ -381,6 +381,12 @@ body {
 .text-muted { color: var(--atenuado-staff) !important; }
 .text-success { color: var(--exito) !important; }
 .text-danger { color: var(--peligro) !important; }
+.nivel-critico { color: var(--peligro); }
+.nivel-alto { color: var(--aviso); }
+.nivel-normal { color: var(--exito); }
+.nivel-critico-bg { background: var(--peligro); }
+.nivel-alto-bg { background: var(--aviso); }
+.nivel-normal-bg { background: var(--exito); }
 .text-center { text-align: center !important; }
 .p-3 { padding: 1rem !important; }
 .p-4 { padding: 1.5rem !important; }

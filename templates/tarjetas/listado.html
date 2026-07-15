@@ -18,12 +18,12 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Operación realizada correctamente.
 </div>
 {% endif %}
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
@@ -60,17 +60,17 @@
 
 {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
 <!-- Bolsón general Fincimex -->
-<div class="panel mb-4" style="border:2px solid #16A34A;">
-    <div class="panel-header" style="background:#F0FDF4;">
+<div class="panel mb-4" style="border:2px solid var(--exito);">
+    <div class="panel-header" style="background:var(--fondo-exito-suave);">
         <div>
-            <h2 style="font-size:16px;font-weight:600;margin:0;color:#14532D;">
+            <h2 style="font-size:16px;font-weight:600;margin:0;color:var(--color-success-text-strong-upper);">
                 <i class="bi bi-cash-stack"></i> Bolsón general Fincimex
             </h2>
-            <p style="margin:4px 0 0;font-size:13px;color:#166534;">Saldo USD disponible generado en recepciones y aún no asignado a ninguna tarjeta.</p>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--texto-sobre-exito);">Saldo USD disponible generado en recepciones y aún no asignado a ninguna tarjeta.</p>
         </div>
         <div style="text-align:right;">
-            <div style="font-size:32px;font-weight:700;color:#16A34A;">${{ "{:,.2f}".format(bolson_disponible) }}</div>
-            <div style="font-size:13px;color:#166534;">≈ {{ "{:,.2f}".format(bolson_disponible / factor if factor else 0) }} L equiv. &nbsp;·&nbsp; factor {{ factor }} $/L</div>
+            <div style="font-size:32px;font-weight:700;color:var(--exito);">${{ "{:,.2f}".format(bolson_disponible) }}</div>
+            <div style="font-size:13px;color:var(--texto-sobre-exito);">≈ {{ "{:,.2f}".format(bolson_disponible / factor if factor else 0) }} L equiv. &nbsp;·&nbsp; factor {{ factor }} $/L</div>
         </div>
     </div>
 </div>
@@ -110,7 +110,7 @@
                         </div>
                     </td>
                     <td>
-                        <a href="/tarjetas/{{ t.id }}" style="font-weight:700;font-family:monospace;font-size:15px;color:var(--primary);text-decoration:none;letter-spacing:1px;">
+                        <a href="/tarjetas/{{ t.id }}" style="font-weight:700;font-family:monospace;font-size:15px;color:var(--principal);text-decoration:none;letter-spacing:1px;">
                             **** **** **** {{ t.numero_parcial }}
                         </a>
                         {% if t.devoluciones_pendientes > 0 %}
@@ -122,7 +122,7 @@
                     <td>{{ t.gasolinera_nombre }}</td>
                     <td><span class="badge badge-info">{{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}</span></td>
                     <td>
-                        <strong style="font-size:15px;{% if t.saldo_usable_l < 200 %}color:#D97706;{% endif %}">
+                        <strong style="font-size:15px;{% if t.saldo_usable_l < 200 %}color:var(--color-warning-accent-2);{% endif %}">
                             {{ "{:,.2f}".format(t.saldo_usable_l) }}
                         </strong>
                         {% if t.saldo_usable_l < 200 %}
@@ -132,15 +132,15 @@
                         {% endif %}
                     </td>
                     <td>
-                        <strong style="font-size:15px;color:{% if t.saldo_usd_calc > 0 %}#16A34A{% else %}var(--muted){% endif %};">
+                        <strong style="font-size:15px;color:{% if t.saldo_usd_calc > 0 %}var(--exito){% else %}var(--atenuado-staff){% endif %};">
                             ${{ "{:,.2f}".format(t.saldo_usd_calc) }}
                         </strong>
                     </td>
                     <td>
                         {% if t.saldo_retenido_l > 0 %}
-                        <strong style="color:#D97706;">{{ "{:,.2f}".format(t.saldo_retenido_l) }}</strong>
+                        <strong style="color:var(--color-warning-accent-2);">{{ "{:,.2f}".format(t.saldo_retenido_l) }}</strong>
                         {% else %}
-                        <span style="color:var(--muted);">0.00</span>
+                        <span style="color:var(--atenuado-staff);">0.00</span>
                         {% endif %}
                     </td>
                     <td>

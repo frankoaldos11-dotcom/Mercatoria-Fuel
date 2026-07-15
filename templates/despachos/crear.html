@@ -12,15 +12,15 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
 
 {% if not habilitaciones %}
 <div class="panel" style="padding:40px;text-align:center;">
-    <i class="bi bi-toggle-on" style="font-size:48px;color:var(--muted);display:block;margin-bottom:12px;opacity:0.4;"></i>
-    <p style="font-size:16px;color:var(--muted);margin:0 0 16px;">No hay habilitaciones aprobadas pendientes de despacho.</p>
+    <i class="bi bi-toggle-on" style="font-size:48px;color:var(--atenuado-staff);display:block;margin-bottom:12px;opacity:0.4;"></i>
+    <p style="font-size:16px;color:var(--atenuado-staff);margin:0 0 16px;">No hay habilitaciones aprobadas pendientes de despacho.</p>
     <a href="/habilitaciones" class="btn btn-primary"><i class="bi bi-toggle-on"></i> Ver habilitaciones</a>
 </div>
 {% else %}
@@ -32,7 +32,7 @@
         <div class="form-grid">
 
             <div class="mb-3" style="grid-column:1/-1;">
-                <label class="form-label">Habilitación aprobada <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Habilitación aprobada <span style="color:var(--peligro)">*</span></label>
                 <select name="habilitacion_id" id="sel-hab" class="form-select" required>
                     <option value="">Seleccionar habilitación...</option>
                     {% for h in habilitaciones %}
@@ -46,18 +46,18 @@
                     </option>
                     {% endfor %}
                 </select>
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">
                     Solo aparecen habilitaciones aprobadas sin despacho registrado.
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Litros realmente despachados <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Litros realmente despachados <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="litros_despachados" id="inp-litros" class="form-control"
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        value="{{ request.form.get('litros_despachados', '') }}"
                        required placeholder="0.00">
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="litros-hint"></div>
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;" id="litros-hint"></div>
             </div>
 
             <div class="mb-3">
@@ -70,7 +70,7 @@
             <div class="mb-3">
                 <label class="form-label">Foto del ticket (opcional)</label>
                 <input type="file" name="foto_ticket" class="form-control" accept=".jpg,.jpeg,.png,.webp">
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">JPG, PNG o WEBP. Si no la subes ahora, el despacho queda pendiente de imagen y se puede agregar después desde su detalle.</div>
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">JPG, PNG o WEBP. Si no la subes ahora, el despacho queda pendiente de imagen y se puede agregar después desde su detalle.</div>
             </div>
 
             <div class="mb-3">

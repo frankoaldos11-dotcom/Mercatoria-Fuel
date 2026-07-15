@@ -14,7 +14,7 @@
     <div style="padding:16px 20px;">
         <form method="GET" action="/tienda/admin" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
             <div style="flex:1;min-width:110px;">
-                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Estado</label>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Estado</label>
                 <select name="estado" class="form-control" onchange="this.form.submit()">
                     <option value="">Todos</option>
                     {% for val, lbl in [('pendiente','Pendientes'),('aprobada','Aprobadas'),('completada','Completadas'),('cancelada','Canceladas')] %}
@@ -23,7 +23,7 @@
                 </select>
             </div>
             <div style="flex:1;min-width:160px;">
-                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Gasolinera</label>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Gasolinera</label>
                 <select name="gasolinera_id" class="form-control" onchange="this.form.submit()">
                     <option value="">Todas</option>
                     {% for g in gasolineras %}
@@ -32,7 +32,7 @@
                 </select>
             </div>
             <div style="flex:1;min-width:140px;">
-                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Fecha</label>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Fecha</label>
                 <input type="date" name="fecha" class="form-control" value="{{ filtro_fecha }}" onchange="this.form.submit()">
             </div>
             {% if filtro or filtro_gasolinera or filtro_fecha %}
@@ -66,22 +66,22 @@
             <tbody>
                 {% for r in reservas %}
                 <tr>
-                    <td style="font-size:12px;color:var(--muted);">#{{ r.id }}</td>
+                    <td style="font-size:12px;color:var(--atenuado-staff);">#{{ r.id }}</td>
                     <td>
                         <strong>{{ r.cliente_nombre }}</strong>
-                        <div style="font-size:12px;color:var(--muted);">{{ r.cliente_email }}</div>
+                        <div style="font-size:12px;color:var(--atenuado-staff);">{{ r.cliente_email }}</div>
                     </td>
-                    <td style="font-size:13px;color:var(--muted);">{{ r.descripcion_vehiculo or '—' }}</td>
+                    <td style="font-size:13px;color:var(--atenuado-staff);">{{ r.descripcion_vehiculo or '—' }}</td>
                     <td>{{ r.gasolinera_nombre }}</td>
                     <td>{{ combustible_labels.get(r.tipo_combustible, r.tipo_combustible) }}</td>
                     <td>{{ "%.0f"|format(r.litros_solicitados) }} L</td>
-                    <td style="font-weight:700;color:#E86A2C;">${{ "%.2f"|format(r.precio_total_usd) }}</td>
+                    <td style="font-weight:700;color:var(--activo);">${{ "%.2f"|format(r.precio_total_usd) }}</td>
                     <td>
                         <span class="badge {{ estado_badge.get(r.estado, 'badge-neutral') }}">
                             {{ estado_labels.get(r.estado, r.estado) }}
                         </span>
                     </td>
-                    <td style="font-size:12px;color:var(--muted);">{{ (r.created_at | string)[:10] if r.created_at else '—' }}</td>
+                    <td style="font-size:12px;color:var(--atenuado-staff);">{{ (r.created_at | string)[:10] if r.created_at else '—' }}</td>
                     <td>
                         {% if r.estado == 'pendiente' %}
                         <div style="display:flex;gap:6px;">
@@ -89,7 +89,7 @@
                                 <i class="bi bi-check-lg"></i> Aprobar
                             </button>
                             <button onclick="abrirRechazo({{ r.id }})" class="btn btn-sm btn-secondary"
-                                    style="color:#DC2626;border-color:#DC2626;">
+                                    style="color:var(--peligro);border-color:var(--peligro);">
                                 <i class="bi bi-x-lg"></i> Rechazar
                             </button>
                         </div>
@@ -101,7 +101,7 @@
                             </a>
                             {% endif %}
                             <button onclick="abrirRechazo({{ r.id }})" class="btn btn-sm btn-secondary"
-                                    style="color:#DC2626;border-color:#DC2626;">
+                                    style="color:var(--peligro);border-color:var(--peligro);">
                                 <i class="bi bi-x-lg"></i>
                             </button>
                         </div>
@@ -118,14 +118,14 @@
 
 <!-- Modal rechazar -->
 <div id="modal-rechazo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <div style="background:var(--panel);border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
         <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:700;">Rechazar reserva</h3>
-        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Indica el motivo del rechazo (obligatorio):</p>
+        <p style="color:var(--atenuado-staff);font-size:14px;margin-bottom:14px;">Indica el motivo del rechazo (obligatorio):</p>
         <textarea id="motivo-rechazo" class="form-control" rows="3"
                   placeholder="Ej: Sin stock disponible para esa fecha..."></textarea>
         <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
             <button onclick="cerrarModalRechazo()" class="btn btn-secondary">Cancelar</button>
-            <button onclick="confirmarRechazo()" class="btn btn-primary" style="background:#DC2626;border-color:#DC2626;">
+            <button onclick="confirmarRechazo()" class="btn btn-primary" style="background:var(--peligro);border-color:var(--peligro);">
                 <i class="bi bi-x-lg"></i> Confirmar rechazo
             </button>
         </div>
@@ -134,9 +134,9 @@
 
 <!-- Modal selección de tarjeta -->
 <div id="modal-tarjeta" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:520px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <div style="background:var(--panel);border-radius:14px;padding:28px 32px;max-width:520px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
         <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:700;">Seleccionar tarjeta manualmente</h3>
-        <p id="modal-tarjeta-msg" style="color:var(--muted);font-size:14px;margin-bottom:14px;"></p>
+        <p id="modal-tarjeta-msg" style="color:var(--atenuado-staff);font-size:14px;margin-bottom:14px;"></p>
         <div id="lista-tarjetas" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
         <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
             <button onclick="cerrarModalTarjeta()" class="btn btn-secondary">Cancelar</button>
@@ -182,20 +182,20 @@ function mostrarModalTarjeta(tarjetas, litros) {
     document.getElementById('btn-confirmar-tarjeta').disabled = true;
 
     if (!tarjetas || tarjetas.length === 0) {
-        lista.innerHTML = '<p style="color:#DC2626;font-size:14px;">No hay tarjetas disponibles para esta gasolinera y combustible.</p>';
+        lista.innerHTML = '<p style="color:var(--peligro);font-size:14px;">No hay tarjetas disponibles para esta gasolinera y combustible.</p>';
     } else {
         tarjetas.forEach(t => {
             const div = document.createElement('div');
-            div.style.cssText = 'padding:12px 16px;border:1.5px solid #E5E7EB;border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s;';
-            div.innerHTML = `<strong>**** ${t.numero}</strong><span style="float:right;color:#E86A2C;font-weight:700;">${parseFloat(t.saldo).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2})} L</span>`;
+            div.style.cssText = 'padding:12px 16px;border:1.5px solid var(--borde-staff);border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s;';
+            div.innerHTML = `<strong>**** ${t.numero}</strong><span style="float:right;color:var(--activo);font-weight:700;">${parseFloat(t.saldo).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2})} L</span>`;
             div.dataset.tid = t.id;
             div.onclick = () => {
                 lista.querySelectorAll('[data-tid]').forEach(el => {
-                    el.style.borderColor = '#E5E7EB';
+                    el.style.borderColor = 'var(--borde-staff)';
                     el.style.background = '';
                 });
-                div.style.borderColor = '#E86A2C';
-                div.style.background = '#FFF7ED';
+                div.style.borderColor = 'var(--activo)';
+                div.style.background = 'var(--color-warning-bg-header)';
                 _tarjetaSeleccionada = t.id;
                 document.getElementById('btn-confirmar-tarjeta').disabled = false;
             };

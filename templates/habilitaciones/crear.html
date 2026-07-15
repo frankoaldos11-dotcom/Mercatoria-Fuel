@@ -12,7 +12,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -22,7 +22,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="mb-3" style="padding:0 24px;">
-            <label class="form-label">Modo <span style="color:var(--danger)">*</span></label>
+            <label class="form-label">Modo <span style="color:var(--peligro)">*</span></label>
             <div style="display:flex;gap:20px;">
                 <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
                     <input type="radio" name="modo" id="modo-despacho" value="despacho"
@@ -35,7 +35,7 @@
                     Dejar en reserva en subinventario
                 </label>
             </div>
-            <small style="color:var(--muted);font-size:12px;">
+            <small style="color:var(--atenuado-staff);font-size:12px;">
                 En reserva: se apartan los litros en un subinventario de la gasolinera, sin tocar el saldo de la tarjeta todavía.
                 Se libera y despacha más adelante, cuando el cliente venga a buscar el combustible.
             </small>
@@ -44,7 +44,7 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Cliente <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Cliente <span style="color:var(--peligro)">*</span></label>
                 <select name="cliente_id" id="sel-cliente" class="form-select" required>
                     <option value="">Seleccionar cliente...</option>
                     {% for c in clientes %}
@@ -56,7 +56,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Unidad autorizada <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Unidad autorizada <span style="color:var(--peligro)">*</span></label>
                 <select name="unidad_id" id="sel-unidad" class="form-select" required>
                     <option value="">Seleccione cliente primero...</option>
                     {% for u in unidades %}
@@ -72,7 +72,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Gasolinera <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Gasolinera <span style="color:var(--peligro)">*</span></label>
                 <select name="gasolinera_id" id="sel-gasolinera" class="form-select" required>
                     <option value="">Seleccionar gasolinera...</option>
                     {% for g in gasolineras %}
@@ -82,7 +82,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tarjeta Fincimex <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Tarjeta Fincimex <span style="color:var(--peligro)">*</span></label>
                 <select name="tarjeta_id" id="sel-tarjeta" class="form-select" required>
                     <option value="">Seleccione gasolinera primero...</option>
                     {% for t in tarjetas %}
@@ -123,30 +123,30 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <small id="hint-sub-despacho" style="color:var(--muted);font-size:12px;">Si se elige, esta habilitación consumirá de esa reserva al despacharse.</small>
+                    <small id="hint-sub-despacho" style="color:var(--atenuado-staff);font-size:12px;">Si se elige, esta habilitación consumirá de esa reserva al despacharse.</small>
                 </div>
 
                 <div id="sub-nuevo-wrap" style="display:none;">
                     <input type="text" name="sub_nombre_nuevo" id="input-sub-nuevo" class="form-control"
                            placeholder="Ej. Reserva Caritas Cuba — julio"
                            value="{{ request.form.get('sub_nombre_nuevo', '') }}">
-                    <small style="color:var(--muted);font-size:12px;">
+                    <small style="color:var(--atenuado-staff);font-size:12px;">
                         Se crea como subinventario de tipo Cliente, asociado al cliente elegido arriba, en la gasolinera elegida abajo.
                     </small>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Litros autorizados <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Litros autorizados <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="litros_autorizados" class="form-control"
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        value="{{ request.form.get('litros_autorizados', '') }}"
                        required placeholder="0.00">
-                <div id="saldo-info" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+                <div id="saldo-info" style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;"></div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Fecha de habilitación <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Fecha de habilitación <span style="color:var(--peligro)">*</span></label>
                 <input type="date" name="fecha_habilitacion" class="form-control"
                        value="{{ request.form.get('fecha_habilitacion', hoy) }}" required>
             </div>
@@ -266,7 +266,7 @@ function actualizarModo() {
     const esReserva = modoReserva.checked;
     subModoToggle.style.display = esReserva ? 'flex' : 'none';
     labelSub.innerHTML = esReserva
-        ? 'Subinventario donde apartar <span style="color:var(--danger)">*</span>'
+        ? 'Subinventario donde apartar <span style="color:var(--peligro)">*</span>'
         : 'Subinventario (opcional)';
 
     if (esReserva) {

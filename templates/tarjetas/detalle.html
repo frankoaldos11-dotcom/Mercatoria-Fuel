@@ -36,12 +36,12 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Operación realizada correctamente.
 </div>
 {% endif %}
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
@@ -50,8 +50,8 @@
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
 
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo usable</div>
-        <div style="font-size:28px;font-weight:700;color:{% if tarjeta.saldo_usable_l < 200 %}#D97706{% else %}var(--primary){% endif %};">
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo usable</div>
+        <div style="font-size:28px;font-weight:700;color:{% if tarjeta.saldo_usable_l < 200 %}var(--color-warning-accent-2){% else %}var(--principal){% endif %};">
             {{ "{:,.2f}".format(tarjeta.saldo_usable_l) }} <span style="font-size:14px;font-weight:400;">L</span>
         </div>
         {% if tarjeta.saldo_usable_l < 200 %}
@@ -62,12 +62,12 @@
     </div>
 
     <!-- Saldo Fincimex USD — equivalente calculado desde el saldo en litros (fuente única) -->
-    <div class="panel" style="padding:20px;text-align:center;{% if saldo_usd_calc > 0 %}border:2px solid #16A34A;{% endif %}">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo Fincimex (USD equiv.)</div>
-        <div style="font-size:28px;font-weight:700;color:{% if saldo_usd_calc > 0 %}#16A34A{% else %}var(--muted){% endif %};">
+    <div class="panel" style="padding:20px;text-align:center;{% if saldo_usd_calc > 0 %}border:2px solid var(--exito);{% endif %}">
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo Fincimex (USD equiv.)</div>
+        <div style="font-size:28px;font-weight:700;color:{% if saldo_usd_calc > 0 %}var(--exito){% else %}var(--atenuado-staff){% endif %};">
             ${{ "{:,.2f}".format(saldo_usd_calc) }}
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Factor: {{ factor }} $/L</div>
+        <div style="font-size:11px;color:var(--atenuado-staff);margin-top:2px;">Factor: {{ factor }} $/L</div>
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') and bolson_disponible > 0 %}
         <div style="margin-top:10px;">
             <a href="/tarjetas/{{ tarjeta.id }}/asignar-saldo" class="btn btn-success btn-sm">
@@ -77,18 +77,18 @@
         {% endif %}
     </div>
 
-    <div class="panel" style="padding:20px;text-align:center;{% if tarjeta.saldo_retenido_l > 0 %}border:2px solid #F59E0B;{% endif %}">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo retenido</div>
-        <div style="font-size:28px;font-weight:700;color:#D97706;">
+    <div class="panel" style="padding:20px;text-align:center;{% if tarjeta.saldo_retenido_l > 0 %}border:2px solid var(--aviso);{% endif %}">
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Saldo retenido</div>
+        <div style="font-size:28px;font-weight:700;color:var(--color-warning-accent-2);">
             {{ "{:,.2f}".format(tarjeta.saldo_retenido_l) }} <span style="font-size:14px;font-weight:400;">L</span>
         </div>
         {% if tarjeta.saldo_retenido_l > 0 %}
-        <div style="font-size:12px;color:#D97706;margin-top:6px;">Pendiente de liberación por Fincimex</div>
+        <div style="font-size:12px;color:var(--color-warning-accent-2);margin-top:6px;">Pendiente de liberación por Fincimex</div>
         {% endif %}
     </div>
 
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Estado</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Estado</div>
         <div style="margin-top:8px;">
             {% if tarjeta.estado == 'activa' %}
             <span class="badge badge-ok" style="font-size:14px;padding:6px 16px;">Activa</span>
@@ -141,7 +141,7 @@
     </div>
 
     <div class="panel" style="padding:20px;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Datos</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Datos</div>
         <div style="font-size:13px;margin-bottom:4px;"><strong>Gasolinera:</strong> {{ tarjeta.gasolinera_nombre }}</div>
         <div style="font-size:13px;margin-bottom:4px;"><strong>Combustible:</strong> {{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}</div>
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando', 'operador_gasolinera') %}
@@ -150,12 +150,12 @@
             {% if tarjeta.pin_plano %}
             <span style="font-family:monospace;font-weight:700;letter-spacing:1px;">{{ tarjeta.pin_plano }}</span>
             {% else %}
-            <span style="color:var(--muted);">PIN no disponible (reintroducir)</span>
+            <span style="color:var(--atenuado-staff);">PIN no disponible (reintroducir)</span>
             {% endif %}
         </div>
         {% endif %}
         {% if tarjeta.notas %}
-        <div style="font-size:12px;color:var(--muted);margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">{{ tarjeta.notas }}</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:8px;border-top:1px solid var(--borde-staff);padding-top:8px;">{{ tarjeta.notas }}</div>
         {% endif %}
     </div>
 
@@ -164,9 +164,9 @@
 <!-- Devoluciones pendientes destacadas -->
 {% set devs_pendientes = devoluciones | selectattr('estado', 'equalto', 'pendiente') | list %}
 {% if devs_pendientes %}
-<div class="panel mb-4" style="border:2px solid #F59E0B;">
-    <div class="panel-header" style="background:#FFFBEB;">
-        <h2 style="font-size:16px;font-weight:600;margin:0;color:#92400E;">
+<div class="panel mb-4" style="border:2px solid var(--aviso);">
+    <div class="panel-header" style="background:var(--color-warning-bg-alt-upper);">
+        <h2 style="font-size:16px;font-weight:600;margin:0;color:var(--texto-sobre-aviso);">
             <i class="bi bi-clock-history"></i> Devoluciones pendientes de liberación ({{ devs_pendientes|length }})
         </h2>
     </div>
@@ -184,15 +184,15 @@
             </thead>
             <tbody>
                 {% for d in devs_pendientes %}
-                <tr style="background:#FFFBEB;">
+                <tr style="background:var(--color-warning-bg-alt-upper);">
                     <td>{{ d.fecha_incidente }}</td>
-                    <td><strong style="color:#D97706;">{{ "{:,.2f}".format(d.litros_retenidos) }} L</strong></td>
+                    <td><strong style="color:var(--color-warning-accent-2);">{{ "{:,.2f}".format(d.litros_retenidos) }} L</strong></td>
                     <td>{{ d.slip_inicial or '—' }}</td>
                     <td>{{ d.slip_devolucion or '—' }}</td>
                     <td>
                         {% if d.fecha_estimada_liberacion %}
                         {% set vencida = d.fecha_estimada_liberacion < hoy %}
-                        <span style="color:{% if vencida %}var(--danger){% else %}var(--text){% endif %};">
+                        <span style="color:{% if vencida %}var(--peligro){% else %}var(--texto-staff){% endif %};">
                             {% if vencida %}<i class="bi bi-exclamation-triangle"></i> {% endif %}
                             {{ d.fecha_estimada_liberacion }}
                         </span>
@@ -244,7 +244,7 @@
                 {% for r in recargas %}
                 <tr>
                     <td>{{ r.fecha }}</td>
-                    <td><strong style="color:var(--success);">+{{ "{:,.2f}".format(r.litros_recargados) }} L</strong></td>
+                    <td><strong style="color:var(--exito);">+{{ "{:,.2f}".format(r.litros_recargados) }} L</strong></td>
                     <td>
                         {% if r.estado == 'confirmada' %}
                         <span class="badge badge-ok">Confirmada</span>
@@ -253,7 +253,7 @@
                         {% endif %}
                     </td>
                     <td>{{ r.responsable_nombre }}</td>
-                    <td style="color:var(--muted);font-size:13px;">{{ r.observaciones or '—' }}</td>
+                    <td style="color:var(--atenuado-staff);font-size:13px;">{{ r.observaciones or '—' }}</td>
                 </tr>
                 {% else %}
                 <tr><td colspan="5" class="empty-state" style="padding:20px;">Sin recargas registradas.</td></tr>
@@ -290,7 +290,7 @@
                 {% for d in devoluciones %}
                 <tr>
                     <td>{{ d.fecha_incidente }}</td>
-                    <td><strong style="color:#D97706;">{{ "{:,.2f}".format(d.litros_retenidos) }} L</strong></td>
+                    <td><strong style="color:var(--color-warning-accent-2);">{{ "{:,.2f}".format(d.litros_retenidos) }} L</strong></td>
                     <td style="font-size:12px;">
                         {% if d.slip_inicial %}<div>Inicial: {{ d.slip_inicial }}</div>{% endif %}
                         {% if d.slip_devolucion %}<div>Devol.: {{ d.slip_devolucion }}</div>{% endif %}

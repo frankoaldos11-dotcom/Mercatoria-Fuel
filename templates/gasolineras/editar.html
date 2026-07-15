@@ -21,7 +21,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -34,11 +34,11 @@
 
             <!-- Identificación -->
             <div class="mb-3" style="grid-column: 1 / -1;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Identificación</label>
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--atenuado-staff);font-weight:600;">Identificación</label>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Nombre <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Nombre <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="nombre" class="form-control"
                        value="{{ gasolinera.nombre }}" required>
             </div>
@@ -53,11 +53,11 @@
 
             <!-- Ubicación -->
             <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Ubicación</label>
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--atenuado-staff);font-weight:600;">Ubicación</label>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Región <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Región <span style="color:var(--peligro)">*</span></label>
                 <select name="region" class="form-select" required>
                     <option value="">Seleccionar...</option>
                     {% for r in regiones %}
@@ -81,12 +81,12 @@
 
             <!-- Combustibles -->
             <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">
-                    Combustibles que maneja <span style="color:var(--danger)">*</span>
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--atenuado-staff);font-weight:600;">
+                    Combustibles que maneja <span style="color:var(--peligro)">*</span>
                 </label>
                 <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">
                     {% for tc in tipos_combustible %}
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;border:2px solid {{ 'var(--primary)' if tc in combustibles_sel else 'var(--border)' }};border-radius:8px;background:var(--surface);">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;border:2px solid {{ 'var(--principal)' if tc in combustibles_sel else 'var(--borde-staff)' }};border-radius:8px;background:var(--panel);">
                         <input type="checkbox" name="combustibles" value="{{ tc }}" class="chk-combustible"
                                data-cap-target="cap-{{ tc }}"
                                style="width:16px;height:16px;cursor:pointer;"
@@ -100,8 +100,8 @@
 
             <!-- Capacidad de referencia -->
             <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Capacidad de referencia</label>
-                <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--atenuado-staff);font-weight:600;">Capacidad de referencia</label>
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:2px;">
                     Valor aproximado por tanque, solo informativo — el PM lo ajusta cuando quiera. Opcional, puede dejarse vacío.
                 </div>
             </div>
@@ -116,7 +116,7 @@
 
             <!-- Gestión -->
             <div class="mb-3" style="grid-column: 1 / -1; margin-top:8px;">
-                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:600;">Gestión</label>
+                <label class="form-label" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--atenuado-staff);font-weight:600;">Gestión</label>
             </div>
 
             <div class="mb-3">
@@ -124,7 +124,7 @@
                 <input type="text" name="gestor_responsable" class="form-control"
                        value="{{ gasolinera.gestor_responsable or '' }}"
                        placeholder="Nombre del responsable o supervisor">
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">Los operarios asociados se asignarán en una fase posterior.</div>
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">Los operarios asociados se asignarán en una fase posterior.</div>
             </div>
 
         </div>

@@ -16,7 +16,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -35,19 +35,19 @@
             <div class="mb-3">
                 <label class="form-label">Número de tarjeta</label>
                 <input type="text" class="form-control" value="**** **** **** {{ tarjeta.numero_parcial }}"
-                       readonly style="font-family:monospace;background:var(--panel-soft);color:var(--muted);">
+                       readonly style="font-family:monospace;background:var(--panel-soft);color:var(--atenuado-staff);">
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Tipo de combustible</label>
                 <input type="text" class="form-control"
                        value="{{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}"
-                       readonly style="background:var(--panel-soft);color:var(--muted);">
+                       readonly style="background:var(--panel-soft);color:var(--atenuado-staff);">
             </div>
 
             <!-- Gasolinera — editable -->
             <div class="mb-3">
-                <label class="form-label">Gasolinera asignada <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Gasolinera asignada <span style="color:var(--peligro)">*</span></label>
                 <select name="gasolinera_id" class="form-select" required
                         onchange="avisarCambioGasolinera(this)">
                     {% for g in gasolineras %}
@@ -60,7 +60,7 @@
 
             <!-- Estado — editable -->
             <div class="mb-3">
-                <label class="form-label">Estado <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Estado <span style="color:var(--peligro)">*</span></label>
                 <select name="estado" class="form-select" required>
                     {% for e in estados_tarjeta %}
                     <option value="{{ e }}" {{ 'selected' if e == tarjeta.estado }}>{{ e|capitalize }}</option>
@@ -73,7 +73,7 @@
                 <label class="form-label">PIN</label>
                 <input type="text" name="pin" class="form-control" inputmode="numeric"
                        placeholder="{% if tarjeta.pin_plano %}{{ tarjeta.pin_plano }}{% else %}Reintroducir PIN...{% endif %}">
-                <small style="color:var(--muted);font-size:12px;">Deja en blanco para no cambiarlo. Se guarda visible para admin, PM y operador de gasolinera.</small>
+                <small style="color:var(--atenuado-staff);font-size:12px;">Deja en blanco para no cambiarlo. Se guarda visible para admin, PM y operador de gasolinera.</small>
             </div>
 
             <!-- Notas — editable -->
@@ -86,7 +86,7 @@
         </div>
 
         <!-- Aviso de saldo (oculto hasta que JS lo muestre) -->
-        <div id="aviso-saldo" style="display:none;background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:14px;">
+        <div id="aviso-saldo" style="display:none;background:var(--fondo-aviso-suave);border-left:4px solid var(--color-warning-accent-1);color:var(--color-warning-text-deep);border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:14px;">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <strong>Atención:</strong> esta tarjeta tiene
             <span id="aviso-saldo-usable"></span>
@@ -106,16 +106,16 @@
 
 <!-- Saldos actuales (solo lectura, informativo) -->
 <div class="panel mt-4" style="padding:20px;">
-    <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Saldos actuales (no se modifican)</div>
+    <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Saldos actuales (no se modifican)</div>
     <div style="display:flex;gap:32px;">
         <div>
-            <div style="font-size:12px;color:var(--muted);">Usable</div>
-            <div style="font-size:20px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(tarjeta.saldo_usable_l) }} L</div>
+            <div style="font-size:12px;color:var(--atenuado-staff);">Usable</div>
+            <div style="font-size:20px;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(tarjeta.saldo_usable_l) }} L</div>
         </div>
         {% if tarjeta.saldo_retenido_l > 0 %}
         <div>
-            <div style="font-size:12px;color:var(--muted);">Retenido</div>
-            <div style="font-size:20px;font-weight:700;color:#D97706;">{{ "{:,.2f}".format(tarjeta.saldo_retenido_l) }} L</div>
+            <div style="font-size:12px;color:var(--atenuado-staff);">Retenido</div>
+            <div style="font-size:20px;font-weight:700;color:var(--color-warning-accent-2);">{{ "{:,.2f}".format(tarjeta.saldo_retenido_l) }} L</div>
         </div>
         {% endif %}
     </div>

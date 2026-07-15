@@ -16,7 +16,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -24,26 +24,26 @@
 <!-- KPI: Bolsón disponible y saldo actual de la tarjeta -->
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
 
-    <div class="panel" style="padding:20px;text-align:center;border:2px solid #16A34A;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Bolsón disponible</div>
-        <div style="font-size:26px;font-weight:700;color:#16A34A;">${{ "{:,.2f}".format(bolson_disponible) }}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">≈ {{ "{:,.2f}".format(bolson_disponible / factor if factor else 0) }} L equiv.</div>
+    <div class="panel" style="padding:20px;text-align:center;border:2px solid var(--exito);">
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Bolsón disponible</div>
+        <div style="font-size:26px;font-weight:700;color:var(--exito);">${{ "{:,.2f}".format(bolson_disponible) }}</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">≈ {{ "{:,.2f}".format(bolson_disponible / factor if factor else 0) }} L equiv.</div>
     </div>
 
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Saldo actual tarjeta</div>
-        <div style="font-size:26px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">≈ ${{ "{:,.2f}".format(saldo_usd_actual) }} USD equiv.</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Saldo actual tarjeta</div>
+        <div style="font-size:26px;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">≈ ${{ "{:,.2f}".format(saldo_usd_actual) }} USD equiv.</div>
     </div>
 
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Factor actual</div>
-        <div style="font-size:26px;font-weight:700;color:var(--text);">{{ factor }}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">USD por litro</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Factor actual</div>
+        <div style="font-size:26px;font-weight:700;color:var(--texto-staff);">{{ factor }}</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">USD por litro</div>
     </div>
 
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Gasolinera asignada</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Gasolinera asignada</div>
         <div style="font-size:16px;font-weight:600;">{{ tarjeta.gasolinera_nombre }}</div>
         <div style="font-size:12px;margin-top:4px;"><span class="badge badge-info">{{ combustible_labels.get(tarjeta.tipo_combustible, tarjeta.tipo_combustible) }}</span></div>
     </div>
@@ -51,7 +51,7 @@
 </div>
 
 {% if bolson_disponible <= 0 %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-x-circle"></i>
     <strong>Bolsón vacío.</strong> No hay saldo Fincimex disponible para asignar. El saldo se genera automáticamente al confirmar recepciones de combustible en los depósitos.
 </div>
@@ -64,12 +64,12 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Monto a asignar (USD) <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Monto a asignar (USD) <span style="color:var(--peligro)">*</span></label>
                 <input type="number" name="monto_usd" class="form-control"
                        min="0.01" step="0.01" max="{{ "{:.2f}".format(bolson_disponible) }}"
                        placeholder="0.00" required {{ 'disabled' if bolson_disponible <= 0 }}
                        oninput="calcEquiv(this.value)">
-                <div id="equiv-display" style="font-size:13px;color:var(--muted);margin-top:4px;"></div>
+                <div id="equiv-display" style="font-size:13px;color:var(--atenuado-staff);margin-top:4px;"></div>
             </div>
 
             <div class="mb-3" style="grid-column:1/-1;">
@@ -80,7 +80,7 @@
 
         </div>
 
-        <div style="background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#1E40AF;">
+        <div style="background:var(--fondo-info-suave);border-left:4px solid var(--color-info-accent);border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:var(--texto-sobre-info);">
             <i class="bi bi-info-circle"></i>
             El saldo de la tarjeta se maneja siempre en <strong>litros</strong>. El monto que indiques se convierte a litros con el factor actual (redondeado hacia abajo, para nunca acreditar de más) y se descuenta del <strong>bolsón general</strong> exactamente por ese equivalente. Saldo actual: <strong>{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</strong>.
         </div>

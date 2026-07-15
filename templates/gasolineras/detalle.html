@@ -28,7 +28,7 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Cambios guardados correctamente.
 </div>
 {% endif %}
@@ -37,37 +37,37 @@
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
 
     <div class="panel" style="padding:20px;text-align:center;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Stock total</div>
-        <div style="font-size:28px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(stock_total) }} <span style="font-size:14px;font-weight:400;">L</span></div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Stock total</div>
+        <div style="font-size:28px;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(stock_total) }} <span style="font-size:14px;font-weight:400;">L</span></div>
     </div>
 
     {% if stock_por_combustible %}
     <div class="panel" style="padding:20px;grid-column:1/-1;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Stock vs. capacidad de referencia, por combustible</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Stock vs. capacidad de referencia, por combustible</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
             {% for tc, litros in stock_por_combustible.items() %}
             {% set cap = capacidad_por_combustible.get(tc, 0) %}
-            <div style="border:1px solid var(--border);border-radius:10px;padding:14px;">
+            <div style="border:1px solid var(--borde-staff);border-radius:10px;padding:14px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                     <span class="badge badge-info">{{ combustible_labels.get(tc, tc) }}</span>
                     {% if cap > 0 %}
                     {% set pct = (litros / cap * 100) %}
-                    <strong style="font-size:15px;color:{{ '#DC2626' if pct >= 150 else ('#F59E0B' if pct >= 100 else '#16A34A') }};">
+                    <strong class="{{ 'nivel-critico' if pct >= 150 else ('nivel-alto' if pct >= 100 else 'nivel-normal') }}" style="font-size:15px;">
                         {{ "{:.1f}".format(pct) }}%
                     </strong>
                     {% else %}
-                    <span style="font-size:12px;color:var(--muted);">Capacidad no definida</span>
+                    <span style="font-size:12px;color:var(--atenuado-staff);">Capacidad no definida</span>
                     {% endif %}
                 </div>
                 <div style="font-size:14px;">
                     <strong>{{ "{:,.2f}".format(litros) }} L</strong>
                     {% if cap > 0 %}
-                    <span style="color:var(--muted);"> / {{ "{:,.2f}".format(cap) }} L ref.</span>
+                    <span style="color:var(--atenuado-staff);"> / {{ "{:,.2f}".format(cap) }} L ref.</span>
                     {% endif %}
                 </div>
                 {% if cap > 0 %}
-                <div style="width:100%;height:6px;background:#E5E7EB;border-radius:3px;margin-top:8px;">
-                    <div style="width:{{ [pct,100]|min|int }}%;height:6px;border-radius:3px;background:{{ '#DC2626' if pct >= 150 else ('#F59E0B' if pct >= 100 else '#16A34A') }};"></div>
+                <div style="width:100%;height:6px;background:var(--borde-staff);border-radius:3px;margin-top:8px;">
+                    <div class="{{ 'nivel-critico-bg' if pct >= 150 else ('nivel-alto-bg' if pct >= 100 else 'nivel-normal-bg') }}" style="width:{{ [pct,100]|min|int }}%;height:6px;border-radius:3px;"></div>
                 </div>
                 {% endif %}
             </div>
@@ -77,7 +77,7 @@
     {% endif %}
 
     <div class="panel" style="padding:20px;">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Información</div>
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Información</div>
 
         <div style="font-size:13px;margin-bottom:6px;">
             <strong>Estado:</strong>
@@ -100,7 +100,7 @@
         <div style="font-size:13px;margin-bottom:4px;"><strong>Dirección:</strong> {{ gasolinera.direccion }}</div>
         {% endif %}
 
-        <div style="font-size:12px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:8px;padding-top:8px;border-top:1px solid var(--borde-staff);">
             <i class="bi bi-info-circle"></i> Operarios asociados disponibles en una fase futura.
         </div>
     </div>
@@ -116,16 +116,16 @@
             <h2 style="font-size:16px;font-weight:600;margin:0;">
                 <i class="bi bi-credit-card-2-front"></i> Tarjetas Fincimex activas
             </h2>
-            <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">Saldo USD acumulado en tarjetas de esta gasolinera.</p>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--atenuado-staff);">Saldo USD acumulado en tarjetas de esta gasolinera.</p>
         </div>
         <div style="text-align:right;">
-            <div style="font-size:22px;font-weight:700;color:#16A34A;">${{ "{:,.2f}".format(saldo_usd_total_gas) }}</div>
-            <div style="font-size:12px;color:var(--muted);">≈ {{ "{:,.2f}".format(litros_equiv_total) }} L equiv. · factor {{ factor }}</div>
+            <div style="font-size:22px;font-weight:700;color:var(--exito);">${{ "{:,.2f}".format(saldo_usd_total_gas) }}</div>
+            <div style="font-size:12px;color:var(--atenuado-staff);">≈ {{ "{:,.2f}".format(litros_equiv_total) }} L equiv. · factor {{ factor }}</div>
         </div>
     </div>
 
     {% if stock_total > 0 and litros_equiv_total > stock_total %}
-    <div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:0;padding:0.75rem 1rem;font-size:13px;">
+    <div style="background:var(--fondo-aviso-suave);border-left:4px solid var(--color-warning-accent-1);color:var(--color-warning-text-deep);border-radius:0;padding:0.75rem 1rem;font-size:13px;">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <strong>Aviso de cobertura:</strong> los litros equivalentes en tarjetas ({{ "{:,.0f}".format(litros_equiv_total) }} L)
         superan el stock físico actual ({{ "{:,.0f}".format(stock_total) }} L). Hay tarjetas con saldo USD que no tiene respaldo físico en esta gasolinera. Esto es informativo — no bloquea despachos.
@@ -147,14 +147,14 @@
                 {% for t in tarjetas_gas %}
                 <tr>
                     <td>
-                        <a href="/tarjetas/{{ t.id }}" style="font-family:monospace;font-weight:700;color:var(--primary);text-decoration:none;">
+                        <a href="/tarjetas/{{ t.id }}" style="font-family:monospace;font-weight:700;color:var(--principal);text-decoration:none;">
                             **** {{ t.numero_parcial }}
                         </a>
                     </td>
                     <td><span class="badge badge-info">{{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}</span></td>
                     <td>{{ "{:,.2f}".format(t.saldo_usable_l | float) }} L</td>
                     <td>
-                        <strong style="color:{% if t.saldo_usd_calc > 0 %}#16A34A{% else %}var(--muted){% endif %};">
+                        <strong style="color:{% if t.saldo_usd_calc > 0 %}var(--exito){% else %}var(--atenuado-staff){% endif %};">
                             ${{ "{:,.2f}".format(t.saldo_usd_calc) }}
                         </strong>
                     </td>
@@ -168,10 +168,10 @@
                 </tr>
                 {% endfor %}
                 <!-- Fila total -->
-                <tr style="background:#F8FAFC;font-weight:700;border-top:2px solid var(--border);">
-                    <td colspan="2" style="font-size:13px;color:var(--muted);">Total tarjetas activas</td>
-                    <td style="color:var(--muted);font-size:13px;">{{ "{:,.2f}".format(litros_equiv_total) }} L</td>
-                    <td style="color:#16A34A;">${{ "{:,.2f}".format(saldo_usd_total_gas) }}</td>
+                <tr style="background:var(--panel-suave);font-weight:700;border-top:2px solid var(--borde-staff);">
+                    <td colspan="2" style="font-size:13px;color:var(--atenuado-staff);">Total tarjetas activas</td>
+                    <td style="color:var(--atenuado-staff);font-size:13px;">{{ "{:,.2f}".format(litros_equiv_total) }} L</td>
+                    <td style="color:var(--exito);">${{ "{:,.2f}".format(saldo_usd_total_gas) }}</td>
                     <td></td>
                 </tr>
             </tbody>
@@ -187,7 +187,7 @@
             <h2 style="font-size:16px;font-weight:600;margin:0;">
                 <i class="bi bi-pie-chart"></i> Subinventarios
             </h2>
-            <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">Distribución de reservas sobre el stock físico.</p>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--atenuado-staff);">Distribución de reservas sobre el stock físico.</p>
         </div>
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <div class="d-flex gap-2">
@@ -219,9 +219,9 @@
                 {% set pct = ((s.litros_reservados | float) / stock_total * 100) if stock_total else 0 %}
                 {% set es_reserva = s.tipo in ('cliente', 'mercatoria_interna', 'reserva_general') %}
                 {% if es_reserva %}
-                {% set row_bg = 'background:#EFF6FF;' %}
+                {% set row_bg = 'background:var(--fondo-info-suave);' %}
                 {% elif s.tipo == 'disponible_venta' %}
-                {% set row_bg = 'background:#F0FDF4;' %}
+                {% set row_bg = 'background:var(--fondo-exito-suave);' %}
                 {% else %}
                 {% set row_bg = '' %}
                 {% endif %}
@@ -229,12 +229,12 @@
                     <td>
                         <strong>{% if s.tipo == 'cliente' and s.cliente_nombre %}{{ s.cliente_nombre }}{% else %}{{ s.nombre }}{% endif %}</strong>
                         {% if es_reserva %}
-                        <i class="bi bi-lock-fill" style="font-size:11px;color:#3B82F6;margin-left:4px;" title="Reserva — no despacha directamente"></i>
+                        <i class="bi bi-lock-fill" style="font-size:11px;color:var(--color-info-accent);margin-left:4px;" title="Reserva — no despacha directamente"></i>
                         {% endif %}
                     </td>
                     <td>
                         {% if es_reserva %}
-                        <span class="badge" style="background:#DBEAFE;color:#1E40AF;">{{ subinventario_labels.get(s.tipo, s.tipo) }}</span>
+                        <span class="badge" style="background:var(--color-info-bg-upper);color:var(--texto-sobre-info);">{{ subinventario_labels.get(s.tipo, s.tipo) }}</span>
                         {% else %}
                         <span class="badge badge-ok">{{ subinventario_labels.get(s.tipo, s.tipo) }}</span>
                         {% endif %}
@@ -242,12 +242,12 @@
                     <td>
                         <strong>{{ "{:,.2f}".format(s.litros_reservados) }} L</strong>
                         {% if s.activo and stock_total %}
-                        <div style="width:100px;height:5px;background:#E5E7EB;border-radius:3px;margin-top:4px;">
-                            <div style="width:{{ [pct,100]|min|int }}%;height:5px;border-radius:3px;background:{{ '#3B82F6' if es_reserva else 'var(--success)' }};"></div>
+                        <div style="width:100px;height:5px;background:var(--borde-staff);border-radius:3px;margin-top:4px;">
+                            <div style="width:{{ [pct,100]|min|int }}%;height:5px;border-radius:3px;background:{{ 'var(--color-info-accent)' if es_reserva else 'var(--exito)' }};"></div>
                         </div>
                         {% endif %}
                     </td>
-                    <td style="font-size:13px;color:var(--muted);">
+                    <td style="font-size:13px;color:var(--atenuado-staff);">
                         {% if stock_total %}{{ "{:.1f}".format(pct) }}%{% else %}—{% endif %}
                     </td>
                     <td>
@@ -289,19 +289,19 @@
                 {% endfor %}
 
                 <!-- Fila resumen -->
-                <tr style="background:#F8FAFC;font-weight:700;border-top:2px solid var(--border);">
-                    <td colspan="2" style="font-size:13px;color:var(--muted);">Total reservado</td>
+                <tr style="background:var(--panel-suave);font-weight:700;border-top:2px solid var(--borde-staff);">
+                    <td colspan="2" style="font-size:13px;color:var(--atenuado-staff);">Total reservado</td>
                     <td><strong>{{ "{:,.2f}".format(suma_reservados) }} L</strong></td>
-                    <td style="font-size:13px;color:var(--muted);">
+                    <td style="font-size:13px;color:var(--atenuado-staff);">
                         {% if stock_total %}{{ "{:.1f}".format(suma_reservados / stock_total * 100) }}%{% else %}—{% endif %}
                     </td>
                     <td colspan="2"></td>
                 </tr>
-                <tr style="background:#F0FDF4;">
-                    <td colspan="2" style="font-weight:700;color:var(--success);">
+                <tr style="background:var(--fondo-exito-suave);">
+                    <td colspan="2" style="font-weight:700;color:var(--exito);">
                         <i class="bi bi-droplet-half"></i> Disponible para venta
                     </td>
-                    <td><strong style="font-size:16px;color:var(--success);">{{ "{:,.2f}".format(disponible_venta) }} L</strong></td>
+                    <td><strong style="font-size:16px;color:var(--exito);">{{ "{:,.2f}".format(disponible_venta) }} L</strong></td>
                     <td colspan="3"></td>
                 </tr>
 
@@ -347,7 +347,7 @@
             <tbody>
                 {% for d in despachos_recientes %}
                 <tr>
-                    <td><span style="color:var(--muted);font-size:12px;">#{{ d.id }}</span></td>
+                    <td><span style="color:var(--atenuado-staff);font-size:12px;">#{{ d.id }}</span></td>
                     <td>{{ (d.fecha_despacho|string)[:16] if d.fecha_despacho else '—' }}</td>
                     <td>{{ d.cliente_nombre }}</td>
                     <td><code style="font-size:12px;">{{ d.unidad_chapa }}</code></td>
@@ -396,7 +396,7 @@
             <tbody>
                 {% for t in transferencias %}
                 <tr>
-                    <td><span style="color:var(--muted);font-size:12px;">#{{ t.id }}</span></td>
+                    <td><span style="color:var(--atenuado-staff);font-size:12px;">#{{ t.id }}</span></td>
                     <td>{{ t.fecha_salida }}</td>
                     <td>{{ t.fecha_llegada or '—' }}</td>
                     <td>{{ t.deposito_nombre }}</td>

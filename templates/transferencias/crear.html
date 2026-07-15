@@ -16,13 +16,13 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
 
 {% if advertencia_tarjeta %}
-<div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-aviso-suave);border-left:4px solid var(--color-warning-accent-1);color:var(--color-warning-text-deep);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
     <div style="font-weight:600;margin-bottom:6px;"><i class="bi bi-exclamation-triangle-fill"></i> Aviso: sin tarjeta Fincimex</div>
     <div>{{ advertencia_tarjeta }}</div>
     <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:600;cursor:pointer;">
@@ -40,7 +40,7 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Depósito origen <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Depósito origen <span style="color:var(--peligro)">*</span></label>
                 <select name="deposito_origen_id" class="form-select" required>
                     <option value="">Seleccionar depósito...</option>
                     {% for d in depositos %}
@@ -53,7 +53,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Gasolinera destino <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Gasolinera destino <span style="color:var(--peligro)">*</span></label>
                 <select name="gasolinera_destino_id" id="sel-gasolinera" class="form-select" required onchange="validarTarjeta()">
                     <option value="">Seleccionar gasolinera...</option>
                     {% for g in gasolineras %}
@@ -63,21 +63,21 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Tipo de combustible <span style="color:var(--peligro)">*</span></label>
                 <select name="tipo_combustible" id="sel-combustible" class="form-select" required onchange="validarTarjeta()">
                     <option value="">Seleccionar...</option>
                     {% for tc in tipos_combustible %}
                     <option value="{{ tc }}">{{ combustible_labels.get(tc, tc) }}</option>
                     {% endfor %}
                 </select>
-                <div id="aviso-tarjeta" style="display:none;margin-top:8px;background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:6px;padding:8px 12px;font-size:13px;">
+                <div id="aviso-tarjeta" style="display:none;margin-top:8px;background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:6px;padding:8px 12px;font-size:13px;">
                     <i class="bi bi-exclamation-triangle-fill"></i>
                     <span id="aviso-tarjeta-msg"></span>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Litros solicitados <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Litros solicitados <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="litros_solicitados" class="form-control"
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        value="{{ form_vals.get('litros_solicitados', '') if form_vals else '' }}"
@@ -85,7 +85,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Fecha de salida <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Fecha de salida <span style="color:var(--peligro)">*</span></label>
                 <input type="date" name="fecha_salida" class="form-control"
                        value="{{ form_vals.get('fecha_salida', hoy) if form_vals else hoy }}" required>
             </div>
@@ -112,7 +112,7 @@
 
         </div>
 
-        <div style="background:#FEF9C3;border-left:4px solid #CA8A04;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#713F12;">
+        <div style="background:var(--fondo-aviso-suave);border-left:4px solid var(--color-warning-accent-1);border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:var(--color-warning-text-deep);">
             <i class="bi bi-exclamation-triangle"></i>
             Al guardar se registra la <strong>salida</strong> del depósito. Los litros se descontarán del stock inmediatamente.
             La <strong>llegada</strong> se confirma en un segundo paso desde el listado.

@@ -16,7 +16,7 @@
     <form method="GET" action="/turno/" class="panel-header" style="flex-wrap:wrap;gap:10px;">
         {% if rol == 'operador_gasolinera' %}
         <input type="hidden" name="gasolinera_id" value="{{ gasolinera_id }}">
-        <div class="form-control" style="max-width:200px;background:#F9FAFB;font-weight:600;">
+        <div class="form-control" style="max-width:200px;background:var(--color-gray-table-header-bg-upper);font-weight:600;">
             {% for g in gasolineras %}{% if g.id|string == gasolinera_id %}{{ g.nombre }}{% endif %}{% endfor %}
         </div>
         {% else %}
@@ -42,7 +42,7 @@
         <h2><i class="bi bi-plus-circle"></i> Añadir habilitación</h2>
     </div>
     <div style="padding:20px;">
-        <div id="hab-error" style="display:none;background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;"></div>
+        <div id="hab-error" style="display:none;background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;"></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;">
             <div>
                 <label class="form-label">Cliente *</label>
@@ -92,7 +92,7 @@
 <div class="panel mb-4">
     <div class="panel-header">
         <h2>Habilitaciones del turno</h2>
-        <span style="font-size:13px;color:var(--muted);">{{ gasolinera_id }} · {{ fecha }}</span>
+        <span style="font-size:13px;color:var(--atenuado-staff);">{{ gasolinera_id }} · {{ fecha }}</span>
     </div>
     <div class="table-wrapper">
         <table class="data-table" id="tabla-habs">
@@ -115,10 +115,10 @@
                     <td><strong>#{{ h.id }}</strong></td>
                     <td style="font-size:13px;font-weight:600;">{{ h.cliente }}</td>
                     <td><span class="badge badge-neutral">{{ h.chapa }}</span></td>
-                    <td style="font-size:12px;color:var(--muted);">{{ h.chofer or '—' }}</td>
-                    <td style="font-size:12px;color:var(--muted);">**** {{ h.tarjeta }}</td>
+                    <td style="font-size:12px;color:var(--atenuado-staff);">{{ h.chofer or '—' }}</td>
+                    <td style="font-size:12px;color:var(--atenuado-staff);">**** {{ h.tarjeta }}</td>
                     <td style="text-align:right;font-weight:700;">{{ "{:,.2f}".format(h.litros_autorizados) }}</td>
-                    <td style="text-align:right;color:var(--primary);font-weight:700;" id="desp-{{ h.id }}">{{ "{:,.2f}".format(h.litros_despachados) }}</td>
+                    <td style="text-align:right;color:var(--principal);font-weight:700;" id="desp-{{ h.id }}">{{ "{:,.2f}".format(h.litros_despachados) }}</td>
                     <td><span class="badge-estado badge" id="estado-{{ h.id }}">{{ h.estado }}</span></td>
                     {% if rol in ('admin', 'pm', 'puesto_de_mando', 'operador_gasolinera') %}
                     <td>
@@ -134,7 +134,7 @@
                             </button>
                             {% endif %}
                             {% if h.estado == 'despachada' %}
-                            <span style="font-size:12px;color:var(--success);font-weight:700;"><i class="bi bi-check-circle-fill"></i> Completado</span>
+                            <span style="font-size:12px;color:var(--exito);font-weight:700;"><i class="bi bi-check-circle-fill"></i> Completado</span>
                             {% endif %}
                         </div>
                     </td>
@@ -177,7 +177,7 @@
                 </div>
                 <div>
                     <label class="form-label">Diferencia calculada</label>
-                    <div id="diff-display" style="padding:10px 13px;border:1px solid var(--border);border-radius:11px;font-weight:700;font-size:15px;color:var(--muted);min-height:42px;">
+                    <div id="diff-display" style="padding:10px 13px;border:1px solid var(--borde-staff);border-radius:11px;font-weight:700;font-size:15px;color:var(--atenuado-staff);min-height:42px;">
                         —
                     </div>
                 </div>
@@ -188,8 +188,8 @@
                 </div>
             </div>
             <div id="bloque-observaciones" style="display:none;padding:0 20px 20px;">
-                <div style="background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;padding:12px 16px;">
-                    <label class="form-label" style="font-weight:700;color:#92400E;">
+                <div style="background:var(--color-warning-bg-alt-2);border-left:4px solid var(--aviso);border-radius:8px;padding:12px 16px;">
+                    <label class="form-label" style="font-weight:700;color:var(--texto-sobre-aviso);">
                         <i class="bi bi-exclamation-triangle-fill"></i>
                         Diferencia mayor al 0.5% — Observaciones requeridas *
                     </label>
@@ -204,19 +204,19 @@
 <div class="panel mb-4">
     <div style="padding:20px;display:flex;align-items:center;gap:14px;">
         {% if conciliacion_existente.estado == 'cerrada' %}
-        <i class="bi bi-check-circle-fill" style="font-size:28px;color:var(--success);"></i>
+        <i class="bi bi-check-circle-fill" style="font-size:28px;color:var(--exito);"></i>
         <div>
             <strong style="font-size:15px;">Turno cerrado</strong>
-            <div style="font-size:13px;color:var(--muted);">
+            <div style="font-size:13px;color:var(--atenuado-staff);">
                 Diferencia: {{ "{:,.2f}".format(conciliacion_existente.diferencia_l) }} L
                 ({{ "{:.2f}".format(conciliacion_existente.diferencia_porcentaje) }}%)
             </div>
         </div>
         {% else %}
-        <i class="bi bi-exclamation-triangle-fill" style="font-size:28px;color:var(--warning);"></i>
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:28px;color:var(--aviso);"></i>
         <div>
             <strong style="font-size:15px;">Turno con alerta</strong>
-            <div style="font-size:13px;color:var(--muted);">
+            <div style="font-size:13px;color:var(--atenuado-staff);">
                 Diferencia: {{ "{:,.2f}".format(conciliacion_existente.diferencia_l) }} L
                 ({{ "{:.2f}".format(conciliacion_existente.diferencia_porcentaje) }}%) — supera 0.5%
             </div>
@@ -233,11 +233,11 @@
 <div class="modal fade" id="modalDespacho" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:16px;overflow:hidden;">
-            <div style="padding:20px 24px 12px;border-bottom:1px solid var(--border);">
+            <div style="padding:20px 24px 12px;border-bottom:1px solid var(--borde-staff);">
                 <h5 style="margin:0;font-size:17px;font-weight:700;">Registrar despacho</h5>
             </div>
             <div style="padding:20px 24px;">
-                <div id="modal-error" style="display:none;background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;"></div>
+                <div id="modal-error" style="display:none;background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;"></div>
                 <input type="hidden" id="modal-hab-id">
                 <div class="mb-3">
                     <label class="form-label">Litros realmente despachados *</label>
@@ -302,11 +302,11 @@ function calcDiff() {
     const bloqueObs = document.getElementById('bloque-observaciones');
     const inpObs = document.getElementById('inp-observaciones');
     if (!el) return;
-    if (ini === 0 && fin === 0) { el.textContent = '—'; el.style.color = 'var(--muted)'; return; }
+    if (ini === 0 && fin === 0) { el.textContent = '—'; el.style.color = 'var(--atenuado-staff)'; return; }
     const diff = fin - ini;
     const pct = ini > 0 ? Math.abs(diff / ini * 100) : 0;
     el.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString('es', {minimumFractionDigits:2}) + ' L';
-    el.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : (pct > 0.5 ? 'var(--danger)' : 'var(--warning)');
+    el.style.color = Math.abs(diff) < 0.01 ? 'var(--exito)' : (pct > 0.5 ? 'var(--peligro)' : 'var(--aviso)');
     if (bloqueObs && inpObs) {
         const mostrar = pct > 0.5;
         bloqueObs.style.display = mostrar ? '' : 'none';
@@ -369,10 +369,10 @@ async function agregarHabilitacion() {
             <td><strong>#${json.id}</strong></td>
             <td style="font-size:13px;font-weight:600;">${json.cliente}</td>
             <td><span class="badge badge-neutral">${json.chapa}</span></td>
-            <td style="font-size:12px;color:var(--muted);">${json.chofer}</td>
-            <td style="font-size:12px;color:var(--muted);">**** ${json.tarjeta}</td>
+            <td style="font-size:12px;color:var(--atenuado-staff);">${json.chofer}</td>
+            <td style="font-size:12px;color:var(--atenuado-staff);">**** ${json.tarjeta}</td>
             <td style="text-align:right;font-weight:700;">${json.litros_autorizados.toLocaleString('es',{minimumFractionDigits:2})}</td>
-            <td style="text-align:right;color:var(--primary);font-weight:700;" id="desp-${json.id}">0.00</td>
+            <td style="text-align:right;color:var(--principal);font-weight:700;" id="desp-${json.id}">0.00</td>
             <td><span class="badge badge-warn" id="estado-${json.id}">pendiente</span></td>
             <td>
                 <div style="display:flex;gap:4px;" id="acciones-${json.id}">
@@ -449,7 +449,7 @@ async function confirmarDespacho() {
         const despEl = document.getElementById(`desp-${habId}`);
         if (despEl) despEl.textContent = parseFloat(json.litros).toLocaleString('es',{minimumFractionDigits:2});
         const accionesEl = document.getElementById(`acciones-${habId}`);
-        if (accionesEl) accionesEl.innerHTML = '<span style="font-size:12px;color:var(--success);font-weight:700;"><i class="bi bi-check-circle-fill"></i> Completado</span>';
+        if (accionesEl) accionesEl.innerHTML = '<span style="font-size:12px;color:var(--exito);font-weight:700;"><i class="bi bi-check-circle-fill"></i> Completado</span>';
 
     } catch(e) { errEl.textContent = 'Error de conexión.'; errEl.style.display = ''; }
 }

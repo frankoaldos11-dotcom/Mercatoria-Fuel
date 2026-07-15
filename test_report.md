@@ -1065,3 +1065,80 @@ reiniciar el server local después de cada edición de template, no solo la prim
 - Los ~207 `var(--nombre-viejo)` en templates quedan resueltos vía alias — migrarlos al
   vocabulario nuevo (`var(--primary)`→`var(--principal)`, etc.) es trabajo opcional de
   limpieza, no bloqueante, mencionado para que quede documentado junto al resto del catálogo.
+
+---
+
+# Reporte de Pruebas — 2026-07-15
+
+## Migración de colores hardcodeados a tokens — Tanda 2 (núcleo operativo)
+
+Segunda tanda del plan de 6: Tarjetas, Despachos, Habilitaciones, Turno, Gasolineras, Puertos,
+Transferencias y `tienda/admin.html` (28 templates). Verificación solo local, sin producción.
+
+### Cambios
+
+- **28 templates migrados** — cada hex hardcodeado reemplazado por el token correspondiente
+  (mismo criterio de la Tanda 1: familias danger/success/warning/info ya catalogadas, más
+  ~207 `var(--nombre-viejo)` sueltos en estos archivos actualizados al vocabulario nuevo de
+  paso, ya que estaban en las mismas líneas que se estaban tocando de todos modos.
+- **6 tokens nuevos** en `color-sin-mapeo.json`: `color-warning-bg-header` (`#FFF7ED`, panel
+  "Reservas de Tienda pendientes"), `color-conciliada-bg`/`color-conciliada-text` (`#ede9fe`/
+  `#5b21b6`, badge morado "Conciliada"), `color-warning-border-alt` (`#FDE68A`, checkbox de
+  confirmación sin tarjeta Fincimex).
+- **2 nuevas clases utilitarias en `admin.css`** (`.nivel-critico/-alto/-normal` y sus
+  variantes `-bg`): reemplazan el patrón `style="color:{{ '#DC2626' if pct>=150 else ... }}"`
+  que aparecía embebido en Jinja en 3 lugares (`gasolineras/detalle.html` ×2,
+  `gasolineras/listado.html` ×1) — es el caso dudoso #4 del plan; apliqué la recomendación
+  original (refactor a clase condicional) ya que no tocaba lógica de negocio, solo qué
+  atributo HTML se genera.
+- **2 bugs preexistentes encontrados y corregidos de paso**: `var(--surface)` y
+  `var(--surface-alt)` — nombres que nunca existieron en ningún `:root` del proyecto (ni el
+  viejo de `admin.css` ni `tokens.css`), usados en 4 archivos (`gasolineras/crear.html`,
+  `gasolineras/editar.html`, `transferencias/confirmar_llegada.html`,
+  `transferencias/gestionar.html`). No los introduje yo — ya estaban rotos antes de esta
+  tanda (confirmado eran cero-resultado en el catálogo completo). Los corregí a
+  `var(--panel)`/`var(--panel-suave)` (el equivalente semántico más cercano) ya que estaba
+  tocando esas líneas de todos modos.
+- **Dudoso #5 (mapa `ESTADO_COLOR` en JS de `turno/escanear.html`)**: quedó sin tocar,
+  confirmado — son 2 objetos JS con hex como string literal, no CSS, fuera de alcance por
+  "no tocar lógica".
+
+### Verificación local (SQLite fresco, puerto 5055, antes/después)
+
+| # | Página | Resultado |
+|---|---|---|
+| 1 | `/tarjetas/6` (detalle, saldo bajo + retenido) | ✅ Idéntica al baseline — familia aviso/amber sin cambio de valor. |
+| 2 | `/tarjetas/6/asignar-saldo` | ✅ Idéntica — banner info sigue azul (no se tocó, es informativo, no acción). |
+| 3 | `/gasolineras/2` (detalle) | ✅ Idéntica en el caso base. Sembré datos para forzar el umbral `pct>=150%` (antes hardcodeado, ahora `.nivel-critico`) — texto y barra de progreso en rojo, igual que el comportamiento original. |
+| 4 | `/turno/escanear` | ✅ Idéntica salvo el naranja unificado (cambio A2 ya esperado, mismo patrón que Tanda 1). |
+| 5 | `/puertos/` (listado, sembrado con estados "en_puerto" y "anulado") | ✅ Badges con contraste correcto — "Anulado" rosa/rojo oscuro, "En puerto" amarillo/ámbar oscuro. |
+| 6 | `/puertos/2` (detalle) | ✅ Badge "Anulado" correcto. |
+| 7 | `/usuarios/` (de paso, ejercita clases de `admin.css` de Tanda 1) | Ya verificado en Tanda 1, sin repetir. |
+
+**0 errores de consola nuevos.** Se encontró 1 excepción JS preexistente en
+`/despachos/crear` (`Cannot read properties of null (reading 'addEventListener')`) —
+confirmado con `git diff` que es 100% ajeno a esta migración (cero líneas de JS tocadas en
+ese archivo, solo `style="color:#hex"` → `style="color:var(--token)"`). No se corrigió, fuera
+de alcance ("no tocar lógica").
+
+**Nota operativa:** igual que en la Tanda 1, hubo que reiniciar el servidor local después de
+editar los templates (Jinja cachea sin `debug=True`) — ya lo tenía anotado, esta vez lo hice
+antes de la primera verificación.
+
+### Verificación programática adicional
+
+- Extraje las 43 variables `var(--...)` distintas usadas en los 28 templates + `base.html` y
+  las crucé contra las 163 variables definidas entre `tokens.css` y el alias de `admin.css`
+  — **0 sin resolver**.
+- Validé sintaxis Jinja de los 30 templates tocados (28 + `base.html` + `404.html`/`500.html`
+  ya de Tanda 1) — todos compilan.
+
+## Recomendaciones
+
+- Los 2 bugs `--surface`/`--surface-alt` corregidos de paso quedan documentados acá por si
+  aparecen más instancias en tandas futuras (no se hizo una búsqueda exhaustiva en todo el
+  repo, solo se corrigieron los que aparecieron en los archivos de esta tanda).
+- La excepción JS preexistente en `despachos/crear.html` queda pendiente, ajena a este
+  proyecto de tokens — si se quiere corregir, es una tanda aparte de bugfix.
+- Tandas 3-6 pendientes, mismo criterio: baseline local, verificación, reporte, commit propio,
+  sin push hasta confirmación.

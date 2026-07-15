@@ -12,7 +12,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -23,7 +23,7 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Puerto <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Puerto <span style="color:var(--peligro)">*</span></label>
                 <select name="puerto_id" class="form-select" required>
                     <option value="">Seleccionar puerto...</option>
                     {% for p in puertos %}
@@ -36,14 +36,14 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">N.° de contenedor / isotanque <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">N.° de contenedor / isotanque <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="numero_isotanque" class="form-control"
                        value="{{ request.form.get('numero_isotanque', '') }}"
                        required placeholder="Ej. TCKU1234567">
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo de combustible <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Tipo de combustible <span style="color:var(--peligro)">*</span></label>
                 <select name="tipo_combustible" class="form-select" required>
                     <option value="">Seleccionar...</option>
                     {% for tc in tipos_combustible %}
@@ -56,7 +56,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Litros recibidos <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Litros recibidos <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="litros" class="form-control"
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        value="{{ request.form.get('litros', '') }}"
@@ -64,7 +64,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Fecha de llegada <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Fecha de llegada <span style="color:var(--peligro)">*</span></label>
                 <input type="date" name="fecha_llegada" class="form-control"
                        value="{{ request.form.get('fecha_llegada', hoy) }}" required>
             </div>
@@ -77,7 +77,7 @@
 
         </div>
 
-        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;margin:0 24px 20px;font-size:13px;color:#166534;">
+        <div style="background:var(--fondo-exito-suave);border:1px solid var(--color-success-border-alt);border-radius:8px;padding:10px 14px;margin:0 24px 20px;font-size:13px;color:var(--texto-sobre-exito);">
             <i class="bi bi-info-circle-fill"></i>
             El isotanque quedará en estado <strong>En puerto</strong>. El depósito destino se asigna en el detalle, cuando se confirme la transferencia.
         </div>

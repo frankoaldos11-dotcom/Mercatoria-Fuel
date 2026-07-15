@@ -14,7 +14,7 @@
 </div>
 
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
@@ -43,13 +43,13 @@
 </div>
 
 {% if reservas_tienda_pendientes %}
-<div class="panel mb-4" style="border:2px solid #E86A2C;">
-    <div class="panel-header" style="background:#FFF7ED;">
-        <h2 style="font-size:16px;font-weight:600;margin:0;color:#9A3412;">
+<div class="panel mb-4" style="border:2px solid var(--activo);">
+    <div class="panel-header" style="background:var(--color-warning-bg-header);">
+        <h2 style="font-size:16px;font-weight:600;margin:0;color:var(--color-role-cliente-text-upper);">
             <i class="bi bi-qr-code-scan"></i>
             Reservas de Tienda — Pendientes de despachar ({{ reservas_tienda_pendientes|length }})
         </h2>
-        <a href="/turno/escanear" class="btn btn-sm" style="background:#E86A2C;color:#fff;border:none;">
+        <a href="/turno/escanear" class="btn btn-sm" style="background:var(--activo);color:var(--panel);border:none;">
             <i class="bi bi-camera"></i> Escanear QR
         </a>
     </div>
@@ -68,9 +68,9 @@
             </thead>
             <tbody>
                 {% for r in reservas_tienda_pendientes %}
-                <tr style="background:#FFF7ED;">
+                <tr style="background:var(--color-warning-bg-header);">
                     <td>
-                        <a href="/turno/escanear" class="btn btn-soft btn-sm" style="color:#9A3412;">
+                        <a href="/turno/escanear" class="btn btn-soft btn-sm" style="color:var(--color-role-cliente-text-upper);">
                             <i class="bi bi-qr-code-scan"></i> Escanear
                         </a>
                     </td>
@@ -78,14 +78,14 @@
                     <td>
                         <div style="font-weight:700;">{{ r.cliente_nombre }}</div>
                         {% if r.descripcion_vehiculo %}
-                        <div style="font-size:12px;color:var(--muted);">
+                        <div style="font-size:12px;color:var(--atenuado-staff);">
                             <i class="bi bi-car-front"></i> {{ r.descripcion_vehiculo }}
                         </div>
                         {% endif %}
                     </td>
                     <td>{{ r.gasolinera_nombre }}</td>
                     <td>{{ combustible_labels.get(r.tipo_combustible, r.tipo_combustible) }}</td>
-                    <td><strong style="color:#9A3412;">{{ "{:,.2f}".format(r.litros_solicitados|float) }} L</strong></td>
+                    <td><strong style="color:var(--color-role-cliente-text-upper);">{{ "{:,.2f}".format(r.litros_solicitados|float) }} L</strong></td>
                     <td style="font-size:13px;">{{ (r.created_at | string)[:16] }}</td>
                 </tr>
                 {% endfor %}
@@ -121,28 +121,28 @@
                     <td style="font-family:monospace;font-size:12px;">{{ d.numero_operacion or '—' }}</td>
                     <td>
                         <div style="font-weight:700;">{{ d.cliente_nombre }}</div>
-                        <div style="font-size:12px;color:var(--muted);">
+                        <div style="font-size:12px;color:var(--atenuado-staff);">
                             <i class="bi bi-truck"></i> {{ d.unidad_chapa }}
                             {% if d.chofer_nombre %}· {{ d.chofer_nombre }}{% endif %}
                         </div>
-                        <div style="font-size:11px;color:var(--muted);">{{ d.operario_nombre }}</div>
+                        <div style="font-size:11px;color:var(--atenuado-staff);">{{ d.operario_nombre }}</div>
                     </td>
                     <td>
                         <div>{{ d.gasolinera_nombre }}</div>
-                        <div style="font-size:12px;color:var(--muted);font-family:monospace;">**** {{ d.tarjeta_parcial }}</div>
+                        <div style="font-size:12px;color:var(--atenuado-staff);font-family:monospace;">**** {{ d.tarjeta_parcial }}</div>
                     </td>
                     <td>{{ "{:,.2f}".format(d.litros_autorizados) }} L</td>
-                    <td><strong style="color:var(--success);">{{ "{:,.2f}".format(d.litros_despachados) }} L</strong></td>
+                    <td><strong style="color:var(--exito);">{{ "{:,.2f}".format(d.litros_despachados) }} L</strong></td>
                     <td style="font-size:13px;">{{ (d.fecha_despacho | string)[:16] if d.fecha_despacho else '—' }}</td>
                     <td>
                         {% if d.foto_ticket_url and not d.foto_ticket_url.startswith('/static/uploads/') %}
                         <a href="{{ d.foto_ticket_url }}" target="_blank">
-                            <img src="{{ d.foto_ticket_url }}" style="height:36px;border-radius:4px;border:1px solid var(--border);">
+                            <img src="{{ d.foto_ticket_url }}" style="height:36px;border-radius:4px;border:1px solid var(--borde-staff);">
                         </a>
                         {% elif d.foto_ticket_url %}
-                        <span style="color:var(--muted);">Sin imagen</span>
+                        <span style="color:var(--atenuado-staff);">Sin imagen</span>
                         {% else %}
-                        <span style="color:var(--muted);">—</span>
+                        <span style="color:var(--atenuado-staff);">—</span>
                         {% endif %}
                     </td>
                 </tr>

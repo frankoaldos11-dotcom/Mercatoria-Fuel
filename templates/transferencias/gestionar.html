@@ -12,21 +12,21 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Operación realizada correctamente.
 </div>
 {% endif %}
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
 </div>
 {% endif %}
 
 <!-- ── PASO 1: Datos del viaje ─────────────────────────────────────────────── -->
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-    <span style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">1</span>
+    <span style="width:28px;height:28px;border-radius:50%;background:var(--principal);color:var(--panel);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">1</span>
     <strong style="font-size:15px;">Datos del viaje</strong>
-    <span style="flex:1;height:2px;background:var(--border);"></span>
+    <span style="flex:1;height:2px;background:var(--borde-staff);"></span>
     {% if transferencia.estado == 'en_transito' %}
     <span class="badge badge-warn">En tránsito</span>
     {% elif transferencia.estado == 'recibida' %}
@@ -38,34 +38,34 @@
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
     <div class="panel" style="padding:14px;">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Depósito origen</div>
+        <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Depósito origen</div>
         <div style="font-weight:600;">{{ transferencia.deposito_nombre }}</div>
     </div>
     <div class="panel" style="padding:14px;">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Gasolinera destino</div>
+        <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Gasolinera destino</div>
         <div style="font-weight:600;">{{ transferencia.gasolinera_nombre }}</div>
     </div>
     <div class="panel" style="padding:14px;">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Combustible</div>
+        <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Combustible</div>
         <div style="font-weight:600;">{{ combustible_labels.get(transferencia.tipo_combustible, transferencia.tipo_combustible) }}</div>
     </div>
     <div class="panel" style="padding:14px;">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">L. solicitados</div>
-        <div style="font-size:20px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(transferencia.litros_solicitados) }}</div>
+        <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">L. solicitados</div>
+        <div style="font-size:20px;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(transferencia.litros_solicitados) }}</div>
     </div>
     <div class="panel" style="padding:14px;">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Fecha salida</div>
+        <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Fecha salida</div>
         <div style="font-weight:600;">{{ transferencia.fecha_salida }}</div>
     </div>
     {% if transferencia.chofer_pipa %}
     <div class="panel" style="padding:14px;">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Chofer</div>
+        <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Chofer</div>
         <div style="font-weight:600;">{{ transferencia.chofer_pipa }}</div>
     </div>
     {% endif %}
     {% if transferencia.no_documento %}
     <div class="panel" style="padding:14px;">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Documento</div>
+        <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:4px;">Documento</div>
         <div style="font-weight:600;">{{ transferencia.no_documento }}</div>
     </div>
     {% endif %}
@@ -73,11 +73,11 @@
 
 <!-- ── PASO 2: Confirmar llegada ──────────────────────────────────────────── -->
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-    <span style="width:28px;height:28px;border-radius:50%;background:{{ 'var(--success)' if transferencia.estado != 'en_transito' else 'var(--primary)' }};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">
+    <span style="width:28px;height:28px;border-radius:50%;background:{{ 'var(--exito)' if transferencia.estado != 'en_transito' else 'var(--principal)' }};color:var(--panel);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">
         {{ '✓' if transferencia.estado in ('recibida',) else '2' }}
     </span>
     <strong style="font-size:15px;">Confirmar llegada</strong>
-    <span style="flex:1;height:2px;background:var(--border);"></span>
+    <span style="flex:1;height:2px;background:var(--borde-staff);"></span>
 </div>
 
 {% if transferencia.estado == 'en_transito' %}
@@ -86,32 +86,32 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-grid">
             <div class="mb-3">
-                <label class="form-label">Litros recibidos <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Litros recibidos <span style="color:var(--peligro)">*</span></label>
                 <input type="number" name="litros_recibidos" id="litros-recibidos" class="form-control"
                        placeholder="{{ "{:.2f}".format(transferencia.litros_solicitados) }}"
                        min="0" step="0.01" required oninput="calcDiferencia()">
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">
                     Referencia: <strong>{{ "{:,.2f}".format(transferencia.litros_solicitados) }} L</strong> solicitados.
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Fecha de llegada <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Fecha de llegada <span style="color:var(--peligro)">*</span></label>
                 <input type="date" name="fecha_llegada" class="form-control" value="{{ hoy }}" required>
             </div>
             <div class="mb-3" style="grid-column:1/-1;">
                 <label class="form-label">Diferencia</label>
-                <div id="diferencia-display" style="padding:8px 12px;background:var(--surface-alt);border-radius:6px;font-weight:600;color:var(--muted);min-height:38px;">—</div>
+                <div id="diferencia-display" style="padding:8px 12px;background:var(--panel-suave);border-radius:6px;font-weight:600;color:var(--atenuado-staff);min-height:38px;">—</div>
             </div>
             <div class="mb-3" style="grid-column:1/-1;">
                 <label class="form-label">
                     Observaciones
-                    <span id="obs-requerida" style="color:var(--danger);display:none;"> * (obligatoria — diferencia &gt;0.5%)</span>
+                    <span id="obs-requerida" style="color:var(--peligro);display:none;"> * (obligatoria — diferencia &gt;0.5%)</span>
                 </label>
                 <textarea name="observaciones" id="observaciones" class="form-control" rows="2"
                           placeholder="Observaciones. Obligatorio si hay diferencia mayor al 0.5%..."></textarea>
             </div>
         </div>
-        <div style="background:#F0FDF4;border-left:4px solid #16A34A;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#14532D;">
+        <div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:var(--color-success-text-strong-upper);">
             <i class="bi bi-info-circle"></i>
             Al confirmar, los litros recibidos se <strong>agregarán al stock de {{ transferencia.gasolinera_nombre }}</strong>.
         </div>
@@ -124,16 +124,16 @@
 </div>
 
 {% elif transferencia.estado == 'recibida' %}
-<div class="panel mb-4" style="border-left:4px solid var(--success);">
+<div class="panel mb-4" style="border-left:4px solid var(--exito);">
     <div style="padding:16px 24px;display:flex;align-items:center;gap:16px;">
-        <i class="bi bi-check-circle-fill" style="color:var(--success);font-size:24px;"></i>
+        <i class="bi bi-check-circle-fill" style="color:var(--exito);font-size:24px;"></i>
         <div>
             <div style="font-weight:700;">Llegada confirmada — {{ transferencia.fecha_llegada }}</div>
-            <div style="color:var(--muted);font-size:13px;">
+            <div style="color:var(--atenuado-staff);font-size:13px;">
                 Litros recibidos: <strong>{{ "{:,.2f}".format(transferencia.litros_recibidos) }} L</strong>
                 {% set diff = transferencia.litros_recibidos - transferencia.litros_solicitados %}
                 {% if diff|abs > 0.01 %}
-                <span style="color:{{ 'var(--danger)' if diff < 0 else 'var(--success)' }};margin-left:8px;">
+                <span style="color:{{ 'var(--peligro)' if diff < 0 else 'var(--exito)' }};margin-left:8px;">
                     ({{ "{:+,.2f}".format(diff) }} L)
                 </span>
                 {% endif %}
@@ -144,7 +144,7 @@
 
 {% else %}
 <div class="panel mb-4" style="opacity:0.6;">
-    <div style="padding:16px 24px;color:var(--muted);">
+    <div style="padding:16px 24px;color:var(--atenuado-staff);">
         <i class="bi bi-x-circle"></i> Transferencia anulada — no se puede confirmar llegada.
     </div>
 </div>
@@ -152,15 +152,15 @@
 
 <!-- ── PASO 3: Distribuir combustible ─────────────────────────────────────── -->
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-    <span style="width:28px;height:28px;border-radius:50%;background:{{ 'var(--primary)' if transferencia.estado == 'recibida' else '#9CA3AF' }};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">3</span>
+    <span style="width:28px;height:28px;border-radius:50%;background:{{ 'var(--principal)' if transferencia.estado == 'recibida' else 'var(--color-gray-muted-alt)' }};color:var(--panel);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">3</span>
     <strong style="font-size:15px;">Distribuir combustible a tarjetas</strong>
-    <span style="flex:1;height:2px;background:var(--border);"></span>
+    <span style="flex:1;height:2px;background:var(--borde-staff);"></span>
 </div>
 
 {% if transferencia.estado == 'recibida' %}
 <div class="panel">
     {% if tarjetas %}
-    <div style="padding:16px 24px 8px;font-size:13px;color:var(--muted);">
+    <div style="padding:16px 24px 8px;font-size:13px;color:var(--atenuado-staff);">
         Distribuye exactamente los <strong>{{ "{:,.2f}".format(transferencia.litros_recibidos) }} L recibidos</strong>
         a las tarjetas activas de <strong>{{ transferencia.gasolinera_nombre }}</strong>.
         La suma de todos los campos debe igualar <strong>exactamente</strong> ese total.
@@ -193,17 +193,17 @@
             </table>
         </div>
         <div style="padding:0 24px 16px;display:flex;gap:12px;">
-            <div style="flex:1;background:var(--surface-alt);border-radius:8px;padding:10px 16px;">
-                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;">Suma asignada</div>
+            <div style="flex:1;background:var(--panel-suave);border-radius:8px;padding:10px 16px;">
+                <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:2px;">Suma asignada</div>
                 <div style="font-size:20px;font-weight:700;" id="suma-display">0.00 L</div>
                 <div style="font-size:12px;margin-top:2px;" id="suma-msg">Ingresa los litros a distribuir</div>
             </div>
-            <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:10px 16px;">
-                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;">Total requerido</div>
-                <div style="font-size:20px;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(transferencia.litros_recibidos) }} L</div>
+            <div style="flex:1;background:var(--fondo-info-suave);border-radius:8px;padding:10px 16px;">
+                <div style="font-size:11px;color:var(--atenuado-staff);text-transform:uppercase;margin-bottom:2px;">Total requerido</div>
+                <div style="font-size:20px;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(transferencia.litros_recibidos) }} L</div>
             </div>
         </div>
-        <div style="background:#FEF9C3;border-left:4px solid #CA8A04;border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:#713F12;">
+        <div style="background:var(--fondo-aviso-suave);border-left:4px solid var(--color-warning-accent-1);border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:var(--color-warning-text-deep);">
             <i class="bi bi-info-circle"></i>
             Los litros asignados se <strong>sumarán al saldo usable</strong> de cada tarjeta.
         </div>
@@ -214,7 +214,7 @@
         </div>
     </form>
     {% else %}
-    <div style="padding:24px;text-align:center;color:var(--muted);">
+    <div style="padding:24px;text-align:center;color:var(--atenuado-staff);">
         <i class="bi bi-credit-card" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.4;"></i>
         No hay tarjetas activas en <strong>{{ transferencia.gasolinera_nombre }}</strong>.
         <br><a href="/tarjetas/crear?gasolinera_id={{ transferencia.gasolinera_destino_id }}" class="btn btn-secondary mt-3 btn-sm">
@@ -226,7 +226,7 @@
 
 {% else %}
 <div class="panel" style="opacity:0.5;">
-    <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;">
+    <div style="padding:24px;text-align:center;color:var(--atenuado-staff);font-size:13px;">
         <i class="bi bi-lock" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.5;"></i>
         Confirma la llegada en el paso 2 para habilitar la distribución.
     </div>
@@ -247,12 +247,12 @@ function calcDiferencia() {
     const obsLabel = document.getElementById('obs-requerida');
     if (recibidos === 0) {
         el.textContent = '—';
-        el.style.color = 'var(--muted)';
+        el.style.color = 'var(--atenuado-staff)';
         obsLabel.style.display = 'none';
     } else {
         el.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) +
                          ' L  (' + (diff >= 0 ? '+' : '') + (diff / litrosSol * 100).toFixed(2) + '%)';
-        el.style.color = diff < 0 ? '#DC2626' : (diff > 0 ? '#16A34A' : 'var(--muted)');
+        el.style.color = diff < 0 ? 'var(--peligro)' : (diff > 0 ? 'var(--exito)' : 'var(--atenuado-staff)');
         obsLabel.style.display = pct > 0.5 ? 'inline' : 'none';
     }
 }
@@ -270,17 +270,17 @@ function calcSumaDistribucion() {
     var msgEl = document.getElementById('suma-msg');
     var btn   = document.getElementById('btn-distribuir');
     sumEl.textContent = suma.toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L';
-    sumEl.style.color = exacto ? 'var(--success)' : (suma > litrosTotal ? 'var(--danger)' : 'var(--text)');
+    sumEl.style.color = exacto ? 'var(--exito)' : (suma > litrosTotal ? 'var(--peligro)' : 'var(--texto-staff)');
     btn.disabled = !exacto;
     if (exacto) {
         msgEl.textContent = '✓ Suma exacta — listo para asignar.';
-        msgEl.style.color = 'var(--success)';
+        msgEl.style.color = 'var(--exito)';
     } else if (suma > litrosTotal) {
         msgEl.textContent = 'Excede en ' + (suma - litrosTotal).toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L';
-        msgEl.style.color = 'var(--danger)';
+        msgEl.style.color = 'var(--peligro)';
     } else {
         msgEl.textContent = 'Faltan ' + (litrosTotal - suma).toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L por asignar';
-        msgEl.style.color = 'var(--muted)';
+        msgEl.style.color = 'var(--atenuado-staff)';
     }
 }
 </script>

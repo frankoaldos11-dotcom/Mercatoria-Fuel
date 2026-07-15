@@ -12,15 +12,15 @@
 </div>
 
 {% if request.args.get('ok') %}
-<div style="background:#F0FDF4;border-left:4px solid #16A34A;color:#15803D;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--exito-oscuro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-check-circle"></i> Operación realizada correctamente.
 </div>
 {% endif %}
 {% if request.args.get('access_error') %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ request.args.get('access_error')|replace('+', ' ') }}
     {% if request.args.get('tarjeta_link') %}
-    — <a href="/tarjetas/{{ request.args.get('tarjeta_link') }}" style="color:#991B1B;font-weight:700;">Recargar tarjeta →</a>
+    — <a href="/tarjetas/{{ request.args.get('tarjeta_link') }}" style="color:var(--texto-sobre-peligro);font-weight:700;">Recargar tarjeta →</a>
     {% endif %}
 </div>
 {% endif %}
@@ -32,7 +32,7 @@
             {% if hab.estado == 'pendiente' %}
             <span class="badge badge-neutral" style="font-size:15px;padding:6px 14px;">Pendiente</span>
             {% elif hab.estado == 'en_reserva' %}
-            <span class="badge" style="background:#fef3c7;color:#92400e;font-size:15px;padding:6px 14px;">En reserva</span>
+            <span class="badge" style="background:var(--color-warning-bg-alt-2);color:var(--texto-sobre-aviso);font-size:15px;padding:6px 14px;">En reserva</span>
             {% elif hab.estado == 'aprobada' %}
             <span class="badge badge-info" style="font-size:15px;padding:6px 14px;">Aprobada</span>
             {% elif hab.estado == 'despachada' %}
@@ -40,7 +40,7 @@
             {% elif hab.estado == 'cancelada' %}
             <span class="badge badge-danger" style="font-size:15px;padding:6px 14px;">Cancelada</span>
             {% elif hab.estado == 'conciliada' %}
-            <span class="badge" style="background:#ede9fe;color:#5b21b6;font-size:15px;padding:6px 14px;">Conciliada</span>
+            <span class="badge" style="background:var(--color-conciliada-bg);color:var(--color-conciliada-text);font-size:15px;padding:6px 14px;">Conciliada</span>
             {% endif %}
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -76,10 +76,10 @@
     </div>
 
     {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') and hab.estado in ('pendiente', 'aprobada', 'en_reserva') %}
-    <div id="form-cancelar" class="collapse" style="padding:16px 24px;border-top:1px solid var(--border);">
+    <div id="form-cancelar" class="collapse" style="padding:16px 24px;border-top:1px solid var(--borde-staff);">
         <form method="POST" action="/habilitaciones/{{ hab.id }}/cancelar">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label class="form-label">Motivo de cancelación <span style="color:var(--danger)">*</span></label>
+            <label class="form-label">Motivo de cancelación <span style="color:var(--peligro)">*</span></label>
             <div style="display:flex;gap:10px;align-items:flex-end;">
                 <textarea name="observaciones" class="form-control" rows="2" required
                           placeholder="Indique el motivo de cancelación..." style="flex:1;"></textarea>
@@ -97,87 +97,87 @@
         <div class="panel-header"><h2>Datos de la habilitación</h2></div>
         <div style="padding:0 24px 24px;">
             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);width:45%;">Cliente</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);width:45%;">Cliente</td>
                     <td style="padding:8px 0;font-weight:600;">{{ hab.cliente_nombre }}</td>
                 </tr>
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Unidad</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Unidad</td>
                     <td style="padding:8px 0;">
                         <strong>{{ hab.unidad_chapa }}</strong>
-                        {% if hab.marca %} <span style="color:var(--muted);">{{ hab.marca }} {{ hab.modelo }}</span>{% endif %}
+                        {% if hab.marca %} <span style="color:var(--atenuado-staff);">{{ hab.marca }} {{ hab.modelo }}</span>{% endif %}
                     </td>
                 </tr>
                 {% if hab.chofer_nombre %}
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Chofer</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Chofer</td>
                     <td style="padding:8px 0;">
                         {{ hab.chofer_nombre }}
-                        {% if hab.chofer_ci %}<span style="color:var(--muted);font-size:12px;"> CI: {{ hab.chofer_ci }}</span>{% endif %}
+                        {% if hab.chofer_ci %}<span style="color:var(--atenuado-staff);font-size:12px;"> CI: {{ hab.chofer_ci }}</span>{% endif %}
                         {% if hab.licencia_vencimiento and hab.licencia_vencimiento < hoy %}
                         <span class="badge badge-danger" style="margin-left:6px;">Licencia vencida</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% endif %}
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Gasolinera</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Gasolinera</td>
                     <td style="padding:8px 0;">{{ hab.gasolinera_nombre }}</td>
                 </tr>
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Tarjeta</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Tarjeta</td>
                     <td style="padding:8px 0;font-family:monospace;">**** {{ hab.tarjeta_parcial }}</td>
                 </tr>
                 {% if hab.subinventario_nombre %}
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Subinventario</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Subinventario</td>
                     <td style="padding:8px 0;">{{ hab.subinventario_nombre }}</td>
                 </tr>
                 {% endif %}
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Combustible</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Combustible</td>
                     <td style="padding:8px 0;"><span class="badge badge-info">{{ combustible_labels.get(hab.tipo_combustible, hab.tipo_combustible) }}</span></td>
                 </tr>
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Litros autorizados</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Litros autorizados</td>
                     <td style="padding:8px 0;font-size:18px;font-weight:700;">{{ "{:,.2f}".format(hab.litros_autorizados) }} L</td>
                 </tr>
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Litros despachados</td>
-                    <td style="padding:8px 0;font-size:18px;font-weight:700;color:{% if hab.litros_despachados > 0 %}var(--success){% else %}var(--muted){% endif %};">
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Litros despachados</td>
+                    <td style="padding:8px 0;font-size:18px;font-weight:700;color:{% if hab.litros_despachados > 0 %}var(--exito){% else %}var(--atenuado-staff){% endif %};">
                         {{ "{:,.2f}".format(hab.litros_despachados) }} L
                     </td>
                 </tr>
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Saldo tarjeta</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Saldo tarjeta</td>
                     <td style="padding:8px 0;">{{ "{:,.2f}".format(hab.tarjeta_saldo) }} L</td>
                 </tr>
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Fecha habilitación</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Fecha habilitación</td>
                     <td style="padding:8px 0;">{{ hab.fecha_habilitacion }}</td>
                 </tr>
                 {% if hab.fecha_vencimiento %}
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Vencimiento</td>
-                    <td style="padding:8px 0;{% if hab.fecha_vencimiento < hoy %}color:var(--danger);font-weight:700;{% endif %}">
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Vencimiento</td>
+                    <td style="padding:8px 0;{% if hab.fecha_vencimiento < hoy %}color:var(--peligro);font-weight:700;{% endif %}">
                         {{ hab.fecha_vencimiento }}
                         {% if hab.fecha_vencimiento < hoy %}<span class="badge badge-danger" style="margin-left:6px;">Vencida</span>{% endif %}
                     </td>
                 </tr>
                 {% endif %}
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Creado por</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Creado por</td>
                     <td style="padding:8px 0;">{{ hab.creado_por_nombre }}</td>
                 </tr>
                 {% if hab.aprobado_por_nombre %}
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Aprobado por</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Aprobado por</td>
                     <td style="padding:8px 0;">{{ hab.aprobado_por_nombre }}</td>
                 </tr>
                 {% endif %}
                 {% if hab.observaciones %}
                 <tr>
-                    <td style="padding:8px 0;color:var(--muted);">Observaciones</td>
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Observaciones</td>
                     <td style="padding:8px 0;">{{ hab.observaciones }}</td>
                 </tr>
                 {% endif %}
@@ -195,33 +195,33 @@
                 <a href="/despachos/{{ despacho.id }}" class="btn btn-soft btn-sm"><i class="bi bi-eye"></i> Ver despacho #{{ despacho.id }}</a>
             </div>
             <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);width:45%;">Litros despachados</td>
-                    <td style="padding:8px 0;font-size:18px;font-weight:700;color:var(--success);">{{ "{:,.2f}".format(despacho.litros_despachados) }} L</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);width:45%;">Litros despachados</td>
+                    <td style="padding:8px 0;font-size:18px;font-weight:700;color:var(--exito);">{{ "{:,.2f}".format(despacho.litros_despachados) }} L</td>
                 </tr>
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Fecha</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Fecha</td>
                     <td style="padding:8px 0;">{{ (despacho.fecha_despacho | string)[:16] if despacho.fecha_despacho else '—' }}</td>
                 </tr>
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Operario</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Operario</td>
                     <td style="padding:8px 0;">{{ despacho.operario_nombre }}</td>
                 </tr>
                 {% if despacho.odometro_km %}
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--muted);">Odómetro</td>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Odómetro</td>
                     <td style="padding:8px 0;">{{ "{:,}".format(despacho.odometro_km) }} km</td>
                 </tr>
                 {% endif %}
                 {% if despacho.foto_ticket_url %}
                 <tr>
-                    <td style="padding:8px 0;color:var(--muted);">Ticket</td>
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Ticket</td>
                     <td style="padding:8px 0;">
                         {% if despacho.foto_ticket_url.startswith('/static/uploads/') %}
-                        <span style="color:var(--muted);">Sin imagen (archivo no disponible).</span>
+                        <span style="color:var(--atenuado-staff);">Sin imagen (archivo no disponible).</span>
                         {% else %}
                         <a href="{{ despacho.foto_ticket_url }}" target="_blank">
-                            <img src="{{ despacho.foto_ticket_url }}" style="max-height:80px;border-radius:4px;border:1px solid var(--border);">
+                            <img src="{{ despacho.foto_ticket_url }}" style="max-height:80px;border-radius:4px;border:1px solid var(--borde-staff);">
                         </a>
                         {% endif %}
                     </td>
@@ -230,7 +230,7 @@
             </table>
         </div>
         {% else %}
-        <div style="padding:32px;text-align:center;color:var(--muted);">
+        <div style="padding:32px;text-align:center;color:var(--atenuado-staff);">
             <i class="bi bi-box-arrow-right" style="font-size:36px;display:block;margin-bottom:10px;opacity:0.4;"></i>
             {% if hab.estado == 'aprobada' %}
             <p style="margin:0 0 12px;">Esta habilitación está aprobada y lista para despachar.</p>

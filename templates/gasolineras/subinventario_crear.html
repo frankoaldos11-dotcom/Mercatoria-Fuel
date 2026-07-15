@@ -16,7 +16,7 @@
 </div>
 
 {% if error %}
-<div style="background:#FEF2F2;border-left:4px solid #DC2626;color:#991B1B;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
     <i class="bi bi-exclamation-circle"></i> {{ error }}
 </div>
 {% endif %}
@@ -28,13 +28,13 @@
         <div class="form-grid">
 
             <div class="mb-3">
-                <label class="form-label">Nombre <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Nombre <span style="color:var(--peligro)">*</span></label>
                 <input type="text" name="nombre" class="form-control"
                        placeholder="Ej. Reserva PMA, Stock interno..." required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">Tipo <span style="color:var(--peligro)">*</span></label>
                 <select name="tipo" class="form-select" id="sel-tipo" required onchange="toggleCliente()">
                     <option value="">Seleccionar tipo...</option>
                     {% for t in tipos_subinventario %}
