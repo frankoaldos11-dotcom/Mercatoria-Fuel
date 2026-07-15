@@ -1527,3 +1527,121 @@ Pendientes fuera de alcance (documentados, no removidos): mapa `ESTADO_COLOR` en
 `turno/escanear.html` (dudoso #5 original), 2 templates `modulos/*` sin ruta activa, 4
 dashboards por rol y 5 páginas de estado específico sin verificación HTTP directa (cubiertas
 por validación estática).
+
+---
+
+# Reporte de Pruebas — 2026-07-15 (noche) — Política de despacho parcial
+
+## Política: remanente de despacho parcial se aparta en el subinventario del cliente
+
+Al completar un despacho donde `litros_despachados < litros_autorizados`, el remanente
+(`autorizados − despachados`) se aparta como reserva en el subinventario tipo `cliente` de
+ese cliente en esa gasolinera — se crea automáticamente si no existe, o se suma con
+`ajustar_reserva` si ya existe. Se consume después con el mecanismo de habilitaciones ya
+existente (sin cambios). Aplica a `despachos.py::despachar` y `turno.py::api_despachar`;
+**no aplica** a `turno.py::api_reserva_completar` (la reserva de Tienda siempre despacha el
+100% de `litros_solicitados`, no acepta un monto distinto del formulario — el despacho
+parcial es estructuralmente imposible en ese flujo, no una decisión de diseño).
+
+### Cambios
+
+- **Nuevo helper `apartar_remanente_despacho()`** en `utils/subinventarios.py` — reutiliza
+  `crear_subinventario`/`ajustar_reserva` (sin duplicar lógica). Si la habilitación ya tenía
+  `subinventario_id` (venía de una reserva), no ajusta ningún número — el código existente ya
+  decrementa `litros_reservados` solo por lo despachado, dejando el remanente reservado sin
+  intervención; el helper únicamente agrega un movimiento trazable. Si no tenía
+  `subinventario_id`, busca o crea el subinventario `cliente` de ese cliente en esa gasolinera
+  y le suma el remanente.
+- **`blueprints/despachos.py` y `blueprints/turno.py`**: JOIN adicional con `clientes` (lectura,
+  para el nombre del subinventario auto-creado) + llamada al helper dentro de la misma
+  transacción del despacho, envuelta en `try/except SubinventarioError` — si falla, se aborta
+  sin commit (mismo patrón que `habilitaciones.py`).
+- **Trazabilidad**: cada apartado (o constancia de remanente ya reservado) genera un
+  `movimientos` con `tipo='remanente_despacho'`, `subinventario_destino_id` y observación con
+  habilitación/despacho de origen y los litros autorizados/despachados exactos.
+
+### Hallazgo y arreglo: `turno.py::api_despachar` no era atómico ante un fallo tardío
+
+Al verificar el caso de remanente contra `turno.py::api_despachar`, se detectó que un
+`SubinventarioError` lanzado por el nuevo helper **no revertía el despacho ya insertado** —
+quedaba un registro de `despachos` comiteado en disco pese a que el código hace
+`conn.close()` sin `conn.commit()` en ese camino de error.
+
+**Causa raíz**: `insertar_despacho_con_numero()` (`utils/despachos.py`) envuelve el INSERT en
+`SAVEPOINT`/`RELEASE SAVEPOINT` para reintentar ante colisión de `numero_operacion`. En
+`turno.py::api_despachar`, esa es la **primera escritura** de toda la transacción (antes solo
+hay `SELECT`s). Repro aislado (sin tocar la app): cuando `SAVEPOINT` es la primera escritura
+sobre una conexión de `sqlite3` de Python, el módulo no lo reconoce como algo que requiera
+`BEGIN` implícito (solo reconoce `INSERT`/`UPDATE`/`DELETE`/`REPLACE`) — así que
+`RELEASE SAVEPOINT` termina comiteando esa porción por su cuenta, y `conn.in_transaction` cae
+a `False` inmediatamente después; todo lo que corre luego queda en una transacción nueva y
+distinta, que sí se revierte correctamente al cerrar sin commit, pero ya es tarde para lo que
+quedó dentro del savepoint.
+
+Es un bug **preexistente** (ya existía por la carrera de saldo, `cur.rowcount == 0`, que
+también corre después del insert de despacho) — no lo introdujo esta política, pero el nuevo
+camino de fallo (`SubinventarioError` por tope de stock) es mucho más fácil de disparar en la
+práctica que una carrera de saldo, así que se volvió relevante ahora.
+
+**En PostgreSQL (`psycopg2`, producción) este patrón probablemente no reproduce** —
+`psycopg2` no tiene la heurística de reconocer palabras clave que tiene `sqlite3`; abre
+transacción en la primera sentencia ejecutada, sea cual sea (incluido `SAVEPOINT`), así que
+debería quedar correctamente encapsulada. No se verificó contra una instancia Postgres real
+(no disponible en este entorno) — es un análisis del comportamiento documentado de
+`psycopg2`, no una prueba empírica. **Punto ciego a tener presente**: toda la verificación
+local de este proyecto corre contra SQLite, así que cualquier caso de fallo tardío en un
+endpoint donde `insertar_despacho_con_numero` sea la primera escritura puede comportarse de
+forma distinta a producción si este patrón se repite en código futuro.
+
+**Arreglo aplicado**: `cur.execute("BEGIN")` explícito justo después de `conn = conectar()`
+en `turno.py::api_despachar` — una línea, acotada a ese archivo (no se tocó
+`insertar_despacho_con_numero()` ni `despachos.py`, que no tiene este problema porque ahí
+`insertar_despacho_con_numero` corre después de un `UPDATE tarjetas`, que sí abre la
+transacción implícita correctamente). Verificado con repros aislados en sqlite3 puro que:
+con el orden de `despachos.py` (UPDATE antes del SAVEPOINT) la transacción se mantiene
+íntegra; con el orden original de `turno.py` (SAVEPOINT como primera escritura) el INSERT
+sobrevivía a un `close()` sin commit; con el `BEGIN` explícito agregado, ya no.
+
+### Verificación local (servidor con `debug=True`, recarga automática confirmada)
+
+**Fixtures**: gasolinera de prueba aislada (`QA Remanente Gasolinera`, 2000 L de diesel vía
+`transferencia_entrada`), 4+ clientes dedicados (uno por escenario, para evitar que un mismo
+cliente comparta subinventario entre pruebas y ensucie los números), tarjetas con saldo,
+vehículos, y habilitaciones `aprobada` sembradas directamente en SQLite. Los despachos se
+ejecutaron contra los endpoints HTTP reales (`/despachos/crear`, `/turno/api/<id>/despachar`)
+autenticado como `admin@mercatoria.com`, no se simuló nada a nivel de código.
+
+| # | Caso | Resultado con números exactos |
+|---|---|---|
+| 1 | Cliente **sin** subinventario en la gasolinera, 500 autorizados / 480 despachados | Se crea `Reserva — QA Cliente A` con `litros_reservados = 20.00` L. ✅ |
+| 2 | Cliente **con** subinventario existente (50 L ya reservados), 500/480 | `litros_reservados` pasa de 50.00 a 70.00 L (50+20). ✅ |
+| 3 | **Disponible vs. stock físico** — 4 despachos (480+480+480+500 = 1940 L reales) sobre 2000 L de stock inicial | Stock físico total final: **60.00 L** (= 2000 − 1940, exacto — baja *solo* por lo despachado). Suma de `litros_reservados` subió por los remanentes apartados (+20, +20) y bajó por el consumo del caso "ya asociado" (−480, ver #5) — disponible para venta = stock − reservado, consistente en todo momento, sin doble descuento del remanente sobre el stock físico. ✅ |
+| 4 | Saldo de tarjeta — 4 tarjetas, despachos de 480/480/480/500 | `saldo_usable_l` final: 520.00, 520.00, 520.00, 500.00 (= 1000 − lo despachado en cada caso, **no** 1000 − autorizado). ✅ |
+| 5 | Habilitación que **ya venía con `subinventario_id`** (500 L reservados desde antes, simulando que vino de una reserva), 500/480 | `litros_reservados` pasa de **500.00 a 20.00** L — exactamente `500 − 480` del decremento ya existente, **sin sumar +20 de remanente encima** (eso hubiera dado 40.00 L, que habría sido doble conteo). Confirmado: no hay doble conteo, solo trazabilidad (`movimientos` con `tipo='remanente_despacho'`, litros=20, sin tocar `litros_reservados`). ✅ |
+| 6 | Despacho completo, 500/500 | 0 movimientos `remanente_despacho` generados, ningún subinventario tocado. ✅ |
+| 7 | Consumo del remanente — nueva habilitación apuntando al subinventario con 70 L (caso #2), 70/70 (consumo total) | `litros_reservados` pasa de 70.00 a **0.00** L con el mecanismo de consumo ya existente, sin cambios. Habilitación queda `despachada`, saldo de tarjeta se descontó los 70 L. ✅ |
+| 8 (retest tras el fix de BEGIN) | `turno.py::api_despachar` — remanente que excede el tope de stock (200 autorizados, despachar 10, remanente 190 sobre 90 L de margen) | `SubinventarioError` correctamente lanzado y **0 registros huérfanos**: habilitación sigue `aprobada`, 0 filas en `despachos` para esa habilitación, saldo de tarjeta intacto (1000.00), 0 movimientos nuevos en la gasolinera. ✅ |
+| 9 (retest, caso feliz) | `turno.py::api_despachar` — despacho normal con remanente, 50 autorizados / 40 despachados | `ok: true`, subinventario nuevo creado con 10.00 L reservados, saldo de tarjeta 1000→960, sin regresión tras el fix de `BEGIN`. ✅ |
+
+Sin tracebacks en el log del servidor en ninguna de las corridas.
+
+### Verificación programática adicional
+
+- `python -m py_compile` sobre los 3 archivos tocados (`utils/subinventarios.py`,
+  `blueprints/despachos.py`, `blueprints/turno.py`) — sin errores de sintaxis.
+- Repro aislado del bug de `SAVEPOINT`/`BEGIN` en sqlite3 puro (sin la app), documentado
+  arriba, antes y después del fix.
+
+## Recomendaciones
+
+- El bug de `SAVEPOINT` como primera escritura en `sqlite3` queda documentado acá para que no
+  se repita: cualquier función nueva que llame `insertar_despacho_con_numero()` (u otra que
+  use el mismo patrón SAVEPOINT/RELEASE) como su **primera** escritura de la transacción debe
+  llevar un `BEGIN` explícito antes, igual que se hizo en `turno.py::api_despachar`.
+- No se verificó el comportamiento del fix contra una instancia PostgreSQL real — el análisis
+  de que el patrón no reproduce ahí se basa en el comportamiento documentado de `psycopg2`,
+  no en una prueba empírica. Si en algún momento se quiere confirmar contra Postgres, alcanza
+  con repetir el escenario #8 de la tabla contra una réplica de staging.
+- Fixtures de QA (gasolineras, clientes, tarjetas con prefijo `QA-`) quedan solo en el
+  `fuel.db` local (no versionado, fuera de `.gitignore` de todos modos) — no requieren
+  limpieza para el commit.

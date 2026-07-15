@@ -10,6 +10,7 @@ from utils import mailer
 from utils.adjuntos import foto_valida, guardar_adjunto
 from utils.despachos import insertar_despacho_con_numero
 from utils.tarjetas import obtener_factor, calcular_usd_desde_litros
+from utils.subinventarios import apartar_remanente_despacho, SubinventarioError
 
 logger = logging.getLogger(__name__)
 
@@ -283,12 +284,23 @@ def api_despachar(hab_id):
 
     conn = conectar()
     cur = conn.cursor()
+    # BEGIN explícito: sin esto, si el INSERT de despachos (envuelto en
+    # SAVEPOINT por insertar_despacho_con_numero) es la primera escritura de
+    # la transacción, sqlite3 no reconoce SAVEPOINT como algo que requiera
+    # transacción implícita y el RELEASE SAVEPOINT comitea esa porción por su
+    # cuenta — dejando un despacho huérfano si algo falla después. No
+    # reproduce en Postgres/psycopg2 (abre transacción en la primera
+    # sentencia, sea cual sea), pero toda la verificación local corre contra
+    # SQLite, así que el fix va acá de forma explícita para ambos motores.
+    cur.execute("BEGIN")
     cur.execute("""
         SELECT h.*, v.id AS vid, t.id AS tid, t.saldo_usable_l,
-               t.estado AS tarjeta_estado, s.litros_reservados AS sub_litros
+               t.estado AS tarjeta_estado, s.litros_reservados AS sub_litros,
+               cli.nombre AS cliente_nombre
         FROM habilitaciones h
         JOIN vehiculos v ON v.id = h.unidad_id
         JOIN tarjetas t ON t.id = h.tarjeta_id
+        JOIN clientes cli ON cli.id = h.cliente_id
         LEFT JOIN subinventarios s ON s.id = h.subinventario_id
         WHERE h.id = ?
     """, (hab_id,))
@@ -388,6 +400,14 @@ def api_despachar(hab_id):
         WHERE h.id = ?
     """, (hoy_str, litros, session.get("user_id"),
           f"Despacho QR — Habilitación #{hab_id}", hab_id))
+
+    try:
+        apartar_remanente_despacho(
+            cur, hab, litros, hab_id, nuevo_despacho_id, session.get("user_id")
+        )
+    except SubinventarioError as e:
+        conn.close()
+        return jsonify({"error": f"No se pudo apartar el remanente del despacho: {e}"}), 400
 
     conn.commit()
     conn.close()

@@ -73,3 +73,60 @@ def ajustar_reserva(cur, gasolinera_id, subinventario_id, delta_litros):
         UPDATE subinventarios SET litros_reservados = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
     """, (nuevo, subinventario_id))
     return anterior, nuevo
+
+
+def apartar_remanente_despacho(cur, hab, litros_despachados, habilitacion_id, despacho_id, responsable_id):
+    """Aparta como reserva el remanente (litros_autorizados - litros_despachados) de un
+    despacho parcial, con el mismo cursor/transacción del llamador (todo-o-nada con el
+    despacho: si esto lanza SubinventarioError, el llamador debe abortar sin commit).
+
+    `hab` debe incluir gasolinera_id, cliente_id, cliente_nombre, litros_autorizados y
+    subinventario_id (puede ser None).
+
+    - Si litros_despachados >= litros_autorizados, no hace nada (remanente <= 0).
+    - Si la habilitación ya tenía subinventario_id (venía de una reserva), el remanente ya
+      quedó reservado ahí: el código de despacho solo decrementa litros_reservados por lo
+      efectivamente despachado, nunca por litros_autorizados. No se ajusta ningún número
+      acá — solo se deja constancia trazable de que ese remanente viene de un despacho
+      parcial y no de la reserva original.
+    - Si no tenía subinventario_id, se busca (o crea) el subinventario tipo 'cliente' de
+      ese cliente en esa gasolinera y se le suma el remanente con ajustar_reserva().
+
+    En ambos casos registra un movimiento tipo 'remanente_despacho' para trazabilidad.
+    """
+    litros_autorizados = float(hab["litros_autorizados"])
+    remanente = round(litros_autorizados - float(litros_despachados), 6)
+    if remanente <= 0.001:
+        return
+
+    gasolinera_id = hab["gasolinera_id"]
+    cliente_id = hab["cliente_id"]
+
+    if hab["subinventario_id"]:
+        sub_id = hab["subinventario_id"]
+    else:
+        cur.execute("""
+            SELECT id FROM subinventarios
+            WHERE gasolinera_id = ? AND cliente_id = ? AND tipo = 'cliente' AND activo = 1
+            ORDER BY id LIMIT 1
+        """, (gasolinera_id, cliente_id))
+        existente = cur.fetchone()
+        if existente:
+            sub_id = existente["id"]
+        else:
+            sub_id = crear_subinventario(
+                cur, gasolinera_id, f"Reserva — {hab['cliente_nombre']}", "cliente", cliente_id, 0
+            )
+        ajustar_reserva(cur, gasolinera_id, sub_id, remanente)
+
+    despacho_ref = f" / Despacho #{despacho_id}" if despacho_id else ""
+    cur.execute("""
+        INSERT INTO movimientos
+            (tipo, fecha, gasolinera_id, cliente_id, subinventario_destino_id,
+             litros, responsable_id, observaciones)
+        VALUES ('remanente_despacho', CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)
+    """, (
+        gasolinera_id, cliente_id, sub_id, remanente, responsable_id,
+        f"Remanente de despacho parcial — Habilitación #{habilitacion_id}{despacho_ref} — "
+        f"autorizados {litros_autorizados:,.2f} L, despachados {float(litros_despachados):,.2f} L."
+    ))

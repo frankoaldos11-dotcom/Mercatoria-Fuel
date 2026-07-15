@@ -8,6 +8,7 @@ from utils.auth import requiere_login, requiere_staff
 from utils.adjuntos import foto_valida, guardar_adjunto
 from utils.despachos import insertar_despacho_con_numero
 from utils.tarjetas import obtener_factor, calcular_usd_desde_litros
+from utils.subinventarios import apartar_remanente_despacho, SubinventarioError
 
 despachos_bp = Blueprint("despachos", __name__, url_prefix="/despachos")
 
@@ -284,9 +285,11 @@ def crear():
             cur.execute("""
                 SELECT h.*,
                        t.saldo_usable_l, t.estado AS tarjeta_estado,
-                       s.litros_reservados AS sub_litros
+                       s.litros_reservados AS sub_litros,
+                       cli.nombre AS cliente_nombre
                 FROM habilitaciones h
                 JOIN tarjetas t ON t.id = h.tarjeta_id
+                JOIN clientes cli ON cli.id = h.cliente_id
                 LEFT JOIN subinventarios s ON s.id = h.subinventario_id
                 WHERE h.id = ? AND h.estado = 'aprobada'
             """, (habilitacion_id,))
@@ -395,9 +398,17 @@ def crear():
                           session.get("user_id"),
                           f"Despacho #{nuevo_id} — Habilitación #{habilitacion_id}"))
 
-                    conn.commit()
-                    conn.close()
-                    return redirect(f"/despachos/{nuevo_id}?ok=1")
+                    try:
+                        apartar_remanente_despacho(
+                            cur, hab, litros, habilitacion_id, nuevo_id, session.get("user_id")
+                        )
+                    except SubinventarioError as e:
+                        conn.close()
+                        error = f"No se pudo apartar el remanente del despacho: {e}"
+                    else:
+                        conn.commit()
+                        conn.close()
+                        return redirect(f"/despachos/{nuevo_id}?ok=1")
 
     return render_template(
         "despachos/crear.html",
