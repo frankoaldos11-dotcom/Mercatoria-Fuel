@@ -42,11 +42,11 @@
                 {% for d in datos %}
                 <tr>
                     <td><strong>#{{ d.id }}</strong></td>
-                    <td style="font-size:12px;color:var(--muted);">{{ d.fecha_habilitacion }}</td>
+                    <td style="font-size:12px;color:var(--atenuado-staff);">{{ d.fecha_habilitacion }}</td>
                     <td><strong>{{ d.chapa }}</strong></td>
                     <td style="font-size:12px;">{{ d.gasolinera }}</td>
                     <td style="text-align:right;">{{ "{:,.2f}".format(d.litros_autorizados) }} L</td>
-                    <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(d.litros_despachados) }} L</td>
+                    <td style="text-align:right;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(d.litros_despachados) }} L</td>
                     <td>
                         {% if d.estado == 'pendiente' %}
                         <span class="badge badge-warn">Pendiente</span>

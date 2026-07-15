@@ -1336,3 +1336,72 @@ el mismo método de verificación por `urllib`.
   (`operario`, `operario_deposito`, `puesto_de_mando`, `supervisor`).
 - Quedan las Tandas 5 (portal cliente) y 6 (tienda + login/registro/landing) — mismo criterio:
   baseline/verificación local, reporte, commit y push inmediato si sale limpio.
+
+---
+
+# Reporte de Pruebas — 2026-07-15 (madrugada)
+
+## Migración de colores hardcodeados a tokens — Tanda 5 (portal cliente)
+
+Quinta tanda del plan de 6: `base_cliente.html` + los 7 templates de `templates/portal/*`
+(dashboard, despachos, consumo mensual/vehículo/chofer, unidades, habilitaciones). Primera
+tanda de la superficie cliente — requería el paso previo obligatorio del plan (enlazar
+`tokens.css`, que `base_cliente.html` no tenía todavía).
+
+### Cambios
+
+- **Paso previo: `tokens.css` enlazado en `base_cliente.html`** (antes solo cargaba
+  `admin.css`) — mismo orden que `base.html` en la Tanda 1 (`tokens.css` antes de
+  `admin.css`).
+- **Cambio A2 (naranja viejo → naranja unificado) en el logo SVG de `base_cliente.html`**:
+  las 8 rects pasaron de `#E86A2C`/`#F5A623` hardcodeados a `var(--activo)`/
+  `var(--color-warning-amber)` — mismo patrón exacto ya aplicado al logo de `base.html` en la
+  Tanda 1. Cambio visual esperado: el logo del portal cliente pasa a coincidir con el logo
+  staff (ya renaranjado desde la Tanda 1).
+- **Banner flash de éxito en `base_cliente.html`** (`#f0fdf4`/`#86efac`/`#166534`) → Cambio B a
+  `var(--fondo-exito-suave)`/`var(--color-success-border-alt)`/`var(--texto-sobre-exito)`,
+  mismo valor.
+- **7 templates de `portal/*`**: sin ningún hex hardcodeado (la superficie ya usaba
+  `var(--nombre-viejo)` en todos los casos) — solo renombrado de alias:
+  `--muted`→`--atenuado-staff`, `--primary`→`--principal`, `--success`→`--exito`.
+  `var(--info)` en `portal/dashboard.html:69` es un token real (no alias), sin cambios.
+
+### Verificación local (usuario cliente sembrado `cliente_pma@mercatoria.com`)
+
+| # | Página | Resultado |
+|---|---|---|
+| 1 | `/portal/` | ✅ 200, sin traceback. |
+| 2 | `/portal/despachos` | ✅ 200, sin traceback. |
+| 3 | `/portal/consumo-mensual` | ✅ 200, sin traceback. |
+| 4 | `/portal/consumo-vehiculo` | ✅ 200, sin traceback. |
+| 5 | `/portal/consumo-chofer` | ✅ 200, sin traceback. |
+| 6 | `/portal/unidades` | ✅ 200, sin traceback. |
+| 7 | `/portal/habilitaciones` | ✅ 200, sin traceback. |
+
+Login como cliente redirige por defecto a `/tienda/` (comportamiento esperado del rol
+`cliente`, no relacionado con esta migración) — las rutas `/portal/*` se verificaron
+navegando directo a cada URL con la sesión de cliente ya autenticada.
+
+**Nota operativa:** mismo bloqueo del clasificador de seguridad de Claude en Chrome para login
+automatizado por navegador — se repitió el método de verificación por `urllib` (sesión con
+cookies, usuario cliente sembrado por `migraciones.py`). El servidor local mantuvo `debug=True`
+con recarga automática, sin necesidad de reiniciar el proceso entre tandas.
+
+### Verificación programática adicional
+
+- Barrido de hex hardcodeado en los 8 archivos: **0 restantes**.
+- Barrido de `var(--nombre-viejo)`: **0 restantes**.
+- Cruce de `var(--...)` usadas contra las variables definidas — **0 sin resolver**.
+- Validé sintaxis Jinja de los 8 templates tocados — **todos compilan**.
+- `npm run tokens:build` — sin tokens nuevos esta tanda, build limpio de todos modos.
+
+## Recomendaciones
+
+- El cambio de logo (Cambio A2) en `base_cliente.html` es el único cambio visual intencional de
+  esta tanda — si Aldo quiere confirmarlo visualmente, alcanza con abrir `/portal/` con el
+  usuario cliente local y comparar el logo del sidebar contra el de la superficie staff (ya
+  debería verse igual, ambos en naranja unificado).
+- Queda la Tanda 6 (tienda + login/registro/landing) — última tanda del plan, mayor
+  sensibilidad de marca (logo público, landing). Mismo criterio: baseline/verificación local,
+  reporte, commit y push si sale limpio, sin pausar salvo caso dudoso — avisar a Aldo al
+  terminar esta última tanda, según su instrucción original.

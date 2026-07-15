@@ -27,7 +27,7 @@
                 {% for d in datos %}
                 <tr>
                     <td><strong>{{ d.chapa }}</strong></td>
-                    <td style="color:var(--muted);font-size:13px;">{{ d.marca or '' }} {{ d.modelo or '' }}</td>
+                    <td style="color:var(--atenuado-staff);font-size:13px;">{{ d.marca or '' }} {{ d.modelo or '' }}</td>
                     <td>
                         <span class="badge badge-neutral">{{ d.tipo_combustible }}</span>
                     </td>
@@ -39,7 +39,7 @@
                         {% endif %}
                     </td>
                     <td>{{ d.chofer or '—' }}</td>
-                    <td style="font-size:12px;color:var(--muted);">{{ d.licencia_numero or '—' }}</td>
+                    <td style="font-size:12px;color:var(--atenuado-staff);">{{ d.licencia_numero or '—' }}</td>
                     <td>
                         {% if d.licencia_vencimiento %}
                             {% if d.licencia_vencimiento < hoy %}

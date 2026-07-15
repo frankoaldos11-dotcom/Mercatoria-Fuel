@@ -28,7 +28,7 @@
                 {% for i in range(labels|length) %}
                 <tr>
                     <td>{{ labels[i] }}</td>
-                    <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(valores[i]) }} L</td>
+                    <td style="text-align:right;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(valores[i]) }} L</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -37,7 +37,7 @@
 </div>
 {% else %}
 <div class="panel mt-4">
-    <div style="padding:40px;text-align:center;color:var(--muted);">No hay datos de consumo registrados.</div>
+    <div style="padding:40px;text-align:center;color:var(--atenuado-staff);">No hay datos de consumo registrados.</div>
 </div>
 {% endif %}
 

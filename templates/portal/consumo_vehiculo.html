@@ -24,9 +24,9 @@
                 {% for d in datos %}
                 <tr>
                     <td><strong>{{ d.chapa }}</strong></td>
-                    <td style="color:var(--muted);">{{ d.marca or '' }} {{ d.modelo or '' }}</td>
-                    <td style="text-align:right;font-weight:700;color:var(--primary);">{{ "{:,.2f}".format(d.total) }} L</td>
-                    <td style="text-align:right;color:var(--muted);">
+                    <td style="color:var(--atenuado-staff);">{{ d.marca or '' }} {{ d.modelo or '' }}</td>
+                    <td style="text-align:right;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(d.total) }} L</td>
+                    <td style="text-align:right;color:var(--atenuado-staff);">
                         {{ "{:,.2f}".format(d.total / d.meses_activos if d.meses_activos else 0) }} L/mes
                     </td>
                 </tr>
