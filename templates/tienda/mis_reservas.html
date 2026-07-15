@@ -13,9 +13,9 @@
 {% if not reservas %}
 <div class="panel">
     <div class="panel-body" style="text-align:center;padding:48px;">
-        <div style="font-size:2.5rem;color:#D1D5DB;margin-bottom:16px;"><i class="bi bi-receipt"></i></div>
-        <h3 style="font-size:1.1rem;font-weight:600;color:#374151;">Aún no tienes reservas</h3>
-        <p style="color:#9CA3AF;font-size:0.88rem;">Crea tu primera reserva de combustible.</p>
+        <div style="font-size:2.5rem;color:var(--color-gray-border-alt-upper);margin-bottom:16px;"><i class="bi bi-receipt"></i></div>
+        <h3 style="font-size:1.1rem;font-weight:600;color:var(--color-gray-label-text);">Aún no tienes reservas</h3>
+        <p style="color:var(--color-gray-muted-alt);font-size:0.88rem;">Crea tu primera reserva de combustible.</p>
         <a href="/tienda/reservar" class="btn-orange" style="margin-top:16px;">
             <i class="bi bi-plus-circle"></i> Hacer mi primera reserva
         </a>
@@ -31,34 +31,34 @@
                 <strong style="font-size:1rem;">Reserva #{{ r.id }}</strong>
                 <span class="{{ estado_badge.get(r.estado, 'badge-warn') }}">{{ estado_labels.get(r.estado, r.estado) }}</span>
             </div>
-            <div style="font-size:13px;color:#6B7280;">
+            <div style="font-size:13px;color:var(--atenuado-cliente);">
                 {{ r.gasolinera_nombre }} ·
                 {{ combustible_labels.get(r.tipo_combustible, r.tipo_combustible) }} ·
                 {{ "%.0f"|format(r.litros_solicitados) }} L ·
-                <strong style="color:#E86A2C;">${{ "%.2f"|format(r.precio_total_usd) }}</strong>
+                <strong style="color:var(--activo);">${{ "%.2f"|format(r.precio_total_usd) }}</strong>
             </div>
             {% if r.descripcion_vehiculo %}
-            <div style="font-size:12px;color:#9CA3AF;margin-top:3px;"><i class="bi bi-truck"></i> {{ r.descripcion_vehiculo }}</div>
+            <div style="font-size:12px;color:var(--color-gray-muted-alt);margin-top:3px;"><i class="bi bi-truck"></i> {{ r.descripcion_vehiculo }}</div>
             {% endif %}
-            <div style="font-size:11px;color:#D1D5DB;margin-top:4px;">{{ (r.created_at | string)[:16] if r.created_at else '' }}</div>
+            <div style="font-size:11px;color:var(--color-gray-border-alt-upper);margin-top:4px;">{{ (r.created_at | string)[:16] if r.created_at else '' }}</div>
         </div>
 
         {% if r.estado == 'aprobada' and r.qr_imagen_b64 %}
         <div style="text-align:center;">
             <img src="data:image/png;base64,{{ r.qr_imagen_b64 }}"
                  alt="QR reserva {{ r.id }}"
-                 style="width:120px;height:120px;border-radius:8px;border:1px solid #E5E7EB;">
-            <div style="font-size:11px;color:#6B7280;margin-top:6px;">Muestra este QR en gasolinera</div>
+                 style="width:120px;height:120px;border-radius:8px;border:1px solid var(--borde-cliente);">
+            <div style="font-size:11px;color:var(--atenuado-cliente);margin-top:6px;">Muestra este QR en gasolinera</div>
         </div>
         {% elif r.estado == 'pendiente' %}
         <div style="text-align:center;padding:10px;">
-            <div style="font-size:1.8rem;color:#F59E0B;"><i class="bi bi-hourglass-split"></i></div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Pendiente de aprobación</div>
+            <div style="font-size:1.8rem;color:var(--aviso);"><i class="bi bi-hourglass-split"></i></div>
+            <div style="font-size:11px;color:var(--color-gray-muted-alt);margin-top:4px;">Pendiente de aprobación</div>
         </div>
         {% elif r.estado == 'completada' %}
         <div style="text-align:center;padding:10px;">
-            <div style="font-size:1.8rem;color:#16A34A;"><i class="bi bi-check-circle-fill"></i></div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Combustible despachado</div>
+            <div style="font-size:1.8rem;color:var(--exito);"><i class="bi bi-check-circle-fill"></i></div>
+            <div style="font-size:11px;color:var(--color-gray-muted-alt);margin-top:4px;">Combustible despachado</div>
         </div>
         {% endif %}
     </div>

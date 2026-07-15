@@ -15,7 +15,7 @@
 {% endif %}
 
 {% if not mis_vehiculos %}
-<div style="background:#FEF9C3;border-left:4px solid #CA8A04;color:#713F12;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:15px;">
+<div style="background:var(--fondo-aviso-suave);border-left:4px solid var(--color-warning-accent-1);color:var(--color-warning-text-deep);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:15px;">
     <i class="bi bi-exclamation-triangle-fill"></i>
     <strong>No puedes reservar todavía.</strong><br>
     Debes registrar al menos un vehículo antes de hacer una reserva.
@@ -31,7 +31,7 @@
 {% endif %}
 
 {% if email_no_verificado %}
-<div id="aviso-verificacion" style="background:#FEF2F2;border-left:4px solid #DC2626;color:#7F1D1D;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:15px;">
+<div id="aviso-verificacion" style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--color-danger-text-deep);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:15px;">
     <i class="bi bi-envelope-exclamation-fill"></i>
     <strong>Debes verificar tu correo electrónico antes de confirmar una reserva.</strong><br>
     Revisa tu bandeja de entrada y haz clic en el enlace que te enviamos. Si no lo encuentras,
@@ -88,14 +88,14 @@
                        inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
                        value="{{ form.get('litros', '') }}" placeholder="0">
                 {% if compra_minima > 0 %}
-                <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Mínimo: {{ compra_minima|int }} litros</div>
+                <div style="font-size:11px;color:var(--color-gray-muted-alt);margin-top:4px;">Mínimo: {{ compra_minima|int }} litros</div>
                 {% endif %}
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Total estimado</label>
-                <div id="precio-total" style="font-size:1.5rem;font-weight:800;color:#E86A2C;">$0.00</div>
-                <div style="font-size:12px;color:#9CA3AF;margin-top:2px;" id="precio-detalle"></div>
+                <div id="precio-total" style="font-size:1.5rem;font-weight:800;color:var(--activo);">$0.00</div>
+                <div style="font-size:12px;color:var(--color-gray-muted-alt);margin-top:2px;" id="precio-detalle"></div>
             </div>
 
             <div class="mb-3">
@@ -108,8 +108,8 @@
                     </option>
                     {% endfor %}
                 </select>
-                <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">
-                    <a href="/tienda/mis-vehiculos/" style="color:#E86A2C;">Administrar mis vehículos</a>
+                <div style="font-size:12px;color:var(--color-gray-muted-alt);margin-top:4px;">
+                    <a href="/tienda/mis-vehiculos/" style="color:var(--activo);">Administrar mis vehículos</a>
                 </div>
             </div>
 
@@ -218,9 +218,9 @@ async function verificarCodigo() {
             const aviso = document.getElementById('aviso-verificacion');
             aviso.innerHTML = '<i class="bi bi-check-circle"></i> ' +
                 '<strong>Correo verificado.</strong> Ya puedes confirmar tu reserva.';
-            aviso.style.background = '#F0FDF4';
-            aviso.style.borderLeftColor = '#16A34A';
-            aviso.style.color = '#14532D';
+            aviso.style.background = 'var(--fondo-exito-suave)';
+            aviso.style.borderLeftColor = 'var(--exito)';
+            aviso.style.color = 'var(--color-success-text-strong-upper)';
         } else {
             msg.textContent = data.error || 'Código inválido o vencido.';
         }

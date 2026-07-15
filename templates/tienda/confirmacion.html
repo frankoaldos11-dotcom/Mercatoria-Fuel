@@ -10,36 +10,36 @@
 <div class="panel">
     <div class="panel-body">
         <div style="text-align:center;padding:20px 0 30px;">
-            <div style="font-size:3rem;color:#16A34A;margin-bottom:16px;"><i class="bi bi-check-circle-fill"></i></div>
-            <h2 style="font-size:1.3rem;font-weight:700;color:#111827;">Reserva #{{ reserva.id }} creada</h2>
-            <p style="color:#6B7280;font-size:0.9rem;">Recibirás tu código QR una vez que un administrador apruebe tu reserva.</p>
+            <div style="font-size:3rem;color:var(--exito);margin-bottom:16px;"><i class="bi bi-check-circle-fill"></i></div>
+            <h2 style="font-size:1.3rem;font-weight:700;color:var(--texto-cliente);">Reserva #{{ reserva.id }} creada</h2>
+            <p style="color:var(--atenuado-cliente);font-size:0.9rem;">Recibirás tu código QR una vez que un administrador apruebe tu reserva.</p>
         </div>
 
-        <div style="background:#F9FAFB;border-radius:10px;padding:20px;margin-bottom:24px;">
+        <div style="background:var(--color-gray-table-header-bg-upper);border-radius:10px;padding:20px;margin-bottom:24px;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:14px;">
                 <div>
-                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Gasolinera</div>
+                    <div style="color:var(--color-gray-muted-alt);font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Gasolinera</div>
                     <div style="font-weight:600;">{{ reserva.gasolinera_nombre }}</div>
                 </div>
                 <div>
-                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Combustible</div>
+                    <div style="color:var(--color-gray-muted-alt);font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Combustible</div>
                     <div style="font-weight:600;">{{ combustible_labels.get(reserva.tipo_combustible, reserva.tipo_combustible) }}</div>
                 </div>
                 <div>
-                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Litros solicitados</div>
+                    <div style="color:var(--color-gray-muted-alt);font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Litros solicitados</div>
                     <div style="font-weight:600;">{{ "%.2f"|format(reserva.litros_solicitados) }} L</div>
                 </div>
                 <div>
-                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Total estimado</div>
-                    <div style="font-weight:700;color:#E86A2C;font-size:1.1rem;">${{ "%.2f"|format(reserva.precio_total_usd) }}</div>
+                    <div style="color:var(--color-gray-muted-alt);font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Total estimado</div>
+                    <div style="font-weight:700;color:var(--activo);font-size:1.1rem;">${{ "%.2f"|format(reserva.precio_total_usd) }}</div>
                 </div>
                 <div>
-                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Estado</div>
+                    <div style="color:var(--color-gray-muted-alt);font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Estado</div>
                     <span class="badge-warn">Pendiente de aprobación</span>
                 </div>
                 {% if reserva.descripcion_vehiculo %}
                 <div>
-                    <div style="color:#9CA3AF;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Vehículo</div>
+                    <div style="color:var(--color-gray-muted-alt);font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:3px;">Vehículo</div>
                     <div>{{ reserva.descripcion_vehiculo }}</div>
                 </div>
                 {% endif %}

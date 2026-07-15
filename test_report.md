@@ -1405,3 +1405,125 @@ con recarga automática, sin necesidad de reiniciar el proceso entre tandas.
   sensibilidad de marca (logo público, landing). Mismo criterio: baseline/verificación local,
   reporte, commit y push si sale limpio, sin pausar salvo caso dudoso — avisar a Aldo al
   terminar esta última tanda, según su instrucción original.
+
+---
+
+# Reporte de Pruebas — 2026-07-15 (última tanda)
+
+## Migración de colores hardcodeados a tokens — Tanda 6 (tienda + login/registro/landing) — ÚLTIMA TANDA
+
+Sexta y última tanda del plan de 6: `base_tienda.html`, los 7 templates de `templates/tienda/*`
+(salvo `admin.html`, ya migrado en la Tanda 2), `login.html`, `registro.html`,
+`registro_ok.html`, `recuperar.html` y `landing.html` (13 templates). Mayor sensibilidad de
+marca — incluye el logo público y la página de marketing.
+
+### Cambios
+
+- **Paso previo: `tokens.css` enlazado** en los 6 archivos standalone que tienen su propio
+  `<head>` (no extienden ningún base): `base_tienda.html`, `login.html`, `registro.html`,
+  `registro_ok.html`, `recuperar.html`, `landing.html`, más `tienda/qr_invalido.html` y
+  `tienda/qr_vista.html` (7 en total, el plan original preveía 6 pero encontré 2 adicionales
+  standalone en `tienda/` que también cargan su propio `<head>` sin extender `base_tienda.html`).
+- **Patrón alias local repetido en 2 archivos** (mismo criterio que `admin.css` en la Tanda 1):
+  `base_tienda.html` y `landing.html` declaran su propio `:root` con nombres de variable
+  page-scoped (`--orange`, `--orange-dark`, `--bg`/`--amber`/etc., usados solo dentro del propio
+  `<style>` de cada archivo) — en vez de tocar cada `var(--orange)` uno por uno, repunté el
+  `:root` local a los tokens compartidos (`--orange: var(--activo)`, `--bg: var(--fondo-cliente)`,
+  etc.), propagando el cambio a todas las reglas del archivo de una sola vez. Esto también
+  elimina la duplicación de `:root` que señalaba el plan original (cada página standalone tenía
+  su propia copia de `--bg`/`--text`/`--muted`/`--border` con los mismos valores que
+  `--fondo-cliente`/`--texto-cliente`/`--atenuado-cliente`/`--borde-cliente`).
+- **Cambio A2 (naranja viejo → naranja unificado) — el cambio de mayor impacto visual del
+  proyecto completo**: los 8 `#E86A2C`/`#C45520` del logo y CTAs en `base_tienda.html` y
+  `landing.html` pasan a `var(--activo)`/`var(--activo-oscuro)`, más ~15 apariciones sueltas de
+  `#E86A2C` en `login.html`, `registro.html`, `registro_ok.html`, `recuperar.html`,
+  `tienda/index.html`, `tienda/mis_reservas.html`, `tienda/confirmacion.html`,
+  `tienda/reservar.html`, `tienda/qr_invalido.html`, `tienda/qr_vista.html` — todas al mismo
+  `var(--activo)`. Incluye 3 `rgba(232,106,44,X)` (halos de foco/badge) recalculados a
+  `rgba(241,106,48,X)` — mismo alpha, nuevo naranja — siguiendo el mismo criterio que
+  `admin.css` en la Tanda 1 para el halo de foco azul→naranja.
+  **Este es el cambio visual más notorio de todo el proyecto de tokens**: el logo público
+  (`landing.html`, la página de marketing) y el flujo completo de login/registro pasan de
+  naranja `#E86A2C` a naranja `#F16A30` — ya coherente con el logo staff (Tanda 1) y el logo
+  del portal cliente (Tanda 5).
+- **`landing.html` usa los tokens `color-landing-bg`/`color-landing-text`** (`#0F1117`/
+  `#F3F4F6`) ya cargados en `color-sin-mapeo.json` desde la tanda de inventario original — es
+  el único fondo oscuro de toda la app (tema invertido respecto al resto de la superficie
+  cliente), documentado como caso especial desde el principio, sin cambios de valor.
+  El resto de los `var()` sin resolver que aparecían en el barrido (`--bg`, `--border`,
+  `--muted` dentro de `base_tienda.html`/`landing.html`) son las variables de su propio `:root`
+  local ya repuntado — no son referencias sueltas, se resuelven dentro del mismo archivo.
+- **Ningún token nuevo esta tanda** — cada hex encontrado ya tenía token existente de tandas
+  anteriores (incluyendo `#9CA3AF`→`color-gray-muted-alt` y `#FEF3C7`→`color-warning-bg-alt-2`,
+  ambos catalogados desde la Tanda 1 pero recién usados acá).
+- **`tienda/admin.html` confirmado ya migrado desde la Tanda 2** — sin cambios necesarios,
+  barrido de hex + `var()` viejo dio cero antes de arrancar esta tanda.
+
+### Verificación local
+
+| # | Página | Resultado |
+|---|---|---|
+| 1 | `/` (landing pública) | ✅ 200, sin traceback. |
+| 2 | `/login` | ✅ 200, sin traceback. |
+| 3 | `/registro` | ✅ 200, sin traceback. |
+| 4 | `/recuperar` | ✅ 200, sin traceback. |
+| 5 | `/tienda/` (cliente autenticado) | ✅ 200, sin traceback. |
+| 6 | `/tienda/mis-reservas` | ✅ 200, sin traceback. |
+| 7 | `/tienda/mis-vehiculos` | ✅ 200, sin traceback. |
+
+**Páginas no verificadas por HTTP** (`registro_ok.html`, `tienda/reservar.html`,
+`tienda/confirmacion.html`, `tienda/qr_vista.html`, `tienda/qr_invalido.html`): requieren estado
+específico (POST exitoso de registro, una reserva real con ID, un token QR válido) que no arma
+un smoke test rápido de una sola request — cubiertas por la misma validación de sintaxis Jinja
+y el cruce de `var()` sin resolver (ambos limpios), igual criterio que los dashboards por rol
+no verificados en la Tanda 4.
+
+**Nota operativa:** mismo bloqueo del clasificador de seguridad de Claude en Chrome para login
+por navegador en todas las tandas de esta sesión (3 a 6) — verificación siempre por `urllib` +
+chequeo programático. Servidor local con `debug=True`, recarga automática confirmada en las 6
+tandas.
+
+### Verificación programática adicional
+
+- Barrido de hex hardcodeado en los 13 archivos: **0 restantes**.
+- Cruce de `var(--...)` usadas contra tokens.css + admin.css + los 2 `:root` locales
+  (`base_tienda.html`, `landing.html`) — **0 sin resolver**.
+- Validé sintaxis Jinja de los 13 templates tocados — **todos compilan**.
+- `npm run tokens:build` — sin tokens nuevos esta tanda, build limpio.
+
+## Recomendaciones
+
+- **El cambio de logo (Cambio A2) en `landing.html` y en todo el flujo de login/registro/
+  recuperar es el cambio visual de mayor alcance de todo el proyecto** — si Aldo quiere
+  confirmarlo antes de dar por cerrado el proyecto completo, alcanza con abrir `/` (landing
+  pública) y comparar el logo/CTAs contra el naranja anterior (`#E86A2C`, más apagado) — ahora
+  debería verse el mismo naranja vibrante (`#F16A30`) que ya está en producción desde la Tanda 1
+  en la superficie staff.
+- Las 5 páginas de estado específico (ver nota arriba) quedan sin verificación visual directa
+  — si se quiere cubrir, hace falta sembrar una reserva de prueba con QR generado.
+
+---
+
+## Cierre del proyecto de migración de colores (Tandas 1-6)
+
+Las 6 tandas del plan quedaron completas, verificadas localmente y pusheadas:
+
+| Tanda | Alcance | Commit |
+|---|---|---|
+| 1 | Infra (`tokens.css` enlazado) + `admin.css` | `7e8be0e` |
+| 2 | Núcleo operativo (Tarjetas/Despachos/Habilitaciones/Turno/Gasolineras/Puertos/Transferencias/`tienda/admin.html`) | `c38aae4` |
+| 3 | Admin secundario (Conciliación/Reportes/Configuración/Depósitos/Recepciones/TL38/Módulos/Mensajes) | `5b99c4a` |
+| 4 | CRUD de entidades + dashboards por rol (Usuarios/Clientes/Vehículos/Choferes/Unidades/dashboards) | `965a648` |
+| 5 | Portal cliente (`base_cliente.html` + `templates/portal/*`) | `e064661` |
+| 6 | Tienda + login/registro/landing | (este commit) |
+
+**Total: ~110 templates migrados**, cero hex hardcodeado restante en las superficies staff,
+cliente y pública, todo repuntado al catálogo de `tokens/*.json` → `static/css/tokens.css`.
+Cambios visuales intencionales (Cambio A) quedaron documentados tanda por tanda: azul→naranja
+en `admin.css` (Tanda 1), naranja viejo→naranja unificado en el logo de las 3 superficies
+(Tandas 1, 5, 6) y en la app entera vía el alias `--activo`/`--principal`.
+
+Pendientes fuera de alcance (documentados, no removidos): mapa `ESTADO_COLOR` en JS de
+`turno/escanear.html` (dudoso #5 original), 2 templates `modulos/*` sin ruta activa, 4
+dashboards por rol y 5 páginas de estado específico sin verificación HTTP directa (cubiertas
+por validación estática).

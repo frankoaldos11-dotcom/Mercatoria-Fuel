@@ -7,28 +7,29 @@
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/tokens.css">
     <style>
         body {
-            background: #F3F4F6; font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--fondo-cliente); font-family: 'Segoe UI', system-ui, sans-serif;
             min-height: 100vh; display: flex; flex-direction: column;
             align-items: center; justify-content: center; padding: 1.5rem;
         }
         .qr-card {
-            background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            background: var(--panel); border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             padding: 2.5rem 2rem; width: 100%; max-width: 400px; text-align: center;
         }
-        .brand { font-size: 1rem; font-weight: 800; color: #E86A2C; margin-bottom: 24px; }
+        .brand { font-size: 1rem; font-weight: 800; color: var(--activo); margin-bottom: 24px; }
         .status-badge {
             display: inline-block; border-radius: 20px; padding: 5px 14px;
             font-size: 13px; font-weight: 700; margin-bottom: 20px;
         }
-        .status-aprobada { background:#DBEAFE;color:#1E40AF; }
-        .status-completada { background:#DCFCE7;color:#166534; }
-        .status-other { background:#FEF9C3;color:#854D0E; }
-        .detail-row { display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid #F3F4F6; }
+        .status-aprobada { background:var(--color-info-bg-upper);color:var(--texto-sobre-info); }
+        .status-completada { background:var(--color-success-bg-alt-upper);color:var(--texto-sobre-exito); }
+        .status-other { background:var(--fondo-aviso-suave);color:var(--color-warning-text-alt-upper); }
+        .detail-row { display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--fondo-cliente); }
         .detail-row:last-child { border-bottom:none; }
-        .detail-label { color:#9CA3AF;font-weight:500; }
-        .detail-val { font-weight:600;color:#111827; }
+        .detail-label { color:var(--color-gray-muted-alt);font-weight:500; }
+        .detail-val { font-weight:600;color:var(--texto-cliente); }
     </style>
 </head>
 <body>
@@ -70,7 +71,7 @@
         </div>
         <div class="detail-row">
             <span class="detail-label">Total</span>
-            <span class="detail-val" style="color:#E86A2C;">${{ "%.2f"|format(reserva.precio_total_usd) }}</span>
+            <span class="detail-val" style="color:var(--activo);">${{ "%.2f"|format(reserva.precio_total_usd) }}</span>
         </div>
         {% if reserva.descripcion_vehiculo %}
         <div class="detail-row">
@@ -84,7 +85,7 @@
         </div>
     </div>
 
-    <p style="font-size:12px;color:#9CA3AF;">
+    <p style="font-size:12px;color:var(--color-gray-muted-alt);">
         Muestra este código al operario en la gasolinera para recibir tu combustible.
     </p>
 </div>

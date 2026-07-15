@@ -7,18 +7,19 @@
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/tokens.css">
     <style>
         :root {
-            --orange: #E86A2C;
-            --orange-dark: #C45520;
-            --amber: #F5A623;
+            --orange: var(--activo);
+            --orange-dark: var(--activo-oscuro);
+            --amber: var(--color-warning-amber);
         }
         * { box-sizing: border-box; }
         body {
             margin: 0;
             font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #0F1117;
-            color: #F3F4F6;
+            background: var(--color-landing-bg);
+            color: var(--color-landing-text);
         }
 
         /* NAV */
@@ -37,7 +38,7 @@
         .nav-brand {
             font-weight: 800;
             font-size: 1.2rem;
-            color: #fff;
+            color: var(--panel);
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -47,7 +48,7 @@
         .nav-links { display: flex; gap: 12px; align-items: center; }
         .btn-outline-nav {
             border: 1.5px solid rgba(255,255,255,0.25);
-            color: #fff;
+            color: var(--panel);
             background: transparent;
             border-radius: 8px;
             padding: 8px 18px;
@@ -60,7 +61,7 @@
         .btn-outline-nav:hover { border-color: var(--orange); color: var(--orange); }
         .btn-orange-nav {
             background: var(--orange);
-            color: #fff;
+            color: var(--panel);
             border: none;
             border-radius: 8px;
             padding: 8px 20px;
@@ -70,7 +71,7 @@
             text-decoration: none;
             transition: background 0.15s;
         }
-        .btn-orange-nav:hover { background: var(--orange-dark); color: #fff; }
+        .btn-orange-nav:hover { background: var(--orange-dark); color: var(--panel); }
 
         /* HERO */
         .hero {
@@ -81,8 +82,8 @@
         }
         .hero-badge {
             display: inline-block;
-            background: rgba(232,106,44,0.15);
-            border: 1px solid rgba(232,106,44,0.35);
+            background: rgba(241,106,48,0.15);
+            border: 1px solid rgba(241,106,48,0.35);
             color: var(--amber);
             font-size: 0.8rem;
             font-weight: 700;
@@ -97,12 +98,12 @@
             font-weight: 800;
             line-height: 1.15;
             margin-bottom: 20px;
-            color: #fff;
+            color: var(--panel);
         }
         .hero h1 span { color: var(--orange); }
         .hero p {
             font-size: 1.1rem;
-            color: #9CA3AF;
+            color: var(--color-gray-muted-alt);
             max-width: 600px;
             margin: 0 auto 40px;
             line-height: 1.65;
@@ -110,7 +111,7 @@
         .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
         .btn-hero-primary {
             background: var(--orange);
-            color: #fff;
+            color: var(--panel);
             border: none;
             border-radius: 10px;
             padding: 14px 32px;
@@ -120,10 +121,10 @@
             text-decoration: none;
             transition: background 0.15s;
         }
-        .btn-hero-primary:hover { background: var(--orange-dark); color: #fff; }
+        .btn-hero-primary:hover { background: var(--orange-dark); color: var(--panel); }
         .btn-hero-secondary {
             background: rgba(255,255,255,0.07);
-            color: #fff;
+            color: var(--panel);
             border: 1px solid rgba(255,255,255,0.18);
             border-radius: 10px;
             padding: 14px 32px;
@@ -133,7 +134,7 @@
             text-decoration: none;
             transition: background 0.15s;
         }
-        .btn-hero-secondary:hover { background: rgba(255,255,255,0.12); color: #fff; }
+        .btn-hero-secondary:hover { background: rgba(255,255,255,0.12); color: var(--panel); }
 
         /* PRODUCTS */
         .section { padding: 72px 5%; }
@@ -141,8 +142,8 @@
             text-align: center;
             margin-bottom: 48px;
         }
-        .section-title h2 { font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
-        .section-title p { color: #9CA3AF; font-size: 0.95rem; }
+        .section-title h2 { font-size: 1.8rem; font-weight: 700; color: var(--panel); margin-bottom: 10px; }
+        .section-title p { color: var(--color-gray-muted-alt); font-size: 0.95rem; }
 
         .products-grid {
             display: grid;
@@ -161,9 +162,9 @@
         }
         .product-card:hover { border-color: var(--orange); transform: translateY(-4px); }
         .product-icon { font-size: 2.4rem; margin-bottom: 14px; }
-        .product-card h3 { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+        .product-card h3 { font-size: 1.05rem; font-weight: 700; color: var(--panel); margin-bottom: 8px; }
         .product-price { color: var(--amber); font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
-        .product-unit { color: #6B7280; font-size: 0.8rem; }
+        .product-unit { color: var(--atenuado-cliente); font-size: 0.8rem; }
 
         /* HOW IT WORKS */
         .steps-section { background: rgba(255,255,255,0.02); }
@@ -179,7 +180,7 @@
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: rgba(232,106,44,0.15);
+            background: rgba(241,106,48,0.15);
             border: 1.5px solid var(--orange);
             color: var(--orange);
             font-weight: 800;
@@ -189,15 +190,15 @@
             justify-content: center;
             margin: 0 auto 16px;
         }
-        .step h4 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
-        .step p { font-size: 0.85rem; color: #9CA3AF; line-height: 1.55; }
+        .step h4 { font-size: 0.95rem; font-weight: 700; color: var(--panel); margin-bottom: 8px; }
+        .step p { font-size: 0.85rem; color: var(--color-gray-muted-alt); line-height: 1.55; }
 
         /* FOOTER */
         footer {
             text-align: center;
             padding: 36px 5%;
             border-top: 1px solid rgba(255,255,255,0.06);
-            color: #6B7280;
+            color: var(--atenuado-cliente);
             font-size: 0.82rem;
         }
         footer a { color: var(--orange); text-decoration: none; }
@@ -255,7 +256,7 @@
             <div class="product-unit">por litro</div>
         </div>
     </div>
-    <p style="text-align:center;margin-top:28px;color:#6B7280;font-size:0.85rem;">
+    <p style="text-align:center;margin-top:28px;color:var(--atenuado-cliente);font-size:0.85rem;">
         Los precios exactos se muestran al iniciar sesión. <a href="/registro" style="color:var(--orange);">Regístrate gratis →</a>
     </p>
 </section>
