@@ -21,8 +21,9 @@ _TRANSICIONES_VALIDAS = {
 
 def _bolson_disponible(cur):
     cur.execute("""
-        SELECT COALESCE(SUM(CASE WHEN tipo='generacion' THEN monto_usd
-                                 WHEN tipo='asignacion'  THEN -monto_usd
+        SELECT COALESCE(SUM(CASE WHEN tipo='generacion'         THEN monto_usd
+                                 WHEN tipo='devolucion_liberada' THEN monto_usd
+                                 WHEN tipo='asignacion'          THEN -monto_usd
                                  ELSE 0 END), 0) AS disponible
         FROM movimientos_saldo_fincimex
     """)
@@ -172,6 +173,7 @@ def detalle(id):
         SELECT d.id, d.fecha_incidente, d.litros_retenidos, d.slip_inicial,
                d.slip_devolucion, d.slip_restante, d.fecha_estimada_liberacion,
                d.fecha_liberacion_real, d.estado, d.observaciones,
+               d.destino_liberacion, d.motivo_perdida,
                u.nombre AS responsable_nombre
         FROM devoluciones_tarjetas d
         JOIN usuarios u ON u.id = d.responsable_id
@@ -582,9 +584,11 @@ def asignar_saldo(id):
 
 @tarjetas_bp.route("/<int:id>/devolucion", methods=["GET", "POST"])
 def devolucion(id):
-    redir = requiere_staff()
+    redir = requiere_login()
     if redir:
         return redir
+    if _requiere_admin_pm():
+        return redirect(f"/tarjetas/{id}?access_error=Solo+Admin+y+PM+pueden+registrar+devoluciones")
 
     conn = conectar()
     cur = conn.cursor()
@@ -626,6 +630,11 @@ def devolucion(id):
                     f"Los litros retenidos ({litros:,.2f} L) superan el saldo usable "
                     f"disponible ({float(tarjeta['saldo_usable_l']):,.2f} L)."
                 )
+            elif not error and fecha_estimada and fecha_estimada <= fecha_incidente:
+                error = (
+                    "La fecha estimada de liberación debe ser posterior a la fecha del "
+                    "incidente."
+                )
 
         if not error:
             conn = conectar()
@@ -662,11 +671,17 @@ def devolucion(id):
 
 @tarjetas_bp.route("/<int:tarjeta_id>/liberar/<int:dev_id>", methods=["POST"])
 def liberar_devolucion(tarjeta_id, dev_id):
-    redir = requiere_staff()
+    redir = requiere_login()
     if redir:
         return redir
+    if _requiere_admin_pm():
+        return redirect(f"/tarjetas/{tarjeta_id}?access_error=Solo+Admin+y+PM+pueden+liberar+devoluciones")
 
     fecha_real = request.form.get("fecha_liberacion_real", "").strip() or date.today().isoformat()
+    destino = request.form.get("destino", "").strip()
+
+    if destino not in ("tarjeta", "bolson"):
+        return redirect(f"/tarjetas/{tarjeta_id}?access_error=Debes+elegir+un+destino+para+la+liberación")
 
     conn = conectar()
     cur = conn.cursor()
@@ -681,18 +696,104 @@ def liberar_devolucion(tarjeta_id, dev_id):
         return redirect(f"/tarjetas/{tarjeta_id}?access_error=Devolución+no+disponible")
 
     litros = float(dev["litros_retenidos"])
-    cur.execute("""
-        UPDATE tarjetas
-        SET saldo_usable_l   = saldo_usable_l   + ?,
-            saldo_retenido_l = saldo_retenido_l - ?,
-            updated_at       = CURRENT_TIMESTAMP
-        WHERE id = ?
-    """, (litros, litros, tarjeta_id))
+
+    if destino == "tarjeta":
+        cur.execute("""
+            UPDATE tarjetas
+            SET saldo_usable_l   = saldo_usable_l   + ?,
+                saldo_retenido_l = saldo_retenido_l - ?,
+                updated_at       = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (litros, litros, tarjeta_id))
+    else:
+        factor = obtener_factor(cur)
+        monto_usd = calcular_usd_desde_litros(litros, factor)
+        cur.execute("""
+            UPDATE tarjetas
+            SET saldo_retenido_l = saldo_retenido_l - ?,
+                updated_at       = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (litros, tarjeta_id))
+        cur.execute("""
+            INSERT INTO movimientos_saldo_fincimex
+                (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
+            VALUES ('devolucion_liberada', ?, ?, ?, ?, ?, ?)
+        """, (
+            monto_usd, litros, factor, tarjeta_id, session.get("user_id"),
+            f"Devolución #{dev_id} liberada al bolsón — {litros:,.2f} L × {factor}",
+        ))
+
     cur.execute("""
         UPDATE devoluciones_tarjetas
-        SET estado = 'liberada', fecha_liberacion_real = ?, updated_at = CURRENT_TIMESTAMP
+        SET estado = 'liberada', fecha_liberacion_real = ?, destino_liberacion = ?,
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-    """, (fecha_real, dev_id))
+    """, (fecha_real, destino, dev_id))
     conn.commit()
     conn.close()
     return redirect(f"/tarjetas/{tarjeta_id}?ok=1")
+
+
+# ── Marcar devolución como perdida ───────────────────────────────────────────
+
+@tarjetas_bp.route("/<int:tarjeta_id>/devolucion/<int:dev_id>/perdida", methods=["GET", "POST"])
+def perdida_devolucion(tarjeta_id, dev_id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/tarjetas/{tarjeta_id}?access_error=Solo+Admin+y+PM+pueden+marcar+devoluciones+como+perdidas")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT d.*, t.numero_parcial, t.gasolinera_id
+        FROM devoluciones_tarjetas d
+        JOIN tarjetas t ON t.id = d.tarjeta_id
+        WHERE d.id = ? AND d.tarjeta_id = ? AND d.estado = 'pendiente'
+    """, (dev_id, tarjeta_id))
+    dev = cur.fetchone()
+    conn.close()
+
+    if not dev:
+        return redirect(f"/tarjetas/{tarjeta_id}?access_error=Devolución+no+disponible")
+
+    error = None
+
+    if request.method == "POST":
+        motivo = request.form.get("motivo_perdida", "").strip()
+        if not motivo:
+            error = "El motivo de la pérdida es obligatorio."
+
+        if not error:
+            conn = conectar()
+            cur = conn.cursor()
+            litros = float(dev["litros_retenidos"])
+            cur.execute("""
+                UPDATE tarjetas
+                SET saldo_retenido_l = saldo_retenido_l - ?,
+                    updated_at       = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (litros, tarjeta_id))
+            cur.execute("""
+                UPDATE devoluciones_tarjetas
+                SET estado = 'perdida', motivo_perdida = ?, fecha_liberacion_real = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND estado = 'pendiente'
+            """, (motivo, date.today().isoformat(), dev_id))
+
+            if cur.rowcount == 0:
+                # Carrera: la devolución cambió de estado entre la lectura y el UPDATE.
+                conn.close()
+                return redirect(f"/tarjetas/{tarjeta_id}?access_error=La+devolución+ya+no+está+pendiente")
+
+            conn.commit()
+            conn.close()
+            return redirect(f"/tarjetas/{tarjeta_id}?ok=1")
+
+    return render_template(
+        "tarjetas/perdida.html",
+        dev=dev,
+        tarjeta_id=tarjeta_id,
+        error=error,
+    )

@@ -485,6 +485,8 @@ def ejecutar_migraciones_pg(bcrypt):
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS verificacion_expira TIMESTAMP")
     cur.execute("ALTER TABLE tarjetas ADD COLUMN IF NOT EXISTS pin_plano TEXT")
     cur.execute("ALTER TABLE despachos ADD COLUMN IF NOT EXISTS numero_operacion TEXT")
+    cur.execute("ALTER TABLE devoluciones_tarjetas ADD COLUMN IF NOT EXISTS destino_liberacion TEXT")
+    cur.execute("ALTER TABLE devoluciones_tarjetas ADD COLUMN IF NOT EXISTS motivo_perdida TEXT")
     cur.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_despachos_numero_operacion
         ON despachos (numero_operacion)

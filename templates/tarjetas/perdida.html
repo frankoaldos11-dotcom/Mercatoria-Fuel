@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block titulo %}Marcar devolución como perdida — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Comercial / Tarjetas</span>
+        <h1>Marcar devolución como perdida</h1>
+        <p>**** **** **** {{ dev.numero_parcial }}</p>
+    </div>
+    <a href="/tarjetas/{{ tarjeta_id }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="panel mb-4" style="border:2px solid var(--peligro);">
+    <div class="panel-header" style="background:var(--fondo-peligro-suave);">
+        <h2 style="font-size:16px;font-weight:600;margin:0;color:var(--texto-sobre-peligro);">
+            <i class="bi bi-exclamation-triangle"></i> Esta acción es irreversible
+        </h2>
+    </div>
+    <div style="padding:16px 24px;font-size:14px;">
+        <p style="margin:0 0 8px;">
+            Los <strong>{{ "{:,.2f}".format(dev.litros_retenidos) }} L</strong> retenidos desde el
+            {{ dev.fecha_incidente }} se darán por perdidos: saldrán del saldo retenido de la
+            tarjeta y <strong>no volverán</strong> ni al saldo usable ni al bolsón general.
+        </p>
+        <p style="margin:0;color:var(--atenuado-staff);">
+            Usar solo cuando Fincimex determina que ese combustible nunca se resuelve.
+        </p>
+    </div>
+</div>
+
+{% if error %}
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/tarjetas/{{ tarjeta_id }}/devolucion/{{ dev.id }}/perdida">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="padding:24px;">
+            <div class="mb-3">
+                <label class="form-label">Motivo de la pérdida <span style="color:var(--peligro)">*</span></label>
+                <textarea name="motivo_perdida" class="form-control" rows="4" required
+                          placeholder="Explica por qué Fincimex no va a resolver esta devolución..."></textarea>
+            </div>
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-danger"
+                    onclick="return confirm('¿Confirmar que estos {{ '{:,.2f}'.format(dev.litros_retenidos) }} L se dan por perdidos? No se puede deshacer.')">
+                <i class="bi bi-x-octagon"></i> Marcar como perdida
+            </button>
+            <a href="/tarjetas/{{ tarjeta_id }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

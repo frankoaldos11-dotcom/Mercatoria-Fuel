@@ -26,9 +26,11 @@
             <i class="bi bi-currency-dollar"></i> Asignar saldo USD
         </a>
         {% endif %}
+        {% if session.get('rol') in ('admin', 'puesto_de_mando') %}
         <a href="/tarjetas/{{ tarjeta.id }}/devolucion" class="btn btn-secondary">
             <i class="bi bi-arrow-counterclockwise"></i> Registrar devolución
         </a>
+        {% endif %}
         <a href="/tarjetas" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Volver
         </a>
@@ -54,6 +56,12 @@
         <div style="font-size:28px;font-weight:700;color:{% if tarjeta.saldo_usable_l < 200 %}var(--color-warning-accent-2){% else %}var(--principal){% endif %};">
             {{ "{:,.2f}".format(tarjeta.saldo_usable_l) }} <span style="font-size:14px;font-weight:400;">L</span>
         </div>
+        {% if tarjeta.saldo_retenido_l > 0 %}
+        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">
+            + {{ "{:,.2f}".format(tarjeta.saldo_retenido_l) }} L retenido =
+            <strong>{{ "{:,.2f}".format(tarjeta.saldo_usable_l + tarjeta.saldo_retenido_l) }} L total</strong>
+        </div>
+        {% endif %}
         {% if tarjeta.saldo_usable_l < 200 %}
         <div style="margin-top:8px;">
             <span class="badge badge-warn"><i class="bi bi-exclamation-triangle"></i> Saldo bajo</span>
@@ -199,15 +207,29 @@
                         {% else %}—{% endif %}
                     </td>
                     <td>
-                        <form method="POST" action="/tarjetas/{{ tarjeta.id }}/liberar/{{ d.id }}" style="display:flex;gap:6px;align-items:center;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="date" name="fecha_liberacion_real" value="{{ hoy }}" required
-                                   class="form-control" style="width:150px;padding:5px 8px;font-size:12px;">
-                            <button type="submit" class="btn btn-success btn-sm"
-                                    onclick="return confirm('¿Confirmar liberación de {{ '{:,.2f}'.format(d.litros_retenidos) }} L?')">
-                                <i class="bi bi-unlock"></i> Liberar
-                            </button>
-                        </form>
+                        {% if session.get('rol') in ('admin', 'puesto_de_mando') %}
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            <form method="POST" action="/tarjetas/{{ tarjeta.id }}/liberar/{{ d.id }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="date" name="fecha_liberacion_real" value="{{ hoy }}" required
+                                       class="form-control" style="width:145px;padding:5px 8px;font-size:12px;">
+                                <select name="destino" required class="form-select" style="width:170px;padding:5px 8px;font-size:12px;">
+                                    <option value="">Elegir destino…</option>
+                                    <option value="tarjeta">Al saldo de la tarjeta</option>
+                                    <option value="bolson">Al bolsón general Fincimex</option>
+                                </select>
+                                <button type="submit" class="btn btn-success btn-sm"
+                                        onclick="return confirm('¿Confirmar liberación de {{ '{:,.2f}'.format(d.litros_retenidos) }} L?')">
+                                    <i class="bi bi-unlock"></i> Liberar
+                                </button>
+                            </form>
+                            <a href="/tarjetas/{{ tarjeta.id }}/devolucion/{{ d.id }}/perdida" class="btn btn-danger btn-sm" style="align-self:flex-start;">
+                                <i class="bi bi-x-octagon"></i> Marcar perdida
+                            </a>
+                        </div>
+                        {% else %}
+                        <span style="color:var(--atenuado-staff);font-size:12px;">Solo Admin/PM</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -269,9 +291,11 @@
         <h2 style="font-size:16px;font-weight:600;margin:0;">
             <i class="bi bi-arrow-counterclockwise"></i> Devoluciones retenidas
         </h2>
+        {% if session.get('rol') in ('admin', 'puesto_de_mando') %}
         <a href="/tarjetas/{{ tarjeta.id }}/devolucion" class="btn btn-secondary btn-sm">
             <i class="bi bi-plus-lg"></i> Registrar devolución
         </a>
+        {% endif %}
     </div>
     <div class="table-wrapper">
         <table class="data-table">
@@ -303,9 +327,14 @@
                         {% if d.estado == 'pendiente' %}
                         <span class="badge badge-warn">Pendiente</span>
                         {% elif d.estado == 'liberada' %}
-                        <span class="badge badge-ok">Liberada</span>
+                        <span class="badge badge-ok">
+                            Liberada
+                            {% if d.destino_liberacion == 'bolson' %}(al bolsón){% elif d.destino_liberacion == 'tarjeta' %}(a la tarjeta){% endif %}
+                        </span>
+                        {% elif d.estado == 'perdida' %}
+                        <span class="badge badge-danger" title="{{ d.motivo_perdida or '' }}">Perdida</span>
                         {% else %}
-                        <span class="badge badge-neutral">Anulada</span>
+                        <span class="badge badge-neutral">{{ d.estado }}</span>
                         {% endif %}
                     </td>
                     <td style="font-size:13px;">{{ d.responsable_nombre }}</td>

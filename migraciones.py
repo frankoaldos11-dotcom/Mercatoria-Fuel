@@ -667,6 +667,8 @@ def ejecutar_migraciones(bcrypt):
         "ALTER TABLE usuarios ADD COLUMN verificacion_expira TEXT",
         "ALTER TABLE tarjetas ADD COLUMN pin_plano TEXT",
         "ALTER TABLE despachos ADD COLUMN numero_operacion TEXT",
+        "ALTER TABLE devoluciones_tarjetas ADD COLUMN destino_liberacion TEXT",
+        "ALTER TABLE devoluciones_tarjetas ADD COLUMN motivo_perdida TEXT",
     ]:
         try:
             cur.execute(_sql)
