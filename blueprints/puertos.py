@@ -208,9 +208,32 @@ def transferir(llegada_id):
 
     deposito_id = request.form.get("deposito_destino_id", "").strip()
     fecha_transf = request.form.get("fecha_transferencia", date.today().isoformat()).strip()
+    litros_recibidos_str = request.form.get("litros_recibidos", "").strip().replace(",", ".")
+    forzar_por_factura = request.form.get("forzar_por_factura", "").strip() == "1"
+    motivo_forzado = request.form.get("motivo_forzado", "").strip()
 
     if not deposito_id:
         return redirect(f"/puertos/{llegada_id}?error=Selecciona+un+depósito")
+
+    if not litros_recibidos_str:
+        return redirect(f"/puertos/{llegada_id}?error=Los+litros+recibidos+son+obligatorios")
+    try:
+        litros_recibidos = float(litros_recibidos_str)
+    except ValueError:
+        return redirect(f"/puertos/{llegada_id}?error=Los+litros+recibidos+deben+ser+un+número+válido")
+    if litros_recibidos < 0:
+        return redirect(f"/puertos/{llegada_id}?error=Los+litros+recibidos+no+pueden+ser+negativos")
+
+    # El override "forzar por factura" tiene tres barreras, todas de backend
+    # (no alcanza con ocultar el botón en el template): rol admin exacto —
+    # ni siquiera puesto_de_mando, que sí puede transferir normalmente —,
+    # motivo obligatorio, y que exista diferencia real entre factura y
+    # recibido (si coinciden, no hay nada que forzar).
+    if forzar_por_factura:
+        if session.get("rol") != "admin":
+            return redirect(f"/puertos/{llegada_id}?error=Solo+un+administrador+puede+forzar+el+bolsón+por+factura")
+        if not motivo_forzado:
+            return redirect(f"/puertos/{llegada_id}?error=El+motivo+es+obligatorio+para+forzar+el+bolsón+por+factura")
 
     conn = conectar()
     cur = conn.cursor()
@@ -224,34 +247,53 @@ def transferir(llegada_id):
         conn.close()
         return redirect(f"/puertos/{llegada_id}?error=Estado+no+válido")
 
+    litros_factura = float(llegada["litros"])
+    merma_l = litros_factura - litros_recibidos
+
+    if forzar_por_factura and abs(merma_l) < 0.001:
+        conn.close()
+        return redirect(f"/puertos/{llegada_id}?error=No+hay+diferencia+entre+factura+y+recibido,+no+hay+nada+que+forzar")
+
+    bolson_generado_por = "factura" if forzar_por_factura else "recibido"
+    litros_bolson = litros_factura if forzar_por_factura else litros_recibidos
+
     cur.execute("""
         UPDATE llegadas_puerto
         SET deposito_destino_id = ?, fecha_transferencia = ?, estado = 'transferido',
+            litros_recibidos = ?, merma_l = ?, bolson_generado_por = ?,
+            bolson_forzado_motivo = ?, bolson_forzado_por = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-    """, (deposito_id, fecha_transf, llegada_id))
+    """, (deposito_id, fecha_transf, litros_recibidos, merma_l, bolson_generado_por,
+          motivo_forzado if forzar_por_factura else None,
+          session.get("user_id") if forzar_por_factura else None,
+          llegada_id))
 
+    # El stock del depósito se genera SIEMPRE con lo realmente recibido, nunca
+    # con la factura — sin excepción, ni siquiera cuando se fuerza el bolsón.
     cur.execute("""
         INSERT INTO movimientos
             (tipo, fecha, deposito_id, litros, tipo_combustible, responsable_id, observaciones)
         VALUES ('recepcion', ?, ?, ?, ?, ?, ?)
-    """, (fecha_transf, deposito_id, llegada["litros"], llegada["tipo_combustible"],
+    """, (fecha_transf, deposito_id, litros_recibidos, llegada["tipo_combustible"],
           session.get("user_id"),
           f"Llegada puerto #{llegada_id} — isotanque transferido a depósito"))
 
-    # Generar saldo en bolsón general Fincimex
+    # Generar saldo en bolsón general Fincimex — por defecto con lo recibido;
+    # con lo facturado solo si un admin lo forzó explícitamente (barreras arriba).
     cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
     _frow = cur.fetchone()
     factor = float(_frow["valor"]) if _frow else 0.90
-    litros_llegada = float(llegada["litros"])
-    monto_usd = round(litros_llegada * factor, 2)
+    monto_usd = round(litros_bolson * factor, 2)
+    obs_bolson = f"Generación automática — Puerto, llegada #{llegada_id} ({litros_bolson:,.2f} L × {factor})"
+    if forzar_por_factura:
+        obs_bolson += f" — forzado por factura (recibido real: {litros_recibidos:,.2f} L). Motivo: {motivo_forzado}"
     cur.execute("""
         INSERT INTO movimientos_saldo_fincimex
             (tipo, monto_usd, litros, factor, llegada_puerto_id, responsable_id, observaciones)
         VALUES ('generacion', ?, ?, ?, ?, ?, ?)
     """, (
-        monto_usd, litros_llegada, factor, llegada_id, session.get("user_id"),
-        f"Generación automática — Puerto, llegada #{llegada_id} ({litros_llegada:,.2f} L × {factor})",
+        monto_usd, litros_bolson, factor, llegada_id, session.get("user_id"), obs_bolson,
     ))
 
     conn.commit()

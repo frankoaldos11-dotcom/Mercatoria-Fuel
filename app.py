@@ -30,6 +30,7 @@ from blueprints.usuarios import usuarios_bp
 from blueprints.configuracion import configuracion_bp
 from blueprints.turno import turno_bp
 from blueprints.puertos import puertos_bp
+from blueprints.mermas import mermas_bp
 from blueprints.registro import registro_bp
 from blueprints.tienda import tienda_bp
 from blueprints.mensajes import mensajes_bp
@@ -231,6 +232,7 @@ app.register_blueprint(usuarios_bp)
 app.register_blueprint(configuracion_bp)
 app.register_blueprint(turno_bp)
 app.register_blueprint(puertos_bp)
+app.register_blueprint(mermas_bp)
 app.register_blueprint(registro_bp)
 app.register_blueprint(tienda_bp)
 app.register_blueprint(mensajes_bp)

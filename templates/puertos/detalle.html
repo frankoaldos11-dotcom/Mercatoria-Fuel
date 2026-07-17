@@ -70,6 +70,34 @@
             <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--atenuado-staff);letter-spacing:0.05em;">Fecha transferencia</div>
             <div style="font-size:16px;font-weight:700;margin-top:4px;">{{ llegada.fecha_transferencia or '—' }}</div>
         </div>
+        <div>
+            <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--atenuado-staff);letter-spacing:0.05em;">Litros recibidos en depósito</div>
+            <div style="font-size:16px;font-weight:700;margin-top:4px;">{{ "{:,.2f}".format(llegada.litros_recibidos) if llegada.litros_recibidos is not none else '—' }} L</div>
+        </div>
+        <div>
+            <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--atenuado-staff);letter-spacing:0.05em;">Merma (factura − recibido)</div>
+            <div style="font-size:16px;font-weight:700;margin-top:4px;{% if llegada.merma_l and llegada.merma_l > 0 %}color:var(--peligro);{% elif llegada.merma_l and llegada.merma_l < 0 %}color:var(--exito);{% endif %}">
+                {{ "{:+,.2f}".format(llegada.merma_l) if llegada.merma_l is not none else '—' }} L
+            </div>
+        </div>
+        <div>
+            <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--atenuado-staff);letter-spacing:0.05em;">Bolsón Fincimex generado por</div>
+            <div style="font-size:16px;font-weight:700;margin-top:4px;">
+                {% if llegada.bolson_generado_por == 'factura' %}
+                <span class="badge badge-warn">Factura (forzado)</span>
+                {% elif llegada.bolson_generado_por == 'recibido' %}
+                <span class="badge badge-ok">Recibido</span>
+                {% else %}
+                —
+                {% endif %}
+            </div>
+        </div>
+        {% if llegada.bolson_forzado_motivo %}
+        <div style="grid-column: 1 / -1;">
+            <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--atenuado-staff);letter-spacing:0.05em;">Motivo del forzado por factura</div>
+            <div style="font-size:14px;margin-top:4px;color:var(--atenuado-staff);">{{ llegada.bolson_forzado_motivo }}</div>
+        </div>
+        {% endif %}
         {% endif %}
         {% if llegada.observaciones %}
         <div style="grid-column: 1 / -1;">
@@ -88,7 +116,7 @@
     <div class="panel-header">
         <h2><i class="bi bi-arrow-right-circle"></i> Confirmar transferencia a depósito</h2>
     </div>
-    <form method="POST" action="/puertos/{{ llegada.id }}/transferir">
+    <form method="POST" action="/puertos/{{ llegada.id }}/transferir" id="form-transferir">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;align-items:end;">
             <div>
@@ -111,11 +139,40 @@
                 <input type="date" name="fecha_transferencia" class="form-control" value="{{ hoy }}">
             </div>
             <div>
-                <button type="submit" class="btn btn-primary"
-                        {{ 'disabled' if not depositos }}>
-                    <i class="bi bi-check-circle"></i> Confirmar transferencia
-                </button>
+                <label class="form-label">Litros recibidos en depósito <span style="color:var(--peligro)">*</span></label>
+                <input type="text" name="litros_recibidos" id="input-litros-recibidos" class="form-control"
+                       inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
+                       required placeholder="0.00" oninput="calcMerma()">
             </div>
+            <div>
+                <label class="form-label">Merma vs. factura ({{ "{:,.2f}".format(llegada.litros) }} L)</label>
+                <div id="merma-display" style="padding:8px 12px;background:var(--panel-suave);border-radius:6px;font-weight:600;color:var(--atenuado-staff);min-height:38px;line-height:22px;">—</div>
+            </div>
+        </div>
+
+        {% if rol == 'admin' %}
+        <div style="padding:0 20px 20px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+                <input type="checkbox" name="forzar_por_factura" id="chk-forzar-factura" value="1"
+                       style="width:16px;height:16px;cursor:pointer;" disabled onchange="toggleMotivoForzado()">
+                <span>Forzar generación del bolsón por la factura ({{ "{:,.2f}".format(llegada.litros) }} L) en vez de por lo recibido</span>
+            </label>
+            <div id="wrap-motivo-forzado" style="display:none;margin-top:10px;">
+                <label class="form-label">Motivo del forzado <span style="color:var(--peligro)">*</span></label>
+                <textarea name="motivo_forzado" id="input-motivo-forzado" class="form-control" rows="2"
+                          placeholder="Obligatorio: por qué se genera el bolsón por la factura y no por lo realmente recibido..."></textarea>
+                <small style="color:var(--atenuado-staff);font-size:12px;">
+                    Esto genera saldo Fincimex por combustible que no entró físicamente al depósito — queda auditado con tu usuario, fecha y este motivo.
+                </small>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="padding:0 20px 20px;">
+            <button type="submit" class="btn btn-primary"
+                    {{ 'disabled' if not depositos }}>
+                <i class="bi bi-check-circle"></i> Confirmar transferencia
+            </button>
         </div>
     </form>
 </div>
@@ -142,4 +199,45 @@
 
 {% endif %}{# fin if en_puerto #}
 
+{% endblock %}
+
+{% block scripts %}
+{% if llegada.estado == 'en_puerto' %}
+<script>
+const LITROS_FACTURA = {{ llegada.litros }};
+
+function calcMerma() {
+    const el = document.getElementById('merma-display');
+    const recibido = parseFloat(document.getElementById('input-litros-recibidos').value.replace(',', '.')) || 0;
+    const raw = document.getElementById('input-litros-recibidos').value.trim();
+    if (!raw) {
+        el.textContent = '—';
+        el.style.color = 'var(--atenuado-staff)';
+    } else {
+        const merma = LITROS_FACTURA - recibido;
+        el.textContent = (merma >= 0 ? '+' : '') + merma.toLocaleString('es', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' L';
+        el.style.color = merma > 0 ? 'var(--peligro)' : (merma < 0 ? 'var(--exito)' : 'var(--atenuado-staff)');
+    }
+    const chk = document.getElementById('chk-forzar-factura');
+    if (chk) {
+        const hayDiferencia = raw !== '' && Math.abs(LITROS_FACTURA - recibido) > 0.001;
+        chk.disabled = !hayDiferencia;
+        if (!hayDiferencia) {
+            chk.checked = false;
+            toggleMotivoForzado();
+        }
+    }
+}
+
+function toggleMotivoForzado() {
+    const chk = document.getElementById('chk-forzar-factura');
+    const wrap = document.getElementById('wrap-motivo-forzado');
+    const input = document.getElementById('input-motivo-forzado');
+    if (!chk || !wrap) return;
+    wrap.style.display = chk.checked ? '' : 'none';
+    input.required = chk.checked;
+    if (!chk.checked) input.value = '';
+}
+</script>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block titulo %}Mermas — Mercatoria Fuel{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Inventario</span>
+        <h1>Mermas acumuladas</h1>
+        <p>Diferencia entre lo esperado y lo realmente recibido, en recepciones y transferencias.</p>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="panel mb-4">
+    <form method="GET" action="/mermas/" class="panel-header" style="flex-wrap:wrap;gap:10px;">
+        <select name="origen" class="form-select" style="max-width:220px;">
+            <option value="">Todos los orígenes</option>
+            <option value="recepcion_puerto" {{ 'selected' if filtro_origen == 'recepcion_puerto' }}>Recepción (puerto)</option>
+            <option value="recepcion_directa" {{ 'selected' if filtro_origen == 'recepcion_directa' }}>Recepción (proveedor directo)</option>
+            <option value="transferencia" {{ 'selected' if filtro_origen == 'transferencia' }}>Transferencia</option>
+        </select>
+        <select name="combustible" class="form-select" style="max-width:200px;">
+            <option value="">Todos los combustibles</option>
+            {% for tc in tipos_combustible %}
+            <option value="{{ tc }}" {{ 'selected' if filtro_combustible == tc }}>{{ combustible_labels.get(tc, tc) }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="desde" class="form-control" style="max-width:160px;" value="{{ filtro_desde }}" placeholder="Desde">
+        <input type="date" name="hasta" class="form-control" style="max-width:160px;" value="{{ filtro_hasta }}" placeholder="Hasta">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Filtrar</button>
+        {% if filtro_origen or filtro_combustible or filtro_desde or filtro_hasta %}
+        <a href="/mermas/" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Totales -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+    <div class="panel" style="padding:20px;text-align:center;">
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Merma total</div>
+        <div style="font-size:26px;font-weight:800;{% if total_merma > 0 %}color:var(--peligro);{% elif total_merma < 0 %}color:var(--exito);{% endif %}">
+            {{ "{:+,.2f}".format(total_merma) }} <span style="font-size:14px;font-weight:400;">L</span>
+        </div>
+    </div>
+    <div class="panel" style="padding:20px;">
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Por origen</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>Recepción (puerto)</span>
+            <strong>{{ "{:+,.2f}".format(total_por_origen.get('recepcion_puerto', 0)) }} L</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>Recepción (proveedor directo)</span>
+            <strong>{{ "{:+,.2f}".format(total_por_origen.get('recepcion_directa', 0)) }} L</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span>Transferencia</span>
+            <strong>{{ "{:+,.2f}".format(total_por_origen.get('transferencia', 0)) }} L</strong>
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Origen</th>
+                    <th>Referencia</th>
+                    <th>Combustible</th>
+                    <th style="text-align:right;">Esperado (L)</th>
+                    <th style="text-align:right;">Real (L)</th>
+                    <th style="text-align:right;">Merma (L)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in filas %}
+                <tr>
+                    <td style="font-size:13px;color:var(--atenuado-staff);">{{ f.fecha or '—' }}</td>
+                    <td>
+                        {% if f.origen == 'recepcion_puerto' %}
+                        <span class="badge badge-info">Recepción (puerto)</span>
+                        {% elif f.origen == 'recepcion_directa' %}
+                        <span class="badge badge-info">Recepción (directa)</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Transferencia</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:13px;">{{ f.referencia }}</td>
+                    <td><span class="badge badge-neutral">{{ combustible_labels.get(f.tipo_combustible, f.tipo_combustible) }}</span></td>
+                    <td style="text-align:right;">{{ "{:,.2f}".format(f.esperado) if f.esperado is not none else '—' }}</td>
+                    <td style="text-align:right;">{{ "{:,.2f}".format(f.real) if f.real is not none else '—' }}</td>
+                    <td style="text-align:right;font-weight:700;{% if f.merma and f.merma > 0 %}color:var(--peligro);{% elif f.merma and f.merma < 0 %}color:var(--exito);{% endif %}">
+                        {{ "{:+,.2f}".format(f.merma) if f.merma is not none else '—' }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">No hay mermas registradas con los filtros seleccionados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

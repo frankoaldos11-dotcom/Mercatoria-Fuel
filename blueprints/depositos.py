@@ -149,8 +149,12 @@ def detalle(id):
     # en la tabla `recepciones` (esa es solo del flujo proveedor-directo), así
     # que sin esto el depósito puede tener litros reales y este panel de
     # trazabilidad de origen quedaría vacío.
+    # litros_recibidos es lo que realmente entró (y lo que usa el stock); se
+    # usa COALESCE a litros (factura) para las filas anteriores a esta columna,
+    # que nunca tendrán litros_recibidos cargado.
     cur.execute("""
-        SELECT lp.id, lp.numero_isotanque, lp.tipo_combustible, lp.litros,
+        SELECT lp.id, lp.numero_isotanque, lp.tipo_combustible,
+               COALESCE(lp.litros_recibidos, lp.litros) AS litros,
                lp.fecha_llegada, lp.fecha_transferencia, u.nombre AS responsable_nombre,
                p.nombre AS puerto_nombre
         FROM llegadas_puerto lp
