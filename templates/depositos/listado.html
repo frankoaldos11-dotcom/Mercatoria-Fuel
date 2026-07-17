@@ -64,7 +64,7 @@
                     <th>Nombre</th>
                     <th>Provincia</th>
                     <th>Combustible</th>
-                    <th>Stock actual (L)</th>
+                    <th>Stock (L)</th>
                     <th>Responsable</th>
                     <th>Estado</th>
                 </tr>
@@ -110,7 +110,17 @@
                         <span class="badge badge-info" style="margin-right:2px;">{{ combustible_labels.get(tc.strip(), tc.strip()) }}</span>
                         {% endfor %}
                     </td>
-                    <td><strong>{{ "{:,.2f}".format(d.stock_actual) }}</strong></td>
+                    <td>
+                        {% set desglose = stock_depositos.get(d.id, {}) %}
+                        <strong>{{ "{:,.2f}".format(stock_totales.get(d.id, 0)) }} L total</strong>
+                        {% if desglose %}
+                        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:2px;">
+                            {% for tc, litros in desglose.items() %}
+                            <span {% if filtro_combustible and tc == filtro_combustible %}style="color:var(--principal);font-weight:700;"{% endif %}>{{ combustible_labels.get(tc, tc) }}: {{ "{:,.2f}".format(litros) }} L</span>{% if not loop.last %} · {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </td>
                     <td>{{ d.responsable or '—' }}</td>
                     <td>
                         {% if d.estado == 'activo' %}

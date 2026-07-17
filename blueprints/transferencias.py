@@ -154,14 +154,15 @@ def crear():
         sin_tarjeta_ok = request.form.get("sin_tarjeta_ok", "").strip() == "1"
 
         if not error:
-            # Verificar stock suficiente
+            # Verificar stock suficiente — del combustible específico, no el total del depósito.
             conn = conectar()
             cur = conn.cursor()
-            stock = stock_deposito(cur, int(deposito_id))
+            stock = stock_deposito(cur, int(deposito_id), tipo_combustible)
             if litros > stock + 0.001:
+                tc_label_err = TIPOS_COMBUSTIBLE_LABELS.get(tipo_combustible, tipo_combustible)
                 error = (
-                    f"Stock insuficiente. El depósito tiene {stock:,.2f} L "
-                    f"y se solicitan {litros:,.2f} L."
+                    f"Stock insuficiente de {tc_label_err}. El depósito tiene {stock:,.2f} L "
+                    f"de {tc_label_err} y se solicitan {litros:,.2f} L."
                 )
                 conn.close()
 
@@ -192,13 +193,13 @@ def crear():
                       fecha_salida, chofer_pipa or None,
                       no_documento or None, observaciones or None, session.get("user_id")))
                 nueva_id = cur.lastrowid
-                # Insertar movimiento de salida — descuenta del depósito
+                # Insertar movimiento de salida — descuenta del depósito, con su tipo real
                 cur.execute("""
                     INSERT INTO movimientos
-                        (tipo, fecha, deposito_id, litros, responsable_id, observaciones)
-                    VALUES ('transferencia_salida', ?, ?, ?, ?, ?)
+                        (tipo, fecha, deposito_id, litros, tipo_combustible, responsable_id, observaciones)
+                    VALUES ('transferencia_salida', ?, ?, ?, ?, ?, ?)
                 """, (
-                    fecha_salida, deposito_id, litros, session.get("user_id"),
+                    fecha_salida, deposito_id, litros, tipo_combustible, session.get("user_id"),
                     f"Transferencia #{nueva_id} → {gasolinera_id}",
                 ))
                 conn.commit()
@@ -505,11 +506,12 @@ def anular(id):
     )
     cur.execute("""
         INSERT INTO movimientos
-            (tipo, fecha, deposito_id, litros, responsable_id, observaciones)
-        VALUES ('transferencia_anulacion', CURRENT_TIMESTAMP, ?, ?, ?, ?)
+            (tipo, fecha, deposito_id, litros, tipo_combustible, responsable_id, observaciones)
+        VALUES ('transferencia_anulacion', CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)
     """, (
         transferencia["deposito_origen_id"],
         transferencia["litros_solicitados"],
+        transferencia["tipo_combustible"],
         session.get("user_id"),
         f"Anulación transferencia #{id}",
     ))

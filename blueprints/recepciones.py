@@ -188,12 +188,13 @@ def confirmar(id):
     )
     cur.execute("""
         INSERT INTO movimientos
-            (tipo, fecha, deposito_id, litros, responsable_id, observaciones)
-        VALUES ('recepcion', ?, ?, ?, ?, ?)
+            (tipo, fecha, deposito_id, litros, tipo_combustible, responsable_id, observaciones)
+        VALUES ('recepcion', ?, ?, ?, ?, ?, ?)
     """, (
         recepcion["fecha"],
         recepcion["deposito_id"],
         litros_rec,
+        recepcion["tipo_combustible"],
         session.get("user_id"),
         f"Recepción #{id} — {recepcion['proveedor']} — Vale: {recepcion['no_vale'] or 'N/A'}",
     ))
@@ -229,8 +230,9 @@ def anular(id):
         return redirect("/recepciones?access_error=Recepción+ya+anulada+o+no+existe")
 
     # Si estaba confirmada, verificar que el stock del depósito no quede negativo
+    # — del combustible específico de esta recepción, no el total del depósito.
     if recepcion["estado"] == "confirmada":
-        stock_actual = stock_deposito(cur, recepcion["deposito_id"])
+        stock_actual = stock_deposito(cur, recepcion["deposito_id"], recepcion["tipo_combustible"])
         stock_tras_anulacion = stock_actual - recepcion["litros_recibidos"]
         if stock_tras_anulacion < -0.001:  # tolerancia de 0.001 L por decimales flotantes
             conn.close()
@@ -238,14 +240,15 @@ def anular(id):
                 f"/recepciones?access_error=No+se+puede+anular:+el+depósito+tiene+"
                 f"transferencias+que+dependen+de+este+stock"
             )
-        # Revertir el movimiento de recepción anulando con negativo
+        # Revertir el movimiento de recepción anulando con negativo, mismo tipo
         cur.execute("""
             INSERT INTO movimientos
-                (tipo, fecha, deposito_id, litros, responsable_id, observaciones)
-            VALUES ('recepcion', CURRENT_TIMESTAMP, ?, ?, ?, ?)
+                (tipo, fecha, deposito_id, litros, tipo_combustible, responsable_id, observaciones)
+            VALUES ('recepcion', CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)
         """, (
             recepcion["deposito_id"],
             -recepcion["litros_recibidos"],
+            recepcion["tipo_combustible"],
             session.get("user_id"),
             f"Anulación recepción #{id}",
         ))

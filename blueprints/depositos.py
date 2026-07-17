@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, session
 from database import conectar
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS, ROLES_ADMIN_PM
 from utils.auth import requiere_login, requiere_staff
-from utils.stock import stock_deposito
+from utils.stock import stock_deposito, stock_deposito_por_tipo
 
 depositos_bp = Blueprint("depositos", __name__, url_prefix="/depositos")
 
@@ -69,23 +69,34 @@ def listado():
     cur = conn.cursor()
     cur.execute(f"""
         SELECT d.id, d.nombre, d.region, d.tipo_combustible, d.capacidad_l,
-               d.responsable, d.estado,
-               COALESCE((
-                   SELECT SUM(CASE WHEN m.tipo = 'transferencia_salida' THEN -m.litros ELSE m.litros END)
-                   FROM movimientos m
-                   WHERE m.deposito_id = d.id
-                   AND m.tipo IN ('recepcion', 'transferencia_salida', 'transferencia_anulacion')
-               ), 0) AS stock_actual
+               d.responsable, d.estado
         FROM depositos d
         {where}
         ORDER BY d.nombre ASC
     """, params)
     lista = cur.fetchall()
+
+    # Stock por depósito/combustible: mismo patrón de dos consultas que gasolineras.py
+    cur.execute("""
+        SELECT deposito_id, tipo_combustible,
+               COALESCE(SUM(CASE WHEN tipo = 'transferencia_salida' THEN -litros ELSE litros END), 0) AS stock
+        FROM movimientos
+        WHERE tipo IN ('recepcion', 'transferencia_salida', 'transferencia_anulacion')
+          AND tipo_combustible IS NOT NULL
+        GROUP BY deposito_id, tipo_combustible
+    """)
+    stock_depositos = {}
+    for _r in cur.fetchall():
+        _did = _r["deposito_id"]
+        stock_depositos.setdefault(_did, {})[_r["tipo_combustible"]] = float(_r["stock"] or 0)
+    stock_totales = {did: sum(por_tipo.values()) for did, por_tipo in stock_depositos.items()}
     conn.close()
 
     return render_template(
         "depositos/listado.html",
         lista=lista,
+        stock_depositos=stock_depositos,
+        stock_totales=stock_totales,
         buscar=buscar,
         filtro_region=filtro_region,
         filtro_combustible=filtro_combustible,
@@ -112,7 +123,16 @@ def detalle(id):
 
     stock_actual = stock_deposito(cur, id)
 
-    # Historial de recepciones
+    # Desglose por tipo de combustible — incluye en 0 los tipos configurados
+    # para el depósito que hoy no tengan movimientos, para que el desglose
+    # esté completo y no solo muestre lo que ya tiene litros.
+    _stock_calculado = stock_deposito_por_tipo(cur, id)
+    stock_por_tipo = {
+        tc: _stock_calculado.get(tc, 0.0)
+        for tc in (deposito["tipo_combustible"] or "").split(",") if tc
+    }
+
+    # Historial de recepciones (proveedor directo)
     cur.execute("""
         SELECT r.id, r.fecha, r.proveedor, r.tipo_combustible,
                r.litros_factura, r.litros_recibidos, r.diferencia_l,
@@ -124,6 +144,23 @@ def detalle(id):
         LIMIT 50
     """, (id,))
     recepciones = cur.fetchall()
+
+    # Historial de llegadas por puerto transferidas a este depósito — no viven
+    # en la tabla `recepciones` (esa es solo del flujo proveedor-directo), así
+    # que sin esto el depósito puede tener litros reales y este panel de
+    # trazabilidad de origen quedaría vacío.
+    cur.execute("""
+        SELECT lp.id, lp.numero_isotanque, lp.tipo_combustible, lp.litros,
+               lp.fecha_llegada, lp.fecha_transferencia, u.nombre AS responsable_nombre,
+               p.nombre AS puerto_nombre
+        FROM llegadas_puerto lp
+        JOIN usuarios u ON u.id = lp.responsable_id
+        JOIN puertos p ON p.id = lp.puerto_id
+        WHERE lp.deposito_destino_id = ? AND lp.estado = 'transferido'
+        ORDER BY lp.fecha_transferencia DESC, lp.id DESC
+        LIMIT 50
+    """, (id,))
+    llegadas_puerto = cur.fetchall()
 
     # Historial de transferencias salientes
     cur.execute("""
@@ -144,7 +181,9 @@ def detalle(id):
         "depositos/detalle.html",
         deposito=deposito,
         stock_actual=stock_actual,
+        stock_por_tipo=stock_por_tipo,
         recepciones=recepciones,
+        llegadas_puerto=llegadas_puerto,
         transferencias=transferencias,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
     )

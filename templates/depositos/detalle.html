@@ -34,6 +34,17 @@
         <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Stock actual</div>
         <div style="font-size:28px;font-weight:700;color:var(--principal);">{{ "{:,.2f}".format(stock_actual) }} <span style="font-size:14px;font-weight:400;">L</span></div>
     </div>
+    <div class="panel" style="padding:20px;">
+        <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Por combustible</div>
+        {% for tc, litros in stock_por_tipo.items() %}
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>{{ combustible_labels.get(tc, tc) }}</span>
+            <strong>{{ "{:,.2f}".format(litros) }} L</strong>
+        </div>
+        {% else %}
+        <div style="font-size:13px;color:var(--atenuado-staff);">Sin combustibles configurados.</div>
+        {% endfor %}
+    </div>
     <div class="panel" style="padding:20px;text-align:center;">
         <div style="font-size:12px;color:var(--atenuado-staff);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Estado</div>
         <div style="margin-top:8px;">
@@ -117,6 +128,48 @@
                 </tr>
                 {% else %}
                 <tr><td colspan="8" class="empty-state" style="padding:20px;">Sin recepciones registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Historial Llegadas de puerto -->
+<div class="panel mb-4">
+    <div class="panel-header">
+        <h2 style="font-size:16px;font-weight:600;margin:0;">
+            <i class="bi bi-anchor"></i> Llegadas de puerto
+        </h2>
+        <a href="/puertos" class="btn btn-soft btn-sm">Ver todas</a>
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Puerto</th>
+                    <th>Isotanque</th>
+                    <th>Combustible</th>
+                    <th>Litros</th>
+                    <th>Fecha llegada</th>
+                    <th>Fecha transferencia</th>
+                    <th>Responsable</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lp in llegadas_puerto %}
+                <tr>
+                    <td><span style="color:var(--atenuado-staff);font-size:12px;">#{{ lp.id }}</span></td>
+                    <td>{{ lp.puerto_nombre }}</td>
+                    <td>{{ lp.numero_isotanque }}</td>
+                    <td><span class="badge badge-info">{{ combustible_labels.get(lp.tipo_combustible, lp.tipo_combustible) }}</span></td>
+                    <td>{{ "{:,.2f}".format(lp.litros) }}</td>
+                    <td>{{ lp.fecha_llegada }}</td>
+                    <td>{{ lp.fecha_transferencia or '—' }}</td>
+                    <td style="font-size:13px;">{{ lp.responsable_nombre }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="empty-state" style="padding:20px;">Sin llegadas de puerto transferidas a este depósito.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
