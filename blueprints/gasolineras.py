@@ -75,7 +75,7 @@ def listado():
     conn = conectar()
     cur = conn.cursor()
     cur.execute(f"""
-        SELECT id, nombre, region, provincia, direccion, combustible, capacidad_l,
+        SELECT id, nombre, region, provincia, direccion, combustible,
                gestor_responsable, estado, created_at
         FROM gasolineras
         {where}

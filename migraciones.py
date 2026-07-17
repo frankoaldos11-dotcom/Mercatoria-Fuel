@@ -498,18 +498,18 @@ def ejecutar_migraciones(bcrypt):
 
     # ── seed: clientes ────────────────────────────────────────────────────────
     clientes_seed = [
-        ("Programa Mundial de Alimentos", "PMA-001",  "internacional"),
-        ("UNFPA",                          "UNFPA-001", "internacional"),
-        ("Caritas Cuba",                   "CAR-001",  "nacional"),
-        ("SEISA",                          "SEI-001",  "nacional"),
-        ("Mercatoria Interna",             "MER-INT",  "interno"),
+        ("Programa Mundial de Alimentos", "PMA-001"),
+        ("UNFPA",                          "UNFPA-001"),
+        ("Caritas Cuba",                   "CAR-001"),
+        ("SEISA",                          "SEI-001"),
+        ("Mercatoria Interna",             "MER-INT"),
     ]
-    for nombre, codigo, tipo in clientes_seed:
+    for nombre, codigo in clientes_seed:
         cur.execute("SELECT id FROM clientes WHERE codigo = ?", (codigo,))
         if not cur.fetchone():
             cur.execute(
-                "INSERT INTO clientes (nombre, codigo, tipo) VALUES (?, ?, ?)",
-                (nombre, codigo, tipo)
+                "INSERT INTO clientes (nombre, codigo) VALUES (?, ?)",
+                (nombre, codigo)
             )
 
     # ── seed: gasolinera La Shell ─────────────────────────────────────────────
@@ -517,9 +517,9 @@ def ejecutar_migraciones(bcrypt):
     row_shell = cur.fetchone()
     if not row_shell:
         cur.execute("""
-            INSERT INTO gasolineras (nombre, region, combustible, capacidad_l, estado)
-            VALUES (?, ?, ?, ?, ?)
-        """, ("La Shell", "Occidente", "diesel,gasolina_regular,gasolina_especial", 50000, "activo"))
+            INSERT INTO gasolineras (nombre, region, combustible, estado)
+            VALUES (?, ?, ?, ?)
+        """, ("La Shell", "Occidente", "diesel,gasolina_regular,gasolina_especial", "activo"))
         shell_id = cur.lastrowid
     else:
         shell_id = row_shell["id"]
@@ -660,7 +660,11 @@ def ejecutar_migraciones(bcrypt):
         "ALTER TABLE reservas_tienda ADD COLUMN foto_ticket_url TEXT",
         "ALTER TABLE usuarios ADD COLUMN gasolinera_id INTEGER REFERENCES gasolineras(id)",
         "ALTER TABLE transferencias ADD COLUMN litros_distribuidos REAL DEFAULT 0",
-        "ALTER TABLE tarjetas ADD COLUMN saldo_usd REAL NOT NULL DEFAULT 0",
+        # tarjetas.saldo_usd: NO volver a agregar acá — es una de las columnas
+        # que elimina el botón de Zona de peligro en /configuracion/. Si esta
+        # línea sigue presente, el ADD COLUMN se reintenta en cada arranque y
+        # ya no falla por "columna duplicada" una vez que el DROP la borró —
+        # resucitaría la columna en cada reinicio, deshaciendo el DROP.
         "ALTER TABLE usuarios ADD COLUMN email_verificado INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE usuarios ADD COLUMN verificacion_token_hash TEXT",
         "ALTER TABLE usuarios ADD COLUMN verificacion_codigo_hash TEXT",
@@ -702,19 +706,6 @@ def ejecutar_migraciones(bcrypt):
     ]
     for clave, valor in params_default:
         cur.execute("INSERT OR IGNORE INTO configuracion (clave, valor) VALUES (?, ?)", (clave, valor))
-
-    # Re-sincronización idempotente: tarjetas desincronizadas (saldo_usd > 0 pero
-    # saldo_usable_l = 0) por el bug histórico de escritura en una sola columna.
-    # Litros es la fuente única de verdad desde ahora; se reconstruye desde el
-    # saldo_usd legado. Deja de aplicar en cuanto saldo_usable_l != 0.
-    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-    _frow = cur.fetchone()
-    _factor_resync = float(_frow["valor"]) if _frow else 0.90
-    cur.execute("""
-        UPDATE tarjetas
-        SET saldo_usable_l = saldo_usd / ?
-        WHERE saldo_usable_l = 0 AND saldo_usd > 0
-    """, (_factor_resync,))
 
     conn.commit()
     conn.close()

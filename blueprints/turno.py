@@ -361,10 +361,9 @@ def api_despachar(hab_id):
     cur.execute("""
         UPDATE tarjetas
         SET saldo_usable_l = saldo_usable_l - ?,
-            saldo_usd = ROUND((saldo_usable_l - ?) * ?, 2),
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ? AND saldo_usable_l >= ? - 0.001
-    """, (litros, litros, factor, hab["tarjeta_id"], litros))
+    """, (litros, hab["tarjeta_id"], litros))
 
     if cur.rowcount == 0:
         # Carrera: el saldo cambió entre la validación y el UPDATE. Abortar sin comitear.
@@ -693,10 +692,9 @@ def api_reserva_completar(token):
         cur.execute("""
             UPDATE tarjetas
             SET saldo_usable_l = saldo_usable_l - ?,
-                saldo_usd = ROUND((saldo_usable_l - ?) * ?, 2),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND saldo_usable_l >= ? - 0.001
-        """, (litros, litros, factor, row["tarjeta_id"], litros))
+        """, (litros, row["tarjeta_id"], litros))
 
         if cur.rowcount == 0:
             # Carrera: el saldo cambió entre la validación y el UPDATE. Abortar sin comitear.

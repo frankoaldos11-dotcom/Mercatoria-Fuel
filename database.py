@@ -86,3 +86,41 @@ def conectar():
         conexion.row_factory = sqlite3.Row
         conexion.execute("PRAGMA foreign_keys = ON")
         return ConexionWrapper(conexion, use_postgres=False)
+
+
+def columna_existe(cur, tabla, columna):
+    """True si `columna` existe hoy en `tabla`, sobre el cursor del llamador.
+    Dialect-aware: Postgres consulta information_schema, SQLite usa PRAGMA
+    table_info. Pensado para que un caller pueda protegerse antes de leer o
+    escribir una columna que podría haber sido eliminada (ej. una barrera de
+    seguridad que corre después de un DROP COLUMN ya ejecutado)."""
+    if USE_POSTGRES:
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = ? AND column_name = ?",
+            (tabla, columna),
+        )
+        return cur.fetchone() is not None
+    else:
+        cur.execute(f"PRAGMA table_info({tabla})")
+        columnas_actuales = [row["name"] for row in cur.fetchall()]
+        return columna in columnas_actuales
+
+
+def eliminar_columna_si_existe(cur, tabla, columna):
+    """DROP COLUMN idempotente, sobre el cursor/transacción del llamador (sin
+    conectar() propio, sin commit propio).
+
+    En Postgres usa `DROP COLUMN IF EXISTS` nativo. SQLite soporta DROP COLUMN
+    (desde 3.35+) pero NO la cláusula IF EXISTS para esa sentencia — por eso
+    acá se usa columna_existe() primero y solo se intenta el DROP si la
+    columna sigue presente. A propósito no se envuelve en un try/except que
+    trague cualquier error (patrón que sí usa el proyecto para ADD COLUMN):
+    para un DROP, un error real (tabla bloqueada, permisos, etc.) debe
+    propagarse, no quedar indistinguible de "ya estaba borrada".
+    """
+    if USE_POSTGRES:
+        cur.execute(f"ALTER TABLE {tabla} DROP COLUMN IF EXISTS {columna}")
+    else:
+        if columna_existe(cur, tabla, columna):
+            cur.execute(f"ALTER TABLE {tabla} DROP COLUMN {columna}")

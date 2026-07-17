@@ -451,17 +451,13 @@ def recargar(id):
         if not error:
             conn = conectar()
             cur = conn.cursor()
-            factor = obtener_factor(cur)
-            # saldo_usd se guarda como espejo calculado (a partir del valor
-            # ANTERIOR de saldo_usable_l) solo por consistencia, hasta el DROP
-            # futuro — saldo_usable_l sigue siendo la única fuente de verdad.
+            # saldo_usable_l es la única fuente de verdad.
             cur.execute("""
                 UPDATE tarjetas
                 SET saldo_usable_l = saldo_usable_l + ?,
-                    saldo_usd = ROUND((saldo_usable_l + ?) * ?, 2),
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (litros, litros, factor, id))
+            """, (litros, id))
             cur.execute("""
                 INSERT INTO recargas_tarjetas
                     (tarjeta_id, fecha, litros_recargados, responsable_id, observaciones, estado)
@@ -541,17 +537,13 @@ def asignar_saldo(id):
                 # así el bolsón nunca queda descuadrado a favor de la tarjeta.
                 monto_debitado = calcular_usd_desde_litros(litros_acreditados, factor)
 
-                # UPDATE atómico: saldo_usable_l es la fuente de verdad; saldo_usd
-                # se calcula en la misma sentencia como espejo (a partir del valor
-                # ANTERIOR de saldo_usable_l, antes de esta suma) — solo por
-                # consistencia visual hasta que se elimine la columna.
+                # UPDATE atómico: saldo_usable_l es la única fuente de verdad.
                 cur.execute("""
                     UPDATE tarjetas
                     SET saldo_usable_l = saldo_usable_l + ?,
-                        saldo_usd = ROUND((saldo_usable_l + ?) * ?, 2),
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """, (litros_acreditados, litros_acreditados, factor, id))
+                """, (litros_acreditados, id))
                 cur.execute("""
                     INSERT INTO movimientos_saldo_fincimex
                         (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)

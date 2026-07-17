@@ -21,14 +21,6 @@ TIPOS_COMBUSTIBLE_LABELS = {
     "gasolina_especial": "Gasolina Especial",
 }
 
-TIPOS_CLIENTE = ["internacional", "nacional", "interno"]
-
-TIPOS_CLIENTE_LABELS = {
-    "internacional": "Internacional",
-    "nacional":      "Nacional",
-    "interno":       "Interno",
-}
-
 TIPOS_SUBINVENTARIO = [
     "cliente",
     "mercatoria_interna",

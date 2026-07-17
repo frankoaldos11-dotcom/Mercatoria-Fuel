@@ -34,6 +34,18 @@
 </div>
 {% endif %}
 
+{% if drop_columnas_resumen %}
+<div style="background:var(--fondo-exito-suave);border-left:4px solid var(--exito);color:var(--color-success-text-strong-upper);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
+    <div style="font-weight:700;margin-bottom:8px;"><i class="bi bi-check-circle"></i> Limpieza de esquema ejecutada correctamente.</div>
+    <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">Columnas eliminadas:</div>
+    <ul style="margin:4px 0 0;padding-left:20px;font-size:12px;">
+        {% for col in drop_columnas_resumen.columnas %}
+        <li>{{ col }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
 <!-- Parámetros operativos -->
 <div class="panel" style="margin-bottom:24px;">
     <form method="POST" action="/configuracion/">
@@ -218,6 +230,58 @@
             </div>
             <button type="submit" class="btn btn-danger">
                 <i class="bi bi-trash3-fill"></i> Ejecutar reseteo de inventario
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modo de limpieza de esquema -->
+<div class="panel" style="margin-top:24px;">
+    <div style="padding:20px 24px;">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 4px;">Modo de limpieza de esquema</h2>
+        <p style="font-size:13px;color:var(--atenuado-staff);margin:0 0 14px;">
+            Al activarlo aparece una zona para eliminar del esquema tres columnas confirmadas sin uso
+            (gasolineras.capacidad_l, clientes.tipo, tarjetas.saldo_usd). Es una acción de una sola vez,
+            distinta del reseteo. Está apagado por defecto y no es visible para nadie mientras lo esté.
+        </p>
+        <form method="POST" action="/configuracion/limpieza-esquema/toggle" onsubmit="return confirm('{{ '¿Desactivar' if drop_columnas_habilitado else '¿Activar' }} el modo de limpieza de esquema?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm {{ 'btn-secondary' if drop_columnas_habilitado else 'btn-primary' }}">
+                {% if drop_columnas_habilitado %}
+                <i class="bi bi-toggle-on"></i> Modo de limpieza activado — clic para desactivar
+                {% else %}
+                <i class="bi bi-toggle-off"></i> Activar modo de limpieza de esquema
+                {% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if drop_columnas_habilitado %}
+<div class="panel" style="margin-top:24px;border:2px solid var(--peligro);">
+    <div style="padding:20px 24px;background:var(--fondo-peligro-suave);">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 4px;color:var(--texto-sobre-peligro);">
+            <i class="bi bi-exclamation-triangle-fill"></i> Zona de peligro — Eliminar columnas muertas del esquema
+        </h2>
+        <p style="font-size:13px;color:var(--texto-sobre-peligro);margin:0;">
+            Elimina permanentemente <code>gasolineras.capacidad_l</code>, <code>clientes.tipo</code> y
+            <code>tarjetas.saldo_usd</code>. Antes de ejecutar, hacé un Export de respaldo en Render y
+            corré el reseteo de inventario si todavía no lo hiciste — si alguna tarjeta tiene saldo Fincimex
+            (<code>saldo_usd</code>) sin reflejar en su saldo usable en litros, este botón se niega a
+            ejecutar para no perder ese saldo. <strong>Esta acción no se puede deshacer.</strong>
+        </p>
+    </div>
+    <div style="padding:20px 24px;">
+        <form method="POST" action="/configuracion/eliminar-columnas-muertas"
+              onsubmit="return confirm('Esto elimina 3 columnas del esquema de forma permanente. ¿Confirmas que ya hiciste el Export de respaldo y quieres continuar?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3" style="max-width:400px;">
+                <label class="form-label">Escribe <strong>ELIMINAR COLUMNAS</strong> para confirmar</label>
+                <input type="text" name="confirmacion" class="form-control" autocomplete="off" placeholder="ELIMINAR COLUMNAS" required>
+            </div>
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash3-fill"></i> Eliminar columnas muertas
             </button>
         </form>
     </div>

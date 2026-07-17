@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, session, jsonify
-from database import conectar
+from database import conectar, eliminar_columna_si_existe, columna_existe
 from utils.auth import requiere_rol
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS
 
@@ -9,6 +9,18 @@ _ROLES_ADMIN = ["admin"]
 
 _FLAG_RESETEO = "reseteo_inventario_habilitado"
 _PALABRA_CONFIRMACION = "RESETEAR"
+
+_FLAG_DROP_COLUMNAS = "drop_columnas_muertas_habilitado"
+_PALABRA_CONFIRMACION_DROP = "ELIMINAR COLUMNAS"
+
+# Columnas muertas a eliminar del esquema — confirmadas sin lectura ni escritura
+# en el código de aplicación (ver diagnóstico previo). tarjetas.saldo_usd es la
+# única con un riesgo real asociado (ver Barrera 4 en eliminar_columnas_muertas).
+_COLUMNAS_A_ELIMINAR = [
+    ("gasolineras", "capacidad_l"),
+    ("clientes", "tipo"),
+    ("tarjetas", "saldo_usd"),
+]
 
 # Orden de borrado: primero las tablas referenciadas por otras dentro de este mismo
 # conjunto (despachos -> habilitaciones; movimientos_saldo_fincimex -> recepciones
@@ -108,6 +120,8 @@ def index():
 
     reseteo_habilitado = config.get(_FLAG_RESETEO, "false") == "true"
     reseteo_resumen = session.pop("reseteo_resumen", None)
+    drop_columnas_habilitado = config.get(_FLAG_DROP_COLUMNAS, "false") == "true"
+    drop_columnas_resumen = session.pop("drop_columnas_resumen", None)
 
     return render_template(
         "configuracion/index.html",
@@ -121,6 +135,8 @@ def index():
         ok=ok,
         reseteo_habilitado=reseteo_habilitado,
         reseteo_resumen=reseteo_resumen,
+        drop_columnas_habilitado=drop_columnas_habilitado,
+        drop_columnas_resumen=drop_columnas_resumen,
     )
 
 
@@ -196,7 +212,7 @@ def resetear_inventario():
     # Saldos a 0 — se conservan las filas de configuración/maestros.
     cur.execute("""
         UPDATE tarjetas
-        SET saldo_usable_l = 0, saldo_usd = 0, saldo_retenido_l = 0, updated_at = CURRENT_TIMESTAMP
+        SET saldo_usable_l = 0, saldo_retenido_l = 0, updated_at = CURRENT_TIMESTAMP
     """)
     cur.execute("""
         UPDATE subinventarios
@@ -216,6 +232,100 @@ def resetear_inventario():
     )
 
     session["reseteo_resumen"] = resumen
+    return redirect("/configuracion/?ok=1")
+
+
+@configuracion_bp.route("/limpieza-esquema/toggle", methods=["POST"])
+def limpieza_esquema_toggle():
+    redir = requiere_rol(*_ROLES_ADMIN)
+    if redir:
+        return redir
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT valor FROM configuracion WHERE clave = ?", (_FLAG_DROP_COLUMNAS,))
+    row = cur.fetchone()
+    actual = row["valor"] if row else "false"
+    nuevo = "false" if actual == "true" else "true"
+
+    cur.execute("""
+        INSERT INTO configuracion (clave, valor)
+        VALUES (?, ?)
+        ON CONFLICT(clave)
+        DO UPDATE SET valor = excluded.valor, updated_at = CURRENT_TIMESTAMP
+    """, (_FLAG_DROP_COLUMNAS, nuevo))
+    conn.commit()
+    conn.close()
+
+    _registrar_auditoria(
+        session.get("user_id"),
+        f"{'Activó' if nuevo == 'true' else 'Desactivó'} el modo de limpieza de esquema",
+        "configuracion", 0,
+        valor_anterior={_FLAG_DROP_COLUMNAS: actual},
+        valor_nuevo={_FLAG_DROP_COLUMNAS: nuevo},
+    )
+    return redirect("/configuracion/?ok=1")
+
+
+@configuracion_bp.route("/eliminar-columnas-muertas", methods=["POST"])
+def eliminar_columnas_muertas():
+    redir = requiere_rol(*_ROLES_ADMIN)
+    if redir:
+        return redir
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    # Barrera 2: releer el flag de la base de datos, nunca confiar en la UI.
+    cur.execute("SELECT valor FROM configuracion WHERE clave = ?", (_FLAG_DROP_COLUMNAS,))
+    row = cur.fetchone()
+    if not row or row["valor"] != "true":
+        conn.close()
+        return redirect("/configuracion/?error=La+limpieza+de+esquema+no+está+habilitada")
+
+    # Barrera 3: palabra de confirmación exacta.
+    confirmacion = request.form.get("confirmacion", "").strip()
+    if confirmacion != _PALABRA_CONFIRMACION_DROP:
+        conn.close()
+        return redirect(
+            "/configuracion/?error=Confirmación+incorrecta.+Debes+escribir+ELIMINAR+COLUMNAS"
+        )
+
+    # Barrera 4: no dejar tarjetas con saldo real sin recuperar. Si alguna
+    # tarjeta tiene saldo_usable_l = 0 pero saldo_usd > 0, ese saldo depende
+    # todavía de la columna que estamos por borrar — se aborta todo el
+    # botón (ninguna de las 3 columnas se toca), no solo la de tarjetas.
+    # Se saltea sola si saldo_usd ya no existe (ejecución idempotente: si ya
+    # se corrió el DROP antes, no hay columna que consultar ni riesgo posible).
+    tarjetas_en_riesgo = 0
+    if columna_existe(cur, "tarjetas", "saldo_usd"):
+        cur.execute("""
+            SELECT COUNT(*) AS n FROM tarjetas WHERE saldo_usable_l = 0 AND saldo_usd > 0
+        """)
+        tarjetas_en_riesgo = cur.fetchone()["n"]
+    if tarjetas_en_riesgo > 0:
+        conn.close()
+        return redirect(
+            f"/configuracion/?error={tarjetas_en_riesgo}+tarjeta(s)+tienen+saldo_usd+"
+            "sin+reflejar+en+saldo_usable_l+—+resetea+el+inventario+o+corrígelas+antes+de+continuar"
+        )
+
+    for tabla, columna in _COLUMNAS_A_ELIMINAR:
+        eliminar_columna_si_existe(cur, tabla, columna)
+
+    conn.commit()
+    conn.close()
+
+    resumen = {"columnas": [f"{t}.{c}" for t, c in _COLUMNAS_A_ELIMINAR]}
+
+    _registrar_auditoria(
+        session.get("user_id"),
+        "Eliminación de columnas muertas del esquema",
+        "sistema", 0,
+        valor_nuevo=resumen,
+    )
+
+    session["drop_columnas_resumen"] = resumen
     return redirect("/configuracion/?ok=1")
 
 

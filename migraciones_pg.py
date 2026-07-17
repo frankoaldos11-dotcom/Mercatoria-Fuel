@@ -478,7 +478,9 @@ def ejecutar_migraciones_pg(bcrypt):
     cur.execute("ALTER TABLE movimientos_saldo_fincimex ADD COLUMN IF NOT EXISTS llegada_puerto_id INTEGER REFERENCES llegadas_puerto(id)")
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS gasolinera_id INTEGER REFERENCES gasolineras(id)")
     cur.execute("ALTER TABLE transferencias ADD COLUMN IF NOT EXISTS litros_distribuidos NUMERIC(14,2) DEFAULT 0")
-    cur.execute("ALTER TABLE tarjetas ADD COLUMN IF NOT EXISTS saldo_usd NUMERIC(14,2) NOT NULL DEFAULT 0")
+    # tarjetas.saldo_usd: NO volver a agregar acá — ver nota equivalente en
+    # migraciones.py. Con IF NOT EXISTS, esta línea resucitaría la columna en
+    # cada arranque una vez que el botón de Zona de peligro la elimine.
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email_verificado INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS verificacion_token_hash TEXT")
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS verificacion_codigo_hash TEXT")
@@ -571,18 +573,18 @@ def ejecutar_migraciones_pg(bcrypt):
 
     # seed: clientes
     clientes_seed = [
-        ("Programa Mundial de Alimentos", "PMA-001",  "internacional"),
-        ("UNFPA",                          "UNFPA-001", "internacional"),
-        ("Caritas Cuba",                   "CAR-001",  "nacional"),
-        ("SEISA",                          "SEI-001",  "nacional"),
-        ("Mercatoria Interna",             "MER-INT",  "interno"),
+        ("Programa Mundial de Alimentos", "PMA-001"),
+        ("UNFPA",                          "UNFPA-001"),
+        ("Caritas Cuba",                   "CAR-001"),
+        ("SEISA",                          "SEI-001"),
+        ("Mercatoria Interna",             "MER-INT"),
     ]
-    for nombre, codigo, tipo in clientes_seed:
+    for nombre, codigo in clientes_seed:
         cur.execute("SELECT id FROM clientes WHERE codigo = %s", (codigo,))
         if not cur.fetchone():
             cur.execute(
-                "INSERT INTO clientes (nombre, codigo, tipo) VALUES (%s, %s, %s)",
-                (nombre, codigo, tipo)
+                "INSERT INTO clientes (nombre, codigo) VALUES (%s, %s)",
+                (nombre, codigo)
             )
 
     # seed: gasolinera La Shell
@@ -590,9 +592,9 @@ def ejecutar_migraciones_pg(bcrypt):
     row_shell = cur.fetchone()
     if not row_shell:
         cur.execute("""
-            INSERT INTO gasolineras (nombre, region, combustible, capacidad_l, estado)
-            VALUES (%s, %s, %s, %s, %s) RETURNING id
-        """, ("La Shell", "Occidente", "diesel,gasolina_regular,gasolina_especial", 50000, "activo"))
+            INSERT INTO gasolineras (nombre, region, combustible, estado)
+            VALUES (%s, %s, %s, %s) RETURNING id
+        """, ("La Shell", "Occidente", "diesel,gasolina_regular,gasolina_especial", "activo"))
         shell_id = cur.fetchone()[0]
     else:
         shell_id = row_shell[0]
@@ -673,19 +675,6 @@ def ejecutar_migraciones_pg(bcrypt):
             "INSERT INTO configuracion (clave, valor) VALUES (%s, %s) ON CONFLICT DO NOTHING",
             (clave, valor)
         )
-
-    # Re-sincronización idempotente: tarjetas desincronizadas (saldo_usd > 0 pero
-    # saldo_usable_l = 0) por el bug histórico de escritura en una sola columna.
-    # Litros es la fuente única de verdad desde ahora; se reconstruye desde el
-    # saldo_usd legado. Deja de aplicar en cuanto saldo_usable_l != 0.
-    cur.execute("SELECT valor FROM configuracion WHERE clave = 'factor_litro_usd'")
-    _frow = cur.fetchone()
-    _factor_resync = float(_frow[0]) if _frow else 0.90
-    cur.execute("""
-        UPDATE tarjetas
-        SET saldo_usable_l = saldo_usd / %s
-        WHERE saldo_usable_l = 0 AND saldo_usd > 0
-    """, (_factor_resync,))
 
     conn.commit()
     print("[migraciones_pg] Fase 2 (seeds) completada. Base de datos lista.")
