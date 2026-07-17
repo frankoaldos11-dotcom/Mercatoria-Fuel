@@ -24,6 +24,16 @@
     {% endif %}
 </div>
 {% endif %}
+{% if avisos %}
+<div style="background:var(--fondo-aviso-suave);border-left:4px solid var(--color-warning-accent-1);color:var(--color-warning-text-deep);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
+    <div style="font-weight:600;margin-bottom:6px;"><i class="bi bi-exclamation-triangle-fill"></i> Aviso — regularizar antes de aprobar</div>
+    <ul style="margin:0;padding-left:20px;">
+        {% for aviso in avisos %}
+        <li>{{ aviso }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 
 <!-- Estado y acciones -->
 <div class="panel mb-4">
@@ -51,6 +61,9 @@
             {% endif %}
             {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
             {% if hab.estado == 'pendiente' %}
+            <a href="/habilitaciones/{{ hab.id }}/editar" class="btn btn-secondary">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
             <form method="POST" action="/habilitaciones/{{ hab.id }}/aprobar" style="display:inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-primary">

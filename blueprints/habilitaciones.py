@@ -17,6 +17,76 @@ def _requiere_admin_pm():
     return session.get("rol") not in ROLES_ADMIN_PM
 
 
+def _validar_estructural(cur, cliente_id, unidad_id, gasolinera_id, tarjeta_id,
+                          subinventario_id, litros, verificar_sub_litros=True):
+    """Valida las incongruencias ESTRUCTURALES entre cliente/unidad/gasolinera/tarjeta/
+    subinventario — datos fijos que no cambian entre crear y aprobar, por lo que se pueden
+    (y deben) bloquear ya en el momento de crear o editar.
+
+    Devuelve (error, tarjeta_check, unidad_check). tarjeta_check/unidad_check se devuelven
+    para que el llamador pueda reutilizarlos al calcular avisos de ESTADO sin otra consulta.
+    """
+    cur.execute("""
+        SELECT gasolinera_id, tipo_combustible, estado, saldo_usable_l
+        FROM tarjetas WHERE id = ?
+    """, (tarjeta_id,))
+    tarjeta_check = cur.fetchone()
+    cur.execute("""
+        SELECT v.tipo_combustible, v.cliente_id, v.estado, v.chofer_id, ch.licencia_vencimiento
+        FROM vehiculos v
+        LEFT JOIN choferes ch ON ch.id = v.chofer_id
+        WHERE v.id = ?
+    """, (unidad_id,))
+    unidad_check = cur.fetchone()
+    sub_check = None
+    if subinventario_id:
+        cur.execute(
+            "SELECT gasolinera_id, litros_reservados FROM subinventarios WHERE id = ? AND activo = 1",
+            (subinventario_id,),
+        )
+        sub_check = cur.fetchone()
+
+    error = None
+    if not tarjeta_check or not unidad_check:
+        error = "La tarjeta o la unidad seleccionada no es válida."
+    elif str(tarjeta_check["gasolinera_id"]) != str(gasolinera_id):
+        error = "La tarjeta seleccionada no corresponde a la gasolinera elegida."
+    elif tarjeta_check["tipo_combustible"] != unidad_check["tipo_combustible"]:
+        error = "La tarjeta seleccionada no corresponde al tipo de combustible de la unidad."
+    elif str(unidad_check["cliente_id"]) != str(cliente_id):
+        error = "La unidad seleccionada no pertenece al cliente elegido."
+    elif subinventario_id and not sub_check:
+        error = "El subinventario seleccionado no es válido."
+    elif subinventario_id and str(sub_check["gasolinera_id"]) != str(gasolinera_id):
+        error = "El subinventario seleccionado no pertenece a la gasolinera elegida."
+    elif subinventario_id and verificar_sub_litros and float(sub_check["litros_reservados"]) < litros - 0.001:
+        error = (
+            f"El subinventario tiene {float(sub_check['litros_reservados']):,.2f} L reservados, "
+            f"insuficiente para {litros:,.2f} L."
+        )
+    return error, tarjeta_check, unidad_check
+
+
+def _calcular_avisos_estado(unidad_estado, chofer_id, licencia_vencimiento,
+                             tarjeta_estado, saldo_usable_l, litros_autorizados):
+    """Incongruencias de ESTADO: pueden cambiar entre crear y aprobar (saldo se consume,
+    tarjeta se bloquea, licencia vence), así que nunca se bloquean acá — solo se avisan,
+    para que el PM sepa qué regularizar antes de aprobar."""
+    avisos = []
+    if unidad_estado != "activo":
+        avisos.append("La unidad no está activa.")
+    if chofer_id and licencia_vencimiento and licencia_vencimiento < date.today().isoformat():
+        avisos.append(f"El chofer tiene la licencia vencida ({licencia_vencimiento}).")
+    if tarjeta_estado != "activa":
+        avisos.append("La tarjeta no está activa.")
+    if float(saldo_usable_l) < float(litros_autorizados) - 0.001:
+        avisos.append(
+            f"Saldo insuficiente en la tarjeta. Disponible: {float(saldo_usable_l):,.2f} L, "
+            f"requerido: {float(litros_autorizados):,.2f} L."
+        )
+    return avisos
+
+
 # ── Listado ───────────────────────────────────────────────────────────────────
 
 @habilitaciones_bp.route("/")
@@ -116,11 +186,13 @@ def detalle(id):
         SELECT h.*,
                cli.nombre AS cliente_nombre,
                v.chapa AS unidad_chapa, v.tipo_combustible, v.marca, v.modelo,
+               v.estado AS unidad_estado, v.chofer_id,
                ch.nombre AS chofer_nombre, ch.ci AS chofer_ci,
                ch.licencia_numero, ch.licencia_vencimiento,
                g.nombre AS gasolinera_nombre,
                t.numero_parcial AS tarjeta_parcial,
                t.saldo_usable_l AS tarjeta_saldo,
+               t.estado AS tarjeta_estado,
                s.nombre AS subinventario_nombre,
                u_c.nombre AS creado_por_nombre,
                u_a.nombre AS aprobado_por_nombre
@@ -151,10 +223,18 @@ def detalle(id):
     despacho = cur.fetchone()
     conn.close()
 
+    avisos = []
+    if hab["estado"] in ("pendiente", "en_reserva"):
+        avisos = _calcular_avisos_estado(
+            hab["unidad_estado"], hab["chofer_id"], hab["licencia_vencimiento"],
+            hab["tarjeta_estado"], hab["tarjeta_saldo"], hab["litros_autorizados"],
+        )
+
     return render_template(
         "habilitaciones/detalle.html",
         hab=hab,
         despacho=despacho,
+        avisos=avisos,
         estado_labels=ESTADOS_HABILITACION_LABELS,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=date.today().isoformat(),
@@ -259,30 +339,11 @@ def crear():
             if not error:
                 conn2 = conectar()
                 cur2 = conn2.cursor()
-                cur2.execute("SELECT gasolinera_id, tipo_combustible FROM tarjetas WHERE id = ?", (tarjeta_id,))
-                tarjeta_check = cur2.fetchone()
-                cur2.execute("SELECT tipo_combustible FROM vehiculos WHERE id = ?", (unidad_id,))
-                unidad_check = cur2.fetchone()
-                if modo == "reserva" and sub_modo == "existente" and subinventario_id:
-                    cur2.execute(
-                        "SELECT gasolinera_id FROM subinventarios WHERE id = ? AND activo = 1",
-                        (subinventario_id,),
-                    )
-                    sub_check = cur2.fetchone()
-                else:
-                    sub_check = None
+                error, tarjeta_check, unidad_check = _validar_estructural(
+                    cur2, cliente_id, unidad_id, gasolinera_id, tarjeta_id,
+                    subinventario_id, litros, verificar_sub_litros=(modo == "despacho"),
+                )
                 conn2.close()
-                if not tarjeta_check or not unidad_check:
-                    error = "La tarjeta o la unidad seleccionada no es válida."
-                elif str(tarjeta_check["gasolinera_id"]) != str(gasolinera_id):
-                    error = "La tarjeta seleccionada no corresponde a la gasolinera elegida."
-                elif tarjeta_check["tipo_combustible"] != unidad_check["tipo_combustible"]:
-                    error = "La tarjeta seleccionada no corresponde al tipo de combustible de la unidad."
-                elif modo == "reserva" and sub_modo == "existente":
-                    if not sub_check:
-                        error = "El subinventario seleccionado no es válido."
-                    elif str(sub_check["gasolinera_id"]) != str(gasolinera_id):
-                        error = "El subinventario seleccionado no pertenece a la gasolinera elegida."
 
         if not error:
             conn = conectar()
@@ -345,6 +406,163 @@ def crear():
         hoy=date.today().isoformat(),
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         cliente_pre=request.args.get("cliente_id", ""),
+    )
+
+
+# ── Editar (solo pendiente) ──────────────────────────────────────────────────
+
+@habilitaciones_bp.route("/<int:id>/editar", methods=["GET", "POST"])
+def editar(id):
+    redir = requiere_login()
+    if redir:
+        return redir
+    if _requiere_admin_pm():
+        return redirect(f"/habilitaciones/{id}?access_error=Solo+Admin+y+PM+pueden+editar")
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM habilitaciones WHERE id = ?", (id,))
+    hab = cur.fetchone()
+
+    if not hab:
+        conn.close()
+        return redirect("/habilitaciones")
+
+    if hab["estado"] != "pendiente":
+        conn.close()
+        return redirect(f"/habilitaciones/{id}?access_error=Solo+se+pueden+editar+habilitaciones+pendientes")
+
+    cur.execute("SELECT id, nombre, codigo FROM clientes WHERE activo = 1 ORDER BY nombre ASC")
+    clientes = cur.fetchall()
+    cur.execute("""
+        SELECT v.id, v.chapa, v.cliente_id, v.tipo_combustible, v.estado,
+               ch.nombre AS chofer_nombre, ch.licencia_vencimiento
+        FROM vehiculos v
+        LEFT JOIN choferes ch ON ch.id = v.chofer_id
+        WHERE v.estado = 'activo' OR v.id = ?
+        ORDER BY v.chapa ASC
+    """, (hab["unidad_id"],))
+    unidades = cur.fetchall()
+    cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
+    gasolineras = cur.fetchall()
+    cur.execute("""
+        SELECT t.id, t.numero_parcial, t.gasolinera_id, t.tipo_combustible,
+               t.saldo_usable_l, t.estado
+        FROM tarjetas t
+        WHERE t.estado = 'activa' OR t.id = ?
+        ORDER BY t.numero_parcial ASC
+    """, (hab["tarjeta_id"],))
+    tarjetas = cur.fetchall()
+    cur.execute("""
+        SELECT s.id, s.nombre, s.tipo, s.gasolinera_id, s.litros_reservados, s.activo,
+               cl.nombre AS cliente_nombre
+        FROM subinventarios s
+        LEFT JOIN clientes cl ON cl.id = s.cliente_id
+        WHERE s.activo = 1 OR s.id = ?
+        ORDER BY s.nombre ASC
+    """, (hab["subinventario_id"],))
+    subinventarios = cur.fetchall()
+
+    # Avisos de estado con los datos actuales, visibles en el formulario de edición
+    # (independiente de si ya hubo un POST): sirven para saber qué regularizar antes
+    # de aprobar, aun si todavía no se tocó nada del formulario.
+    cur.execute("""
+        SELECT v.estado AS unidad_estado, v.chofer_id, ch.licencia_vencimiento,
+               t.estado AS tarjeta_estado, t.saldo_usable_l
+        FROM vehiculos v
+        LEFT JOIN choferes ch ON ch.id = v.chofer_id
+        CROSS JOIN tarjetas t
+        WHERE v.id = ? AND t.id = ?
+    """, (hab["unidad_id"], hab["tarjeta_id"]))
+    estado_actual = cur.fetchone()
+    conn.close()
+
+    avisos = _calcular_avisos_estado(
+        estado_actual["unidad_estado"], estado_actual["chofer_id"], estado_actual["licencia_vencimiento"],
+        estado_actual["tarjeta_estado"], estado_actual["saldo_usable_l"], hab["litros_autorizados"],
+    )
+
+    error = None
+
+    if request.method == "POST":
+        cliente_id = request.form.get("cliente_id", "").strip()
+        unidad_id = request.form.get("unidad_id", "").strip()
+        gasolinera_id = request.form.get("gasolinera_id", "").strip()
+        tarjeta_id = request.form.get("tarjeta_id", "").strip()
+        subinventario_id = request.form.get("subinventario_id", "").strip() or None
+        litros_str = request.form.get("litros_autorizados", "0").strip()
+        fecha_hab = request.form.get("fecha_habilitacion", "").strip()
+        fecha_venc = request.form.get("fecha_vencimiento", "").strip() or None
+        observaciones = request.form.get("observaciones", "").strip()
+
+        if not cliente_id:
+            error = "Debe seleccionar un cliente."
+        elif not unidad_id:
+            error = "Debe seleccionar una unidad."
+        elif not gasolinera_id:
+            error = "Debe seleccionar una gasolinera."
+        elif not tarjeta_id:
+            error = "Debe seleccionar una tarjeta."
+        elif not fecha_hab:
+            error = "La fecha de habilitación es obligatoria."
+        else:
+            try:
+                litros = float(litros_str.replace(",", "."))
+            except ValueError:
+                litros = 0.0
+                error = "Los litros deben ser un número válido."
+            if not error and litros <= 0:
+                error = "Los litros autorizados deben ser mayores a cero."
+            if not error and not subinventario_id:
+                conn2 = conectar()
+                cur2 = conn2.cursor()
+                cur2.execute("SELECT valor FROM configuracion WHERE clave = 'compra_minima_litros'")
+                row_min = cur2.fetchone()
+                conn2.close()
+                if row_min:
+                    minimo = float(row_min["valor"])
+                    if litros < minimo:
+                        error = f"El mínimo de litros por habilitación es {minimo:,.0f} L (configurado en el sistema)."
+
+            if not error:
+                conn2 = conectar()
+                cur2 = conn2.cursor()
+                error, _, _ = _validar_estructural(
+                    cur2, cliente_id, unidad_id, gasolinera_id, tarjeta_id,
+                    subinventario_id, litros, verificar_sub_litros=True,
+                )
+                conn2.close()
+
+        if not error:
+            conn = conectar()
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE habilitaciones
+                SET cliente_id = ?, unidad_id = ?, gasolinera_id = ?, tarjeta_id = ?,
+                    subinventario_id = ?, litros_autorizados = ?, fecha_habilitacion = ?,
+                    fecha_vencimiento = ?, observaciones = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND estado = 'pendiente'
+            """, (cliente_id, unidad_id, gasolinera_id, tarjeta_id, subinventario_id,
+                  litros, fecha_hab, fecha_venc, observaciones or None, id))
+            if cur.rowcount == 0:
+                conn.close()
+                return redirect(f"/habilitaciones/{id}?access_error=La+habilitación+cambió+de+estado,+no+se+guardó+la+edición")
+            conn.commit()
+            conn.close()
+            return redirect(f"/habilitaciones/{id}?ok=1")
+
+    return render_template(
+        "habilitaciones/editar.html",
+        hab=hab,
+        error=error,
+        avisos=avisos,
+        clientes=clientes,
+        unidades=unidades,
+        gasolineras=gasolineras,
+        tarjetas=tarjetas,
+        subinventarios=subinventarios,
+        hoy=date.today().isoformat(),
+        combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
     )
 
 

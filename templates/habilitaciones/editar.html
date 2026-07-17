@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block titulo %}Editar Habilitación #{{ hab.id }} — Mercatoria Fuel{% endblock %}
+{% block contenido %}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Operativa / Habilitaciones</span>
+        <h1>Editar habilitación #{{ hab.id }}</h1>
+        <p>Corrige los datos mientras esté pendiente de aprobación, sin necesidad de cancelar y volver a crear.</p>
+    </div>
+    <a href="/habilitaciones/{{ hab.id }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+{% if error %}
+<div style="background:var(--fondo-peligro-suave);border-left:4px solid var(--peligro);color:var(--texto-sobre-peligro);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:14px;">
+    <i class="bi bi-exclamation-circle"></i> {{ error }}
+</div>
+{% endif %}
+
+{% if avisos %}
+<div style="background:var(--fondo-aviso-suave);border-left:4px solid var(--color-warning-accent-1);color:var(--color-warning-text-deep);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:14px;">
+    <div style="font-weight:600;margin-bottom:6px;"><i class="bi bi-exclamation-triangle-fill"></i> Aviso — regularizar antes de aprobar</div>
+    <ul style="margin:0;padding-left:20px;">
+        {% for aviso in avisos %}
+        <li>{{ aviso }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="panel">
+    <form method="POST" action="/habilitaciones/{{ hab.id }}/editar" id="form-hab">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+
+            <div class="mb-3">
+                <label class="form-label">Cliente <span style="color:var(--peligro)">*</span></label>
+                <select name="cliente_id" id="sel-cliente" class="form-select" required>
+                    <option value="">Seleccionar cliente...</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}" {{ 'selected' if c.id|string == request.form.get('cliente_id', hab.cliente_id|string) }}>
+                        {{ c.nombre }} ({{ c.codigo }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Unidad autorizada <span style="color:var(--peligro)">*</span></label>
+                <select name="unidad_id" id="sel-unidad" class="form-select" required>
+                    <option value="">Seleccione cliente primero...</option>
+                    {% for u in unidades %}
+                    <option value="{{ u.id }}"
+                            data-cliente="{{ u.cliente_id }}"
+                            data-combustible="{{ u.tipo_combustible }}"
+                            {{ 'selected' if u.id|string == request.form.get('unidad_id', hab.unidad_id|string) }}>
+                        {{ u.chapa }}{% if u.chofer_nombre %} — {{ u.chofer_nombre }}{% endif %}
+                        ({{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }}){% if u.estado != 'activo' %} — INACTIVA{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Gasolinera <span style="color:var(--peligro)">*</span></label>
+                <select name="gasolinera_id" id="sel-gasolinera" class="form-select" required>
+                    <option value="">Seleccionar gasolinera...</option>
+                    {% for g in gasolineras %}
+                    <option value="{{ g.id }}" {{ 'selected' if g.id|string == request.form.get('gasolinera_id', hab.gasolinera_id|string) }}>{{ g.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tarjeta Fincimex <span style="color:var(--peligro)">*</span></label>
+                <select name="tarjeta_id" id="sel-tarjeta" class="form-select" required>
+                    <option value="">Seleccione gasolinera primero...</option>
+                    {% for t in tarjetas %}
+                    <option value="{{ t.id }}"
+                            data-gasolinera="{{ t.gasolinera_id }}"
+                            data-saldo="{{ t.saldo_usable_l }}"
+                            {{ 'selected' if t.id|string == request.form.get('tarjeta_id', hab.tarjeta_id|string) }}>
+                        **** {{ t.numero_parcial }} — {{ "{:,.2f}".format(t.saldo_usable_l) }} L{% if t.estado != 'activa' %} — INACTIVA{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Subinventario (opcional)</label>
+                <select name="subinventario_id" id="sel-sub" class="form-select">
+                    <option value="">Venta</option>
+                    {% for s in subinventarios %}
+                    <option value="{{ s.id }}"
+                            data-gasolinera="{{ s.gasolinera_id }}"
+                            {{ 'selected' if s.id|string == request.form.get('subinventario_id', hab.subinventario_id|string if hab.subinventario_id else '') }}>
+                        {% if s.tipo == 'cliente' and s.cliente_nombre %}{{ s.cliente_nombre }} — {{ "{:,.0f}".format(s.litros_reservados) }} L{% else %}{{ s.nombre }} ({{ "{:,.0f}".format(s.litros_reservados) }} L reservados){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small style="color:var(--atenuado-staff);font-size:12px;">Si se elige, esta habilitación consumirá de esa reserva al despacharse.</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Litros autorizados <span style="color:var(--peligro)">*</span></label>
+                <input type="text" name="litros_autorizados" class="form-control"
+                       inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
+                       value="{{ request.form.get('litros_autorizados', hab.litros_autorizados) }}"
+                       required placeholder="0.00">
+                <div id="saldo-info" style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;"></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha de habilitación <span style="color:var(--peligro)">*</span></label>
+                <input type="date" name="fecha_habilitacion" class="form-control"
+                       value="{{ request.form.get('fecha_habilitacion', hab.fecha_habilitacion) }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Fecha de vencimiento (opcional)</label>
+                <input type="date" name="fecha_vencimiento" class="form-control"
+                       value="{{ request.form.get('fecha_vencimiento', hab.fecha_vencimiento or '') }}">
+            </div>
+
+            <div class="mb-3" style="grid-column:1/-1;">
+                <label class="form-label">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2"
+                          placeholder="Instrucciones o notas adicionales...">{{ request.form.get('observaciones', hab.observaciones or '') }}</textarea>
+            </div>
+
+        </div>
+
+        <div style="padding:0 24px 24px;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar cambios
+            </button>
+            <a href="/habilitaciones/{{ hab.id }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const unidades = [
+    {% for u in unidades %}
+    {id: "{{ u.id }}", cliente: "{{ u.cliente_id }}", combustible: "{{ u.tipo_combustible }}", label: "{{ u.chapa }}{% if u.chofer_nombre %} — {{ u.chofer_nombre }}{% endif %} ({{ combustible_labels.get(u.tipo_combustible, u.tipo_combustible) }}){% if u.estado != 'activo' %} — INACTIVA{% endif %}"},
+    {% endfor %}
+];
+const tarjetas = [
+    {% for t in tarjetas %}
+    {id: "{{ t.id }}", gasolinera: "{{ t.gasolinera_id }}", combustible: "{{ t.tipo_combustible }}", saldo: {{ t.saldo_usable_l }}, label: "**** {{ t.numero_parcial }} — {{ '{:,.2f}'.format(t.saldo_usable_l) }} L{% if t.estado != 'activa' %} — INACTIVA{% endif %}"},
+    {% endfor %}
+];
+const subinventarios = [
+    {% for s in subinventarios %}
+    {id: "{{ s.id }}", gasolinera: "{{ s.gasolinera_id }}", label: "{% if s.tipo == 'cliente' and s.cliente_nombre %}{{ s.cliente_nombre }} — {{ '{:,.0f}'.format(s.litros_reservados) }} L{% else %}{{ s.nombre }} ({{ '{:,.0f}'.format(s.litros_reservados) }} L reservados){% endif %}"},
+    {% endfor %}
+];
+
+const selCliente = document.getElementById('sel-cliente');
+const selUnidad = document.getElementById('sel-unidad');
+const selGasolinera = document.getElementById('sel-gasolinera');
+const selTarjeta = document.getElementById('sel-tarjeta');
+const selSub = document.getElementById('sel-sub');
+const saldoInfo = document.getElementById('saldo-info');
+
+function filterSelect(sel, items, filterFn, emptyLabel) {
+    const prev = sel.value;
+    sel.innerHTML = `<option value="">${emptyLabel}</option>`;
+    items.filter(filterFn).forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.label;
+        if (item.id === prev) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
+selCliente.addEventListener('change', function() {
+    const cid = this.value;
+    filterSelect(selUnidad, unidades, u => !cid || u.cliente === cid, 'Seleccionar unidad...');
+    filterTarjetas();
+});
+
+function filterTarjetas() {
+    const gid = selGasolinera.value;
+    const uid = selUnidad.value;
+    const unidad = unidades.find(u => u.id === uid);
+    const combustible = unidad ? unidad.combustible : null;
+    filterSelect(selTarjeta, tarjetas,
+        t => (!gid || t.gasolinera === gid) && (!combustible || t.combustible === combustible),
+        'Seleccionar tarjeta...');
+    updateSaldoInfo();
+}
+
+selGasolinera.addEventListener('change', function() {
+    const gid = this.value;
+    filterTarjetas();
+    filterSelect(selSub, subinventarios, s => !gid || s.gasolinera === gid, 'Venta');
+});
+
+selUnidad.addEventListener('change', filterTarjetas);
+
+selTarjeta.addEventListener('change', updateSaldoInfo);
+
+function updateSaldoInfo() {
+    const tid = selTarjeta.value;
+    if (!tid) { saldoInfo.textContent = ''; return; }
+    const t = tarjetas.find(x => x.id === tid);
+    if (t) saldoInfo.textContent = `Saldo disponible en tarjeta: ${t.saldo.toLocaleString('es', {minimumFractionDigits:2})} L`;
+}
+
+// Al cargar, la unidad/tarjeta/subinventario ya vienen preseleccionados por el backend
+// (se incluyen aunque estén inactivos), así que no se re-filtra automáticamente al entrar
+// — solo al cambiar el cliente o la gasolinera explícitamente.
+if (selTarjeta.value) updateSaldoInfo();
+</script>
+{% endblock %}
