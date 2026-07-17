@@ -12,18 +12,13 @@
     </div>
     <div class="d-flex gap-2">
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
-        <a href="/tarjetas/{{ tarjeta.id }}/recargar" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Recargar
-        </a>
-        {% endif %}
-        {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <a href="/tarjetas/{{ tarjeta.id }}/editar" class="btn btn-secondary">
             <i class="bi bi-pencil"></i> Editar
         </a>
         {% endif %}
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
         <a href="/tarjetas/{{ tarjeta.id }}/asignar-saldo" class="btn btn-success">
-            <i class="bi bi-currency-dollar"></i> Asignar saldo USD
+            <i class="bi bi-currency-dollar"></i> Asignar saldo desde el bolsón
         </a>
         {% endif %}
         {% if session.get('rol') in ('admin', 'puesto_de_mando') %}
@@ -79,7 +74,7 @@
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') and bolson_disponible > 0 %}
         <div style="margin-top:10px;">
             <a href="/tarjetas/{{ tarjeta.id }}/asignar-saldo" class="btn btn-success btn-sm">
-                <i class="bi bi-plus-lg"></i> Asignar desde bolsón
+                <i class="bi bi-plus-lg"></i> Asignar saldo desde el bolsón
             </a>
         </div>
         {% endif %}
@@ -239,15 +234,15 @@
 </div>
 {% endif %}
 
-<!-- Historial de recargas -->
+<!-- Historial de asignaciones desde el bolsón -->
 <div class="panel mb-4">
     <div class="panel-header">
         <h2 style="font-size:16px;font-weight:600;margin:0;">
-            <i class="bi bi-plus-circle"></i> Recargas
+            <i class="bi bi-currency-dollar"></i> Asignaciones desde el bolsón
         </h2>
         {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}
-        <a href="/tarjetas/{{ tarjeta.id }}/recargar" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg"></i> Nueva recarga
+        <a href="/tarjetas/{{ tarjeta.id }}/asignar-saldo" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg"></i> Asignar saldo desde el bolsón
         </a>
         {% endif %}
     </div>
@@ -256,29 +251,23 @@
             <thead>
                 <tr>
                     <th>Fecha</th>
-                    <th>Litros recargados</th>
-                    <th>Estado</th>
+                    <th>Litros acreditados</th>
+                    <th>USD debitado del bolsón</th>
                     <th>Responsable</th>
                     <th>Observaciones</th>
                 </tr>
             </thead>
             <tbody>
-                {% for r in recargas %}
+                {% for a in asignaciones %}
                 <tr>
-                    <td>{{ r.fecha }}</td>
-                    <td><strong style="color:var(--exito);">+{{ "{:,.2f}".format(r.litros_recargados) }} L</strong></td>
-                    <td>
-                        {% if r.estado == 'confirmada' %}
-                        <span class="badge badge-ok">Confirmada</span>
-                        {% else %}
-                        <span class="badge badge-neutral">{{ r.estado|capitalize }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ r.responsable_nombre }}</td>
-                    <td style="color:var(--atenuado-staff);font-size:13px;">{{ r.observaciones or '—' }}</td>
+                    <td>{{ (a.created_at | string)[:16] if a.created_at else '—' }}</td>
+                    <td><strong style="color:var(--exito);">+{{ "{:,.2f}".format(a.litros) }} L</strong></td>
+                    <td>${{ "{:,.2f}".format(a.monto_usd) }}</td>
+                    <td>{{ a.responsable_nombre }}</td>
+                    <td style="color:var(--atenuado-staff);font-size:13px;">{{ a.observaciones or '—' }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="empty-state" style="padding:20px;">Sin recargas registradas.</td></tr>
+                <tr><td colspan="5" class="empty-state" style="padding:20px;">Sin asignaciones registradas.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

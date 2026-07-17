@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, session, jsonify
-from database import conectar, eliminar_columna_si_existe, columna_existe
+from database import conectar, eliminar_columna_si_existe, columna_existe, tabla_existe
 from utils.auth import requiere_rol
 from utils.constants import TIPOS_COMBUSTIBLE, TIPOS_COMBUSTIBLE_LABELS
 
@@ -22,9 +22,18 @@ _COLUMNAS_A_ELIMINAR = [
     ("tarjetas", "saldo_usd"),
 ]
 
+# Tablas muertas a eliminar del esquema — recargas_tarjetas dejó de tener
+# código que la use (se eliminó recargar(): acreditaba saldo sin descontarlo
+# del bolsón, la única vía legítima). Ver Barrera 4 en eliminar_columnas_muertas
+# para el chequeo de saldo huérfano antes de borrarla de verdad.
+_TABLAS_A_ELIMINAR = ["recargas_tarjetas"]
+
 # Orden de borrado: primero las tablas referenciadas por otras dentro de este mismo
 # conjunto (despachos -> habilitaciones; movimientos_saldo_fincimex -> recepciones
 # y llegadas_puerto), luego el resto sin dependencias cruzadas entre sí.
+# recargas_tarjetas no vive acá: el código ya no la usa, así que no hay datos
+# operativos "vivos" que resetear — su limpieza es un DROP definitivo, no un
+# reseteo de ciclo (ver _TABLAS_A_ELIMINAR).
 _TABLAS_TRANSACCIONALES = [
     "despachos",
     "movimientos_saldo_fincimex",
@@ -32,7 +41,6 @@ _TABLAS_TRANSACCIONALES = [
     "recepciones",
     "transferencias",
     "llegadas_puerto",
-    "recargas_tarjetas",
     "devoluciones_tarjetas",
     "habilitaciones",
     "reservas_tienda",
@@ -310,17 +318,52 @@ def eliminar_columnas_muertas():
             "sin+reflejar+en+saldo_usable_l+—+resetea+el+inventario+o+corrígelas+antes+de+continuar"
         )
 
+    # Barrera 5: no perder trazabilidad de saldo que hoy depende de una
+    # recarga sin respaldo del bolsón. Si alguna tarjeta con historial de
+    # recargas tiene saldo actual mayor a lo que explica (asignado desde el
+    # bolsón menos despachado), ese excedente depende de la recarga — se
+    # aborta todo el botón, mismo criterio que la Barrera 4. Se saltea sola
+    # si la tabla ya no existe (ejecución idempotente).
+    tarjetas_saldo_sin_explicar = 0
+    if tabla_existe(cur, "recargas_tarjetas"):
+        cur.execute("""
+            SELECT COUNT(*) AS n FROM tarjetas t
+            WHERE EXISTS (
+                SELECT 1 FROM recargas_tarjetas r
+                WHERE r.tarjeta_id = t.id AND r.estado = 'confirmada'
+            )
+            AND t.saldo_usable_l > (
+                COALESCE((SELECT SUM(m.litros) FROM movimientos_saldo_fincimex m
+                          WHERE m.tarjeta_id = t.id AND m.tipo = 'asignacion'), 0)
+                - COALESCE((SELECT SUM(d.litros_despachados) FROM despachos d
+                            WHERE d.tarjeta_id = t.id), 0)
+            ) + 0.001
+        """)
+        tarjetas_saldo_sin_explicar = cur.fetchone()["n"]
+    if tarjetas_saldo_sin_explicar > 0:
+        conn.close()
+        return redirect(
+            f"/configuracion/?error={tarjetas_saldo_sin_explicar}+tarjeta(s)+tienen+saldo+que+"
+            "depende+de+una+recarga+sin+respaldo+del+bolsón+—+resetea+el+inventario+o+corrígelas+antes+de+continuar"
+        )
+
     for tabla, columna in _COLUMNAS_A_ELIMINAR:
         eliminar_columna_si_existe(cur, tabla, columna)
+
+    for tabla in _TABLAS_A_ELIMINAR:
+        cur.execute(f"DROP TABLE IF EXISTS {tabla}")
 
     conn.commit()
     conn.close()
 
-    resumen = {"columnas": [f"{t}.{c}" for t, c in _COLUMNAS_A_ELIMINAR]}
+    resumen = {
+        "columnas": [f"{t}.{c}" for t, c in _COLUMNAS_A_ELIMINAR],
+        "tablas": list(_TABLAS_A_ELIMINAR),
+    }
 
     _registrar_auditoria(
         session.get("user_id"),
-        "Eliminación de columnas muertas del esquema",
+        "Eliminación de columnas y tablas muertas del esquema",
         "sistema", 0,
         valor_nuevo=resumen,
     )

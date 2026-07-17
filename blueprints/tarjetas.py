@@ -156,17 +156,19 @@ def detalle(id):
         conn.close()
         return redirect("/tarjetas")
 
-    # Historial de recargas
+    # Historial de asignaciones desde el bolsón — única vía por la que una
+    # tarjeta puede recibir saldo hoy, así que es lo que reemplaza al viejo
+    # historial de recargas en este mismo lugar de la pantalla.
     cur.execute("""
-        SELECT r.id, r.fecha, r.litros_recargados, r.estado, r.observaciones,
+        SELECT m.id, m.created_at, m.litros, m.monto_usd, m.factor, m.observaciones,
                u.nombre AS responsable_nombre
-        FROM recargas_tarjetas r
-        JOIN usuarios u ON u.id = r.responsable_id
-        WHERE r.tarjeta_id = ?
-        ORDER BY r.fecha DESC, r.id DESC
+        FROM movimientos_saldo_fincimex m
+        JOIN usuarios u ON u.id = m.responsable_id
+        WHERE m.tarjeta_id = ? AND m.tipo = 'asignacion'
+        ORDER BY m.created_at DESC, m.id DESC
         LIMIT 50
     """, (id,))
-    recargas = cur.fetchall()
+    asignaciones = cur.fetchall()
 
     # Historial de devoluciones
     cur.execute("""
@@ -194,7 +196,7 @@ def detalle(id):
     return render_template(
         "tarjetas/detalle.html",
         tarjeta=tarjeta,
-        recargas=recargas,
+        asignaciones=asignaciones,
         devoluciones=devoluciones,
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         hoy=date.today().isoformat(),
@@ -404,81 +406,6 @@ def cambiar_estado(id):
         )
 
     return redirect(f"/tarjetas/{id}?ok=1")
-
-
-# ── Recargar ──────────────────────────────────────────────────────────────────
-
-@tarjetas_bp.route("/<int:id>/recargar", methods=["GET", "POST"])
-def recargar(id):
-    redir = requiere_login()
-    if redir:
-        return redir
-    if _requiere_admin_pm():
-        return redirect(f"/tarjetas/{id}?access_error=Solo+Admin+y+PM+pueden+recargar+tarjetas")
-
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT t.*, g.nombre AS gasolinera_nombre
-        FROM tarjetas t JOIN gasolineras g ON g.id = t.gasolinera_id
-        WHERE t.id = ?
-    """, (id,))
-    tarjeta = cur.fetchone()
-    conn.close()
-
-    if not tarjeta:
-        return redirect("/tarjetas")
-
-    error = None
-
-    if request.method == "POST":
-        litros_str = request.form.get("litros_recargados", "0").strip()
-        fecha = request.form.get("fecha", "").strip()
-        observaciones = request.form.get("observaciones", "").strip()
-
-        if not fecha:
-            error = "La fecha es obligatoria."
-        else:
-            try:
-                litros = float(litros_str)
-            except ValueError:
-                litros = 0.0
-                error = "Los litros deben ser un número válido."
-
-            if not error and litros <= 0:
-                error = "Los litros a recargar deben ser mayores a cero."
-
-        if not error:
-            conn = conectar()
-            cur = conn.cursor()
-            # saldo_usable_l es la única fuente de verdad.
-            cur.execute("""
-                UPDATE tarjetas
-                SET saldo_usable_l = saldo_usable_l + ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            """, (litros, id))
-            cur.execute("""
-                INSERT INTO recargas_tarjetas
-                    (tarjeta_id, fecha, litros_recargados, responsable_id, observaciones, estado)
-                VALUES (?, ?, ?, ?, ?, 'confirmada')
-            """, (id, fecha, litros, session.get("user_id"), observaciones or None))
-            cur.execute("""
-                INSERT INTO movimientos
-                    (tipo, fecha, tarjeta_id, gasolinera_id, litros, responsable_id, observaciones)
-                VALUES ('recarga_tarjeta', ?, ?, ?, ?, ?, ?)
-            """, (fecha, id, tarjeta["gasolinera_id"], litros, session.get("user_id"),
-                  f"Recarga tarjeta ****{tarjeta['numero_parcial']}"))
-            conn.commit()
-            conn.close()
-            return redirect(f"/tarjetas/{id}?ok=1")
-
-    return render_template(
-        "tarjetas/recargar.html",
-        tarjeta=tarjeta,
-        error=error,
-        hoy=date.today().isoformat(),
-    )
 
 
 # ── Asignar saldo desde bolsón ────────────────────────────────────────────────

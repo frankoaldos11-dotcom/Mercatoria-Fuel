@@ -280,7 +280,8 @@ def tarjetas():
         SELECT t.numero_parcial, g.nombre AS gasolinera,
                t.tipo_combustible, t.saldo_usable_l, t.saldo_retenido_l,
                t.estado,
-               (SELECT MAX(r.fecha) FROM recargas_tarjetas r WHERE r.tarjeta_id = t.id) AS ultima_recarga
+               (SELECT MAX(m.created_at) FROM movimientos_saldo_fincimex m
+                WHERE m.tarjeta_id = t.id AND m.tipo = 'asignacion') AS ultima_asignacion
         FROM tarjetas t
         JOIN gasolineras g ON g.id = t.gasolinera_id
         ORDER BY g.nombre, t.numero_parcial
@@ -292,11 +293,11 @@ def tarjetas():
     ws = wb.active
     ws.title = "Tarjetas"
     _header_row(ws, ["Tarjeta", "Gasolinera", "Combustible", "Saldo Usable (L)",
-                     "Saldo Retenido (L)", "Estado", "Última Recarga"])
+                     "Saldo Retenido (L)", "Estado", "Última Asignación desde Bolsón"])
     for f in filas:
         ws.append([f"**** {f['numero_parcial']}", f["gasolinera"], f["tipo_combustible"],
                    f["saldo_usable_l"], f["saldo_retenido_l"], f["estado"],
-                   f["ultima_recarga"] or "—"])
+                   str(f["ultima_asignacion"])[:16] if f["ultima_asignacion"] else "—"])
 
     buf = io.BytesIO()
     wb.save(buf)

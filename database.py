@@ -107,6 +107,22 @@ def columna_existe(cur, tabla, columna):
         return columna in columnas_actuales
 
 
+def tabla_existe(cur, tabla):
+    """True si `tabla` existe hoy en el esquema, sobre el cursor del llamador.
+    Dialect-aware, mismo criterio que columna_existe() — pensado para que una
+    barrera de seguridad pueda chequear datos de una tabla que podría ya
+    haber sido eliminada (ejecución idempotente de un DROP TABLE)."""
+    if USE_POSTGRES:
+        cur.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_name = ?",
+            (tabla,),
+        )
+        return cur.fetchone() is not None
+    else:
+        cur.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", (tabla,))
+        return cur.fetchone() is not None
+
+
 def eliminar_columna_si_existe(cur, tabla, columna):
     """DROP COLUMN idempotente, sobre el cursor/transacción del llamador (sin
     conectar() propio, sin commit propio).

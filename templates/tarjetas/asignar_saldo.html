@@ -82,7 +82,7 @@
 
         <div style="background:var(--fondo-info-suave);border-left:4px solid var(--color-info-accent);border-radius:8px;padding:0.75rem 1rem;margin:0 24px 20px;font-size:13px;color:var(--texto-sobre-info);">
             <i class="bi bi-info-circle"></i>
-            El saldo de la tarjeta se maneja siempre en <strong>litros</strong>. El monto que indiques se convierte a litros con el factor actual (redondeado hacia abajo, para nunca acreditar de más) y se descuenta del <strong>bolsón general</strong> exactamente por ese equivalente. Saldo actual: <strong>{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</strong>.
+            Esta es la única forma de acreditar saldo a una tarjeta: el bolsón general se genera con el combustible que realmente entró a los depósitos, y esto descuenta de ahí exactamente lo que se acredita. El saldo de la tarjeta se maneja siempre en <strong>litros</strong>. El monto que indiques se convierte a litros con el factor actual (redondeado hacia abajo, para nunca acreditar de más). Saldo actual: <strong>{{ "{:,.2f}".format(tarjeta.saldo_usable_l | float) }} L</strong>.
         </div>
 
         <div style="padding:0 24px 24px;display:flex;gap:10px;">
