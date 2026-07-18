@@ -388,7 +388,6 @@
                     <th>Combustible</th>
                     <th>L. solicitados</th>
                     <th>L. recibidos</th>
-                    <th>L. distribuidos</th>
                     <th>Pipa</th>
                     <th>Estado</th>
                 </tr>
@@ -403,18 +402,6 @@
                     <td><span class="badge badge-info">{{ combustible_labels.get(t.tipo_combustible, t.tipo_combustible) }}</span></td>
                     <td>{{ "{:,.2f}".format(t.litros_solicitados) }}</td>
                     <td>{{ "{:,.2f}".format(t.litros_recibidos) if t.litros_recibidos is not none else '—' }}</td>
-                    <td>
-                        {% if t.estado == 'recibida' and t.litros_recibidos is not none %}
-                        {% set _dist = (t.litros_distribuidos or 0)|float %}
-                        {% set _pend = (t.litros_recibidos)|float - _dist %}
-                        {{ "{:,.2f}".format(_dist) }}
-                        {% if _pend > 0.01 %}
-                        <span class="badge badge-warn" style="font-size:10px;margin-left:2px;" title="Sin distribuir a tarjetas">
-                            -{{ "{:,.0f}".format(_pend) }} L
-                        </span>
-                        {% endif %}
-                        {% else %}—{% endif %}
-                    </td>
                     <td>{{ t.pipa_chapa or '—' }}</td>
                     <td>
                         {% if t.estado == 'recibida' %}
@@ -427,7 +414,7 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="10" class="empty-state" style="padding:20px;">Sin transferencias recibidas.</td></tr>
+                <tr><td colspan="9" class="empty-state" style="padding:20px;">Sin transferencias recibidas.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

@@ -128,13 +128,6 @@
                         <span class="badge badge-warn">En tránsito</span>
                         {% elif t.estado == 'recibida' %}
                         <span class="badge badge-ok">Recibida</span>
-                        {% set _dist = (t.litros_distribuidos or 0)|float %}
-                        {% set _pend = (t.litros_recibidos or 0)|float - _dist %}
-                        {% if _pend > 0.01 %}
-                        <br><span class="badge badge-warn" style="margin-top:4px;font-size:11px;" title="Combustible recibido aún no distribuido a tarjetas">
-                            Sin distribuir: {{ "{:,.0f}".format(_pend) }} L
-                        </span>
-                        {% endif %}
                         {% else %}
                         <span class="badge badge-neutral">Anulada</span>
                         {% endif %}
