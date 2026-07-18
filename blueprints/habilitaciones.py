@@ -131,7 +131,7 @@ def listado():
     cur = conn.cursor()
     cur.execute(f"""
         SELECT h.id, h.litros_autorizados, h.litros_despachados,
-               h.fecha_habilitacion, h.fecha_vencimiento, h.estado,
+               h.fecha_habilitacion, h.fecha_vencimiento, h.estado, h.created_at,
                cli.nombre AS cliente_nombre,
                v.chapa AS unidad_chapa, v.tipo_combustible,
                ch.nombre AS chofer_nombre,

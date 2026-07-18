@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block titulo %}Clientes — Mercatoria Fuel{% endblock %}
+{% block titulo %}Clientes/Flota — Mercatoria Fuel{% endblock %}
 
 {% block contenido %}
 
 <div class="page-header">
     <div>
         <span class="eyebrow">Comercial</span>
-        <h1>Clientes</h1>
+        <h1>Clientes/Flota</h1>
         <p>Organizaciones que reciben combustible de Mercatoria.</p>
     </div>
     {% if session.get('rol') in ('admin', 'pm', 'puesto_de_mando') %}

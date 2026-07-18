@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, render_template, request, redirect, session, jsonify
 
@@ -333,7 +333,7 @@ def api_despachar(hab_id):
     factor = obtener_factor(cur)
     monto_usd = round(litros * factor, 2)
 
-    hoy_str = date.today().isoformat()
+    hoy_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     nuevo_despacho_id, numero_operacion = insertar_despacho_con_numero(
         cur,
@@ -436,13 +436,19 @@ def cerrar_turno():
     conn = conectar()
     cur = conn.cursor()
 
-    # Total despachado en este turno/gasolinera/fecha
+    # Total despachado en este turno/gasolinera/fecha — comparación por rango,
+    # no por igualdad exacta: fecha_despacho es un timestamp completo (fecha y
+    # hora), así que "= fecha" nunca coincide salvo que casualmente no tenga
+    # hora. Con rango, cualquier despacho de ese día entra sin importar por
+    # cuál de los dos caminos (escritorio o QR) se haya creado.
+    fecha_fin = (date.fromisoformat(fecha) + timedelta(days=1)).isoformat() if fecha else fecha
     cur.execute("""
         SELECT COALESCE(SUM(d.litros_despachados), 0) AS total
         FROM despachos d
         JOIN habilitaciones h ON h.id = d.habilitacion_id
-        WHERE h.gasolinera_id = ? AND d.fecha_despacho = ? AND d.estado = 'completado'
-    """, (gasolinera_id, fecha))
+        WHERE h.gasolinera_id = ? AND d.fecha_despacho >= ? AND d.fecha_despacho < ?
+              AND d.estado = 'completado'
+    """, (gasolinera_id, fecha, fecha_fin))
     total_despachado = cur.fetchone()["total"] or 0
 
     cur.execute("""

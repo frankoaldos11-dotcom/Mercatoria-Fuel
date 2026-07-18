@@ -678,6 +678,10 @@ def ejecutar_migraciones(bcrypt):
         "ALTER TABLE llegadas_puerto ADD COLUMN bolson_generado_por TEXT",
         "ALTER TABLE llegadas_puerto ADD COLUMN bolson_forzado_motivo TEXT",
         "ALTER TABLE llegadas_puerto ADD COLUMN bolson_forzado_por INTEGER REFERENCES usuarios(id)",
+        "ALTER TABLE clientes ADD COLUMN nit TEXT",
+        "ALTER TABLE clientes ADD COLUMN direccion TEXT",
+        "ALTER TABLE despachos ADD COLUMN tipo_despacho TEXT NOT NULL DEFAULT 'normal'",
+        "ALTER TABLE despachos ADD COLUMN motivo_registro_tardio TEXT",
     ]:
         try:
             cur.execute(_sql)

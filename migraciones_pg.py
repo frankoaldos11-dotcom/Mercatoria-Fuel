@@ -494,6 +494,10 @@ def ejecutar_migraciones_pg(bcrypt):
     cur.execute("ALTER TABLE llegadas_puerto ADD COLUMN IF NOT EXISTS bolson_generado_por TEXT")
     cur.execute("ALTER TABLE llegadas_puerto ADD COLUMN IF NOT EXISTS bolson_forzado_motivo TEXT")
     cur.execute("ALTER TABLE llegadas_puerto ADD COLUMN IF NOT EXISTS bolson_forzado_por INTEGER REFERENCES usuarios(id)")
+    cur.execute("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS nit TEXT")
+    cur.execute("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS direccion TEXT")
+    cur.execute("ALTER TABLE despachos ADD COLUMN IF NOT EXISTS tipo_despacho TEXT NOT NULL DEFAULT 'normal'")
+    cur.execute("ALTER TABLE despachos ADD COLUMN IF NOT EXISTS motivo_registro_tardio TEXT")
     cur.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_despachos_numero_operacion
         ON despachos (numero_operacion)

@@ -169,6 +169,10 @@
                     <td style="padding:8px 0;color:var(--atenuado-staff);">Fecha habilitación</td>
                     <td style="padding:8px 0;">{{ hab.fecha_habilitacion }}</td>
                 </tr>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Registrada</td>
+                    <td style="padding:8px 0;">{{ (hab.created_at | string)[:16] if hab.created_at else '—' }}</td>
+                </tr>
                 {% if hab.fecha_vencimiento %}
                 <tr style="border-bottom:1px solid var(--borde-staff);">
                     <td style="padding:8px 0;color:var(--atenuado-staff);">Vencimiento</td>

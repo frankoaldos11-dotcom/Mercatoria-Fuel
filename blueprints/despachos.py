@@ -3,14 +3,109 @@ from datetime import date, datetime
 from flask import Blueprint, render_template, request, redirect, session
 
 from database import conectar
-from utils.constants import TIPOS_COMBUSTIBLE_LABELS, ESTADOS_HABILITACION_LABELS
+from utils.constants import (
+    TIPOS_COMBUSTIBLE_LABELS, ESTADOS_HABILITACION_LABELS,
+    ROLES_ADMIN_PM, ROLES_OPERARIO_GAS,
+)
 from utils.auth import requiere_login, requiere_staff
 from utils.adjuntos import foto_valida, guardar_adjunto
 from utils.despachos import insertar_despacho_con_numero
 from utils.tarjetas import obtener_factor, calcular_usd_desde_litros
 from utils.subinventarios import apartar_remanente_despacho, SubinventarioError
+from blueprints.habilitaciones import _validar_estructural
 
 despachos_bp = Blueprint("despachos", __name__, url_prefix="/despachos")
+
+
+def _crear_habilitacion_y_despacho(cur, tipo_despacho, cliente_id, unidad_id, gasolinera_id,
+                                    tarjeta_id, litros, fecha_despacho, observaciones,
+                                    motivo_registro_tardio, operario_id):
+    """Crea, en la transacción/cursor del llamador, una habilitación implícita (estado
+    'despachada' desde el inicio — no hay paso de aprobación separado, el despacho ES
+    la aprobación) y su despacho asociado. No crea subinventario: litros_autorizados
+    siempre es igual a litros_despachados en este flujo, así que el remanente es cero
+    por construcción y no hace falta apartar_remanente_despacho().
+
+    Reutiliza _validar_estructural() de habilitaciones.py para las mismas validaciones
+    estructurales que un despacho normal ya tiene garantizadas por su habilitación previa
+    (tarjeta-gasolinera, tarjeta-combustible-unidad, unidad-cliente) — acá hay que
+    verificarlas en el momento porque no existe esa habilitación previa. Tarjeta activa y
+    saldo suficiente se verifican acá también, con el mismo criterio que un despacho normal.
+
+    Devuelve (error, nuevo_despacho_id, numero_operacion). Si error no es None, nada se
+    escribió todavía en las tablas de negocio (el llamador debe cerrar sin commitear) salvo
+    la propia habilitación si el fallo fue posterior a crearla — ver nota en el código.
+    """
+    error, tarjeta_check, unidad_check = _validar_estructural(
+        cur, cliente_id, unidad_id, gasolinera_id, tarjeta_id, None, litros,
+    )
+    if error:
+        return error, None, None
+    if tarjeta_check["estado"] != "activa":
+        return "La tarjeta no está activa.", None, None
+    if float(tarjeta_check["saldo_usable_l"]) < litros - 0.001:
+        return (
+            f"Saldo insuficiente en la tarjeta. Disponible: "
+            f"{float(tarjeta_check['saldo_usable_l']):,.2f} L, solicitado: {litros:,.2f} L."
+        ), None, None
+
+    obs_hab = f"Habilitación generada automáticamente — despacho {tipo_despacho}"
+    if motivo_registro_tardio:
+        obs_hab += f". Motivo del registro a posteriori: {motivo_registro_tardio}"
+
+    cur.execute("""
+        INSERT INTO habilitaciones
+            (cliente_id, unidad_id, gasolinera_id, tarjeta_id, subinventario_id,
+             litros_autorizados, litros_despachados, fecha_habilitacion,
+             estado, observaciones, creado_por, aprobado_por)
+        VALUES (?, ?, ?, ?, NULL, ?, ?, ?, 'despachada', ?, ?, ?)
+    """, (cliente_id, unidad_id, gasolinera_id, tarjeta_id, litros, litros,
+          str(fecha_despacho)[:10], obs_hab, operario_id, operario_id))
+    nueva_hab_id = cur.lastrowid
+
+    # saldo_usable_l es la única fuente de verdad para el bloqueo — mismo guard atómico
+    # que usan todos los demás caminos de despacho.
+    cur.execute("""
+        UPDATE tarjetas
+        SET saldo_usable_l = saldo_usable_l - ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND saldo_usable_l >= ? - 0.001
+    """, (litros, tarjeta_id, litros))
+    if cur.rowcount == 0:
+        return "El saldo de la tarjeta cambió mientras se procesaba el despacho. Intenta de nuevo.", None, None
+
+    factor = obtener_factor(cur)
+    monto_usd = round(litros * factor, 2)
+    cur.execute("""
+        INSERT INTO movimientos_saldo_fincimex
+            (tipo, monto_usd, litros, factor, tarjeta_id, responsable_id, observaciones)
+        VALUES ('descuento', ?, ?, ?, ?, ?, ?)
+    """, (monto_usd, litros, factor, tarjeta_id, operario_id,
+          f"Despacho {tipo_despacho} — habilitación #{nueva_hab_id} — {litros:,.2f} L × {factor}"))
+
+    nuevo_id, numero_operacion = insertar_despacho_con_numero(
+        cur,
+        """
+            INSERT INTO despachos
+                (habilitacion_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id,
+                 litros_despachados, observaciones, fecha_despacho, operario_id,
+                 estado, tipo_despacho, motivo_registro_tardio, numero_operacion)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completado', ?, ?, ?)
+        """,
+        (nueva_hab_id, gasolinera_id, tarjeta_id, cliente_id, unidad_id, litros,
+         observaciones or None, fecha_despacho, operario_id, tipo_despacho, motivo_registro_tardio),
+        gasolinera_id, fecha_despacho,
+    )
+
+    cur.execute("""
+        INSERT INTO movimientos
+            (tipo, fecha, gasolinera_id, tarjeta_id, cliente_id, vehiculo_id,
+             litros, tipo_combustible, responsable_id, observaciones)
+        VALUES ('despacho', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (fecha_despacho, gasolinera_id, tarjeta_id, cliente_id, unidad_id, litros,
+          unidad_check["tipo_combustible"], operario_id,
+          f"Despacho #{nuevo_id} — {tipo_despacho} — habilitación #{nueva_hab_id}"))
+
+    return None, nuevo_id, numero_operacion
 
 
 # ── Listado ───────────────────────────────────────────────────────────────────
@@ -57,6 +152,7 @@ def listado():
     cur.execute(f"""
         SELECT d.id, d.litros_despachados, d.fecha_despacho, d.estado,
                d.foto_ticket_url, d.odometro_km, d.numero_operacion,
+               d.tipo_despacho, d.motivo_registro_tardio,
                cli.nombre AS cliente_nombre,
                v.chapa AS unidad_chapa,
                ch.nombre AS chofer_nombre,
@@ -415,4 +511,174 @@ def crear():
         hoy=date.today().isoformat(),
         combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
         estado_labels=ESTADOS_HABILITACION_LABELS,
+    )
+
+
+def _datos_formulario_directo(cur, solo_gasolinera_id=None):
+    cur.execute("SELECT id, nombre, codigo FROM clientes WHERE activo = 1 ORDER BY nombre ASC")
+    clientes = cur.fetchall()
+    cur.execute("""
+        SELECT v.id, v.chapa, v.cliente_id, v.tipo_combustible, v.estado
+        FROM vehiculos v WHERE v.estado = 'activo' ORDER BY v.chapa ASC
+    """)
+    unidades = cur.fetchall()
+    if solo_gasolinera_id:
+        cur.execute(
+            "SELECT id, nombre FROM gasolineras WHERE id = ? AND estado = 'activo'",
+            (solo_gasolinera_id,),
+        )
+    else:
+        cur.execute("SELECT id, nombre FROM gasolineras WHERE estado = 'activo' ORDER BY nombre ASC")
+    gasolineras = cur.fetchall()
+    cur.execute("""
+        SELECT t.id, t.numero_parcial, t.gasolinera_id, t.tipo_combustible,
+               t.saldo_usable_l, t.estado
+        FROM tarjetas t WHERE t.estado = 'activa' ORDER BY t.numero_parcial ASC
+    """)
+    tarjetas = cur.fetchall()
+    return clientes, unidades, gasolineras, tarjetas
+
+
+# ── Despacho directo (Vía B) ──────────────────────────────────────────────────
+
+@despachos_bp.route("/directo", methods=["GET", "POST"])
+def directo():
+    redir = requiere_login()
+    if redir:
+        return redir
+    if session.get("rol") not in ROLES_OPERARIO_GAS:
+        return redirect("/despachos?access_error=Sin+permisos+para+despacho+directo")
+
+    es_operario = session.get("rol") == "operador_gasolinera"
+
+    conn = conectar()
+    cur = conn.cursor()
+    clientes, unidades, gasolineras, tarjetas = _datos_formulario_directo(
+        cur, session.get("gasolinera_id") if es_operario else None
+    )
+    conn.close()
+
+    error = None
+
+    if request.method == "POST":
+        cliente_id = request.form.get("cliente_id", "").strip()
+        unidad_id = request.form.get("unidad_id", "").strip()
+        gasolinera_id = request.form.get("gasolinera_id", "").strip()
+        tarjeta_id = request.form.get("tarjeta_id", "").strip()
+        litros_str = request.form.get("litros_despachados", "0").strip()
+        observaciones = request.form.get("observaciones", "").strip()
+
+        # El operario nunca elige gasolinera: se fuerza a la de su sesión,
+        # sin importar qué haya venido en el formulario.
+        if es_operario:
+            gasolinera_id = str(session.get("gasolinera_id") or "")
+
+        if not all([cliente_id, unidad_id, gasolinera_id, tarjeta_id]):
+            error = "Debe completar cliente, unidad, gasolinera y tarjeta."
+        else:
+            try:
+                litros = float(litros_str.replace(",", "."))
+            except ValueError:
+                litros = 0.0
+                error = "Los litros deben ser un número válido."
+            if not error and litros <= 0:
+                error = "Los litros despachados deben ser mayores a cero."
+
+        if not error:
+            conn = conectar()
+            cur = conn.cursor()
+            cur.execute("BEGIN")
+            fecha_despacho = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            error, nuevo_id, numero_operacion = _crear_habilitacion_y_despacho(
+                cur, "directo", cliente_id, unidad_id, gasolinera_id, tarjeta_id,
+                litros, fecha_despacho, observaciones, None, session.get("user_id"),
+            )
+            if error:
+                conn.close()
+            else:
+                conn.commit()
+                conn.close()
+                return redirect(f"/despachos/{nuevo_id}?ok=1")
+
+    return render_template(
+        "despachos/directo.html",
+        error=error,
+        clientes=clientes,
+        unidades=unidades,
+        gasolineras=gasolineras,
+        tarjetas=tarjetas,
+        combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
+        es_operario=es_operario,
+    )
+
+
+# ── Registro a posteriori (Vía A) ─────────────────────────────────────────────
+
+@despachos_bp.route("/tardio", methods=["GET", "POST"])
+def tardio():
+    redir = requiere_login()
+    if redir:
+        return redir
+    if session.get("rol") not in ROLES_ADMIN_PM:
+        return redirect("/despachos?access_error=Solo+Admin+y+PM+pueden+registrar+despachos+a+posteriori")
+
+    conn = conectar()
+    cur = conn.cursor()
+    clientes, unidades, gasolineras, tarjetas = _datos_formulario_directo(cur)
+    conn.close()
+
+    error = None
+
+    if request.method == "POST":
+        cliente_id = request.form.get("cliente_id", "").strip()
+        unidad_id = request.form.get("unidad_id", "").strip()
+        gasolinera_id = request.form.get("gasolinera_id", "").strip()
+        tarjeta_id = request.form.get("tarjeta_id", "").strip()
+        litros_str = request.form.get("litros_despachados", "0").strip()
+        fecha_str = request.form.get("fecha_despacho", "").strip()
+        hora_str = request.form.get("hora_despacho", "").strip()
+        observaciones = request.form.get("observaciones", "").strip()
+        motivo = request.form.get("motivo_registro_tardio", "").strip()
+
+        if not all([cliente_id, unidad_id, gasolinera_id, tarjeta_id, fecha_str]):
+            error = "Debe completar cliente, unidad, gasolinera, tarjeta y fecha."
+        elif not motivo:
+            error = "El motivo del registro a posteriori es obligatorio."
+        elif fecha_str > date.today().isoformat():
+            error = "La fecha no puede ser futura."
+        else:
+            try:
+                litros = float(litros_str.replace(",", "."))
+            except ValueError:
+                litros = 0.0
+                error = "Los litros deben ser un número válido."
+            if not error and litros <= 0:
+                error = "Los litros despachados deben ser mayores a cero."
+
+        if not error:
+            conn = conectar()
+            cur = conn.cursor()
+            cur.execute("BEGIN")
+            hora_final = hora_str if hora_str else "12:00"
+            fecha_despacho = f"{fecha_str} {hora_final}:00"
+            error, nuevo_id, numero_operacion = _crear_habilitacion_y_despacho(
+                cur, "posterior", cliente_id, unidad_id, gasolinera_id, tarjeta_id,
+                litros, fecha_despacho, observaciones, motivo, session.get("user_id"),
+            )
+            if error:
+                conn.close()
+            else:
+                conn.commit()
+                conn.close()
+                return redirect(f"/despachos/{nuevo_id}?ok=1")
+
+    return render_template(
+        "despachos/tardio.html",
+        error=error,
+        clientes=clientes,
+        unidades=unidades,
+        gasolineras=gasolineras,
+        tarjetas=tarjetas,
+        combustible_labels=TIPOS_COMBUSTIBLE_LABELS,
+        hoy=date.today().isoformat(),
     )

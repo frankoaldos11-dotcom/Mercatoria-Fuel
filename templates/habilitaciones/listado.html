@@ -94,7 +94,12 @@
                         <span style="color:var(--atenuado-staff);">—</span>
                         {% endif %}
                     </td>
-                    <td style="font-size:13px;">{{ h.fecha_habilitacion }}</td>
+                    <td style="font-size:13px;">
+                        {{ h.fecha_habilitacion }}
+                        {% if h.created_at %}
+                        <div style="font-size:11px;color:var(--atenuado-staff);">Registrada {{ (h.created_at | string)[11:16] }}</div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if h.estado == 'pendiente' %}
                         <span class="badge badge-neutral">Pendiente</span>

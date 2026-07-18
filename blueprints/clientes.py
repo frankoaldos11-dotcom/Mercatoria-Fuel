@@ -88,6 +88,8 @@ def crear():
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
         codigo = request.form.get("codigo", "").strip().upper()
+        nit = request.form.get("nit", "").strip()
+        direccion = request.form.get("direccion", "").strip()
         contacto_nombre = request.form.get("contacto_nombre", "").strip()
         contacto_telefono = request.form.get("contacto_telefono", "").strip()
         contacto_email = request.form.get("contacto_email", "").strip().lower()
@@ -108,10 +110,10 @@ def crear():
             else:
                 cur.execute("""
                     INSERT INTO clientes
-                        (nombre, codigo, contacto_nombre, contacto_telefono,
+                        (nombre, codigo, nit, direccion, contacto_nombre, contacto_telefono,
                          contacto_email, notas, activo)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (nombre, codigo, contacto_nombre, contacto_telefono,
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (nombre, codigo, nit or None, direccion or None, contacto_nombre, contacto_telefono,
                       contacto_email, notas, activo))
                 nuevo_id = cur.lastrowid
                 conn.commit()
@@ -187,6 +189,8 @@ def editar(id):
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
         codigo = request.form.get("codigo", "").strip().upper()
+        nit = request.form.get("nit", "").strip()
+        direccion = request.form.get("direccion", "").strip()
         contacto_nombre = request.form.get("contacto_nombre", "").strip()
         contacto_telefono = request.form.get("contacto_telefono", "").strip()
         contacto_email = request.form.get("contacto_email", "").strip().lower()
@@ -207,12 +211,12 @@ def editar(id):
 
                 cur.execute("""
                     UPDATE clientes
-                    SET nombre = ?, codigo = ?, contacto_nombre = ?,
+                    SET nombre = ?, codigo = ?, nit = ?, direccion = ?, contacto_nombre = ?,
                         contacto_telefono = ?, contacto_email = ?,
                         notas = ?, activo = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """, (nombre, codigo, contacto_nombre, contacto_telefono,
+                """, (nombre, codigo, nit or None, direccion or None, contacto_nombre, contacto_telefono,
                       contacto_email, notas, activo, id))
                 conn.commit()
                 conn.close()

@@ -51,6 +51,24 @@
                     <td style="padding:8px 0;font-family:monospace;">{{ despacho.numero_operacion or '—' }}</td>
                 </tr>
                 <tr style="border-bottom:1px solid var(--borde-staff);">
+                    <td style="padding:8px 0;color:var(--atenuado-staff);">Tipo</td>
+                    <td style="padding:8px 0;">
+                        {% if despacho.tipo_despacho == 'directo' %}
+                        <span class="badge badge-warn"><i class="bi bi-lightning-charge"></i> Despacho directo</span>
+                        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">Sin habilitación previa — despachado en el momento.</div>
+                        {% elif despacho.tipo_despacho == 'posterior' %}
+                        <span class="badge badge-danger"><i class="bi bi-clock-history"></i> Registro a posteriori</span>
+                        <div style="font-size:12px;color:var(--atenuado-staff);margin-top:4px;">
+                            Motivo: {{ despacho.motivo_registro_tardio or '—' }}<br>
+                            Registrado el {{ (despacho.created_at | string)[:16] if despacho.created_at else '—' }}
+                            (el despacho ocurrió el {{ (despacho.fecha_despacho | string)[:16] if despacho.fecha_despacho else '—' }}).
+                        </div>
+                        {% else %}
+                        <span class="badge badge-neutral">Normal</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--borde-staff);">
                     <td style="padding:8px 0;color:var(--atenuado-staff);">Cliente</td>
                     <td style="padding:8px 0;font-weight:700;">{{ despacho.cliente_nombre }}</td>
                 </tr>
